@@ -86,7 +86,7 @@ server <- function(input, output, session) {
 
     # assign data to configurations
     data <- data %>%
-      filter(!datetime_err)
+      filter(!datetime_err) %>%
       mutate(
         datetime = as.POSIXct(datetime, format = "%d/%b/%Y %H:%M:%S"),
         configuration = NA) %>%
