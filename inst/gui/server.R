@@ -61,10 +61,10 @@ server <- function(input, output, session) {
       withProgress(
         message = 'Retrieving new data from google spreadsheet',
         detail = 'This may take a moment...', value = 0.25, {
-          # raw <- gs_title(global$gs_title) %>% gs_read_csv(ws = 1)
-          # write.table(raw, file = file.path(data_dir, "gs_log.csv"),
-          #             row.names = FALSE, sep = ",", col.names = TRUE)
-          raw <- read.csv(file = file.path(data_dir, "gs_log.csv"))
+          raw <- gs_title(global$gs_title) %>% gs_read_csv(ws = 1)
+          write.table(raw, file = file.path(data_dir, "gs_log.csv"),
+                      row.names = FALSE, sep = ",", col.names = TRUE)
+          #raw <- read.csv(file = file.path(data_dir, "gs_log.csv"))
         })
       return(raw)
     }

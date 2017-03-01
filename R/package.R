@@ -5,7 +5,6 @@
 #' @author Sebastian Kopf
 #' @import dplyr ggplot2
 #' @importFrom tidyr gather
-#' @importFrom methods is
 #' @importFrom stats setNames
 #'
 #' @include gui.R
