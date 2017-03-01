@@ -86,11 +86,11 @@ server <- function(input, output, session) {
 
     # assign data to configurations
     data <- data %>%
-      filter(!datetime_err) %>%
-      filter(!is.na(datetime), c(0,diff(datetime)) >= 0 & c(diff(datetime),0) >= 0) %>%  # remove entries with correctly formatted but incorrectly transmitted datetimes
+      filter(!datetime_err)
       mutate(
         datetime = as.POSIXct(datetime, format = "%d/%b/%Y %H:%M:%S"),
-        configuration = NA)
+        configuration = NA) %>%
+        filter(!is.na(datetime), c(0,diff(datetime)) >= 0 & c(diff(datetime),0) >= 0)  # remove entries with correctly formatted but incorrectly transmitted datetimes
     for (i in 1:nrow(configs)) {
       start_date <- configs$first_tp[i]
       end_date <- configs$last_tp[i]
