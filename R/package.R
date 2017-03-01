@@ -17,7 +17,7 @@ NULL
 update_package <- function(ref = "master") {
   on.exit({
     remove.packages("labwareC3")
-    devtools::install_github("kopflab/labwareC3", ref = ref)
+    devtools::install_github("kopflab/labware_c3", ref = ref)
     message("\nInstallation complete: labwareC3 version ", packageVersion("labwareC3"), "\n")
   })
 }
