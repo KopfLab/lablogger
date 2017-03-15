@@ -63,7 +63,7 @@ server <- function(input, output, session) {
         detail = 'This may take a moment...', value = 0.25, {
           raw <- gs_title(global$gs_title) %>% gs_read_csv(ws = 1)
           write.table(raw, file = file.path(data_dir, "gs_log.csv"),
-                      row.names = FALSE, sep = ",", col.names = TRUE)
+                       row.names = FALSE, sep = ",", col.names = TRUE)
           #raw <- read.csv(file = file.path(data_dir, "gs_log.csv"))
         })
       return(raw)
@@ -95,8 +95,8 @@ server <- function(input, output, session) {
       start_date <- configs$first_tp[i]
       end_date <- configs$last_tp[i]
       in_config <-
-        (rep(is.na(start_date), nrow(data)) | data$datetime >= rep(start_date, nrow(data))) &
-        (rep(is.na(end_date), nrow(data)) | data$datetime <= rep(end_date, nrow(data)))
+        (is.na(start_date) | data$datetime >= start_date) &
+        (is.na(end_date) | data$datetime <= end_date)
       data <- data %>% mutate(configuration = ifelse(in_config, configs$configuration[i], configuration))
     }
     message("INFO: ", nrow(filter(data, is.na(configuration))), " entries of M800 data discarded because they do not belong to any configuration")
@@ -108,7 +108,6 @@ server <- function(input, output, session) {
     data_gathered <- data_frame()
     for (i in 1:nrow(config_channels)) {
       config_id <- config_channels$configuration[i]
-      #print(config_channels$regexp[i]) # FIXME
       config_data <- data %>%
         filter(configuration == config_id) %>%
         mutate(data_err = !grepl(config_channels$regexp[i], data))
@@ -116,7 +115,9 @@ server <- function(input, output, session) {
               "/", config_data %>% nrow(),
               " entries of M800 data in configuration ", config_id," discarded because of data errors")
       message("EXAMPLES of discards:")
-      print(config_data %>% filter(data_err) %>% sample_n(5) %>% select(datetime, data))
+      if ( (error_rows <- config_data %>% filter(data_err) %>% nrow()) > 0) {
+        print(config_data %>% filter(data_err) %>% sample_n(min(5, error_rows)) %>% select(data))
+      }
       message("\n")
       # extract and combine with other configurations
       data_gathered <- bind_rows(
@@ -157,7 +158,7 @@ server <- function(input, output, session) {
         updateDateRangeInput(session, "date_range",
                              min = time_range[1], max = time_range[2] + 60*60*24,
                              start = time_range[1], end = time_range[2])
-      } else if (values$date_filter != as.Date(time_range)) {
+      } else if (!setequal(values$date_filter, as.Date(time_range))) {
         # just update the date range limits
         values$date_filter <- as.Date(time_range)
         updateDateRangeInput(session, "date_range",
@@ -167,7 +168,7 @@ server <- function(input, output, session) {
       vessels <- (data %>% filter(!is.na(vessel), vessel != ""))$vessel %>% unique()
       if (!setequal(vessels, values$vessels)) {
         values$vessels <- vessels
-        updateCheckboxGroupInput(session, "vessels", choices = vessels, sel = vessels)
+        updateCheckboxGroupInput(session, "vessels", choices = vessels, sel = c())
       }
 
       traces <- data$trace %>% unique()
@@ -182,7 +183,7 @@ server <- function(input, output, session) {
   # get data for plot
   get_plot_data <- reactive({
     validate(
-      need(input$vessels, message = "no vessels selected"),
+      need(input$vessels, message = "no experiments selected"),
       need(input$traces, message = "no data traces selected"),
       need(input$date_range, message = "no dates selected"))
 
@@ -228,6 +229,27 @@ server <- function(input, output, session) {
 
   output$main_plot <- renderPlotly({
     ggplotly(make_main_plot(), tooltip = "all")
+  })
+
+
+  #' RASPI CAMS ====
+
+  output$raspicams <- renderUI({
+
+    # retrieve raspi camp ip addresses
+    raspicams <- gs_title(global$gs_title) %>% gs_read_csv(ws = "picams")
+
+    boxes <- list()
+
+    for (i in 1:nrow(raspicams)) {
+      camera_box <- box(title = paste(raspicams[i,"camera"], "camera"), collapsible = TRUE, collapsed = TRUE,
+                        width = 12, status = "success", solidHeader = TRUE,
+                        tags$iframe(src=paste0("http://", raspicams[i, "ip"], ":8081"), width = "640px", height = "480px", frameborder="0"))
+
+      boxes <- c(boxes, list(column(width = 12, camera_box)))
+    }
+
+    return(tagAppendChildren(fluidRow(), list = boxes))
   })
 
 }
