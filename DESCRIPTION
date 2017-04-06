@@ -1,7 +1,7 @@
 Package: labwareC3
 Type: Package
 Title: Chemostat Control Center
-Version: 0.1.1
+Version: 0.1.2
 Author: Sebastian Kopf
 Maintainer: Sebastian Kopf <sebastian.kopf@colorado.edu>
 Roxygen: list(wrap = FALSE)

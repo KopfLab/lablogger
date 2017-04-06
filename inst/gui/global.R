@@ -20,10 +20,15 @@ if (!exists(".base_dir", env = .GlobalEnv))
 # fixed settings
 SIDEBAR_WIDTH <- 150 #px
 SETTINGS_FILE <- "labware_c3_settings.xlsx"
+DATA_DIR <- "cached_data"
 
-# make sure folders exist
+# make sure base folder
 if (!file.exists(.base_dir))
   dir.create(.base_dir)
+
+# make sure data folder exists
+if (!file.exists(file.path(.base_dir, DATA_DIR)))
+  dir.create(file.path(.base_dir, DATA_DIR))
 
 # copy default settings if needed
 .settings_file <- file.path(.GlobalEnv$.base_dir, SETTINGS_FILE)

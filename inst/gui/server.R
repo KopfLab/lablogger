@@ -3,14 +3,14 @@
 server <- function(input, output, session) {
 
   # STARTUP =======
-  data_dir <- .GlobalEnv$.base_dir
-  if (!dir.exists(data_dir)) dir.create(data_dir)
+  base_dir <- .GlobalEnv$.base_dir
+  if (!dir.exists(base_dir)) dir.create(base_dir)
 
   message("\n***************************************************************",
           "\nINFO: Launching GUI ...",
           "\nINFO: App directory: ", getwd(),
-          "\nINFO: Data directory: ", data_dir,
-          "\nINFO: Settings file: ", file.path(data_dir, SETTINGS_FILE))
+          "\nINFO: Data directory: ", base_dir,
+          "\nINFO: Settings file: ", file.path(base_dir, SETTINGS_FILE))
 
   # google spreadsheet authentication
   options(googlesheets.httr_oauth_cache = FALSE)
@@ -22,11 +22,11 @@ server <- function(input, output, session) {
   }
 
   # SETTINGS =======
-  global <- read_excel(file.path(data_dir, SETTINGS_FILE), sheet = "global")
-  configs <- read_excel(file.path(data_dir, SETTINGS_FILE), sheet = "configurations")
-  channels <- read_excel(file.path(data_dir, SETTINGS_FILE), sheet = "channels")
-  data_types <- read_excel(file.path(data_dir, SETTINGS_FILE), sheet = "data_types")
-  live <- read_excel(file.path(data_dir, SETTINGS_FILE), sheet = "live")
+  global <- read_excel(file.path(base_dir, SETTINGS_FILE), sheet = "global")
+  configs <- read_excel(file.path(base_dir, SETTINGS_FILE), sheet = "configurations")
+  channels <- read_excel(file.path(base_dir, SETTINGS_FILE), sheet = "channels")
+  data_types <- read_excel(file.path(base_dir, SETTINGS_FILE), sheet = "data_types")
+  live <- read_excel(file.path(base_dir, SETTINGS_FILE), sheet = "live")
   message("INFO: Authenticated and all settings loaded.")
   last_update <- subset(gs_ls(), sheet_title == global$gs_title)$updated
   if (length(last_update) == 0) stop("Cannot find log google spreadsheet ", global$gs_title, call. = F)
@@ -56,16 +56,44 @@ server <- function(input, output, session) {
     },
     # reads the log files
     valueFunc = function() {
-      # read the data
-      message("INFO: Loading google spreadsheet data")
-      withProgress(
-        message = 'Retrieving new data from google spreadsheet',
-        detail = 'This may take a moment...', value = 0.25, {
-          raw <- gs_title(global$gs_title) %>% gs_read_csv(ws = 1)
-          write.table(raw, file = file.path(data_dir, "gs_log.csv"),
-                       row.names = FALSE, sep = ",", col.names = TRUE)
-          #raw <- read.csv(file = file.path(data_dir, "gs_log.csv"))
-        })
+
+      # older RData chached data
+      raw <- data_frame()
+      for (file in list.files(path = file.path(base_dir, DATA_DIR), pattern = "*data_log\\.RData", full.names = TRUE)) {
+        load(file = file)
+        if (exists("cached_data")) {
+          message("INFO: Loading cached RData ", basename(file))
+          raw <- bind_rows(raw, cached_data)
+          rm("cached_data")
+        } else {
+          message("INFO: Failed to load cached RData from ", basename(file))
+        }
+      }
+
+      # newest data
+      last_update <- subset(gs_ls(), sheet_title == global$gs_title)$updated
+      last_log_file <- file.path(base_dir, DATA_DIR, format(last_update, "%Y%m%d_%H%M%S_gs_log.csv"))
+
+      if (file.exists(last_log_file)) {
+        # most recent data available locally
+        message("INFO: Last log file of google spreadsheet data already cached --> read local csv")
+        raw <- bind_rows(raw, read.csv(last_log_file))
+      } else {
+        # go from spread sheet instead
+        message("INFO: Loading google spreadsheet data")
+        withProgress(
+          message = 'Retrieving new data from google spreadsheet',
+          detail = 'This may take a moment...', value = 0.25, {
+            raw.gs <- gs_title(global$gs_title) %>% gs_read_csv(ws = 1)
+            raw <- bind_rows(raw, raw.gs)
+            write.table(raw.gs, file = file.path(base_dir, DATA_DIR, format(last_update, "%Y%m%d_%H%M%S_gs_log.csv")), row.names = FALSE, sep = ",", col.names = TRUE)
+            old_logs <- list.files(path = file.path(base_dir, DATA_DIR), pattern = "*gs_log\\.csv", full.names = TRUE) %>% sort()  %>% tail(-5)
+            if (length(old_logs) > 0) {
+              message("INFO: Data loaded, deleting ", length(old_logs), " old log files (before last 5)")
+              file.remove(old_logs)
+            }
+          })
+      }
       return(raw)
     }
   )
@@ -75,22 +103,14 @@ server <- function(input, output, session) {
     raw_data <- get_logger_data()
     message("INFO: ", nrow(raw_data), " entries of M800 data loaded")
 
-    datetime_regexp <- "[0-9]{1,2}/[a-zA-z]{3}/[0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2}"
-    number_regexp <- "(-?[0-9]+\\.?[0-9]*|----|\\*{4})"
-    # number_regexp <- "(?:[+-]?)(?:(?=[.]?[0-9])(?:[0-9]*)(?:(?:[.])(?:[0-9]{0,}))?)" ## for full scale
-
-    # remove problematic data entries because of datetime issues
-    data <- raw_data %>% mutate(
-      datetime_err = !grepl(datetime_regexp, datetime))
-    message("INFO: ", nrow(subset(data, datetime_err)), " entries of M800 data discarded because of datetime errors")
+    # datetime
+    data <- raw_data %>%
+      mutate(
+        datetime = as.POSIXct(datetime, format = "%m/%d/%Y %H:%M:%S"),
+        configuration = NA
+      )
 
     # assign data to configurations
-    data <- data %>%
-      filter(!datetime_err) %>%
-      mutate(
-        datetime = as.POSIXct(datetime, format = "%d/%b/%Y %H:%M:%S"),
-        configuration = NA) %>%
-        filter(!is.na(datetime), c(0,diff(datetime)) >= 0 & c(diff(datetime),0) >= 0)  # remove entries with correctly formatted but incorrectly transmitted datetimes
     for (i in 1:nrow(configs)) {
       start_date <- configs$first_tp[i]
       end_date <- configs$last_tp[i]
@@ -102,6 +122,7 @@ server <- function(input, output, session) {
     message("INFO: ", nrow(filter(data, is.na(configuration))), " entries of M800 data discarded because they do not belong to any configuration")
 
     # walk through configurations to regexp check the data and transform into long format
+    number_regexp <- "(-?[0-9]+\\.?[0-9]*|----|\\*{4})"
     config_channels <- channels %>%
       group_by(configuration) %>%
       summarize(regexp = paste0(number_regexp, "\\s*,", trace, ",") %>% paste(collapse=""))
@@ -120,17 +141,19 @@ server <- function(input, output, session) {
       }
       message("\n")
       # extract and combine with other configurations
-      data_gathered <- bind_rows(
-        data_gathered,
-        suppressWarnings(config_data %>%
-          select(datetime, device, type, data, configuration) %>%
-          extract(data, into=as.character(filter(channels, configuration == config_id)$output), config_channels$regexp[i], remove = T, convert = T) %>% # extract data
-          gather("output", "value", -c(datetime, device, type, configuration)) %>% # melt data
-          left_join(channels, by = c("configuration", "output")) %>% # add the setup information of the probes
-          as_data_frame() %>%
-          mutate(value = as.numeric(value)) %>%
-          filter(!is.na(value)))
-      )
+      if (nrow(config_data) > 0) {
+        parsed_config_data <-
+          suppressWarnings(
+            config_data %>%
+              select(datetime, device, type, data, configuration) %>%
+              extract(data, into=as.character(filter(channels, configuration == config_id)$output), config_channels$regexp[i], remove = T, convert = T) %>% # extract data
+              gather("output", "value", -c(datetime, device, type, configuration)) %>% # melt data
+              left_join(channels, by = c("configuration", "output")) %>% # add the setup information of the probes
+              as_data_frame() %>%
+              mutate(value = as.numeric(value)) %>%
+              filter(!is.na(value)))
+        data_gathered <- bind_rows(data_gathered, parsed_config_data)
+      }
     }
 
     # return result
