@@ -10,6 +10,8 @@ sidebar <- dashboardSidebar(width = 150,
 
 body <- dashboardBody(
 
+  useShinyjs(),
+
   tabItems(
     tabItem("live", uiOutput("raspicams")),
 
@@ -20,12 +22,16 @@ body <- dashboardBody(
         # plot box
         box(
           title = textOutput("last_gs_update"),
-          div(align = "right",
-              #actionLink("refresh", "Refresh plot", icon = icon("gear")),
-              #bsTooltip("refresh", "Refresh the plot"),
-              downloadButton("save", "Save", icon("download")),
-              bsTooltip("save", "Save the plot as a PDF")
-          ),
+          h4(align = "right", id = "dl_actions",
+             #actionLink("refresh", "Refresh plot", icon = icon("gear")),
+             #bsTooltip("refresh", "Refresh the plot"),
+             downloadLink("dl_plot", class = NULL, icon("line-chart"), "Save"), " | ",
+             bsTooltip("dl_plot", "Save the plot as a PDF"),
+             downloadLink("dl_excel", class = NULL, icon("file-excel-o"), "Excel"), " | ",
+             bsTooltip("dl_excel", "Download data as Excel file"),
+             downloadLink("dl_data", class = NULL, icon("save"), "Data"),
+             bsTooltip("dl_data", "Download data RData file")
+          ) %>% hidden(),
           status = "primary", solidHeader = TRUE, width = 9,
           #plotOutput("main_plot", height = "100%"),
           plotlyOutput("main_plot", height = "600px"),
@@ -48,10 +54,10 @@ body <- dashboardBody(
                    # radioButtons("legend", "Legend Position", c("Right" = "right", "Below" = "below"), selected = "right", inline = TRUE),
                    dateRangeInput("date_range", label = NULL,
                                   format = "yyyy-mm-dd", startview = "month", weekstart = 0,
-                                  language = "en", separator = " to ")
+                                  language = "en", separator = " to "),
+
+                   radioButtons("time_format", "Time format", choices = c("Date&Time"="datetime", "Duration"="time.hrs"), selected = "datetime", inline = TRUE)
                )
-
-
         )
 
       )

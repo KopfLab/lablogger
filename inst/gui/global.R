@@ -1,6 +1,7 @@
 library(shiny)
 library(shinydashboard)
 library(shinyBS)
+library(shinyjs)
 library(magrittr)
 library(ggplot2)
 library(plotly)

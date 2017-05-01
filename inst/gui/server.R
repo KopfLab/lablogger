@@ -151,7 +151,10 @@ server <- function(input, output, session) {
               left_join(channels, by = c("configuration", "output")) %>% # add the setup information of the probes
               as_data_frame() %>%
               mutate(value = as.numeric(value)) %>%
-              filter(!is.na(value)))
+              filter(!is.na(value)) %>%
+              # include time.hrs column
+              group_by(vessel) %>% mutate(time.hrs = difftime(datetime, min(datetime)[1]) %>% as.double(units = "hours")) %>% ungroup()
+            )
         data_gathered <- bind_rows(data_gathered, parsed_config_data)
       }
     }
@@ -197,7 +200,7 @@ server <- function(input, output, session) {
       traces <- data$trace %>% unique()
       if (!setequal(traces, values$traces)) {
         values$traces <- traces
-        updateCheckboxGroupInput(session, "traces", choices = traces, sel = traces)
+        updateCheckboxGroupInput(session, "traces", choices = traces, sel = c())
       }
 
     })
@@ -218,7 +221,7 @@ server <- function(input, output, session) {
         filter(vessel %in% input$vessels, trace %in% input$traces) %>%
         filter(as.Date(datetime) >= input$date_range[1] & as.Date(datetime) <= input$date_range[2])
       if (nrow(df) == 0) return(NULL)
-      return(df)
+      return(as_data_frame(df))
     })
   })
 
@@ -231,8 +234,14 @@ server <- function(input, output, session) {
       data <- get_plot_data()
       print(head(data))
       setProgress(detail = 'Generating graph ...', value = 0.5)
-      p <- ggplot(data) +
-        aes(datetime, value, color = trace) +
+      if (input$time_format == "time.hrs") {
+        p <- ggplot(data) +
+          aes(time.hrs, value, color = trace)
+      } else {
+        p <- ggplot(data) +
+          aes(datetime, value, color = trace)
+      }
+      p <- p +
         geom_line() +
         facet_grid(data_type~vessel, scales = "free") +
         theme_bw() +
@@ -243,13 +252,48 @@ server <- function(input, output, session) {
     })
   })
 
-  output$save <- downloadHandler(
+  # get data for export
+  get_export_data <- reactive({
+    data <- get_plot_data()
+    print(names(data))
+    return(data %>% head())
+  })
+
+
+  #' downloads
+  observe({
+    if (!is.null(input$vessels) & !is.null(input$traces) && !is.null(input$date_range) && !is.null(get_plot_data()) ) {
+      shinyjs::show("dl_actions")
+    } else {
+      shinyjs::hide("dl_actions")
+    }
+  })
+
+  output$dl_plot <- downloadHandler(
     filename = function() {paste0(format(Sys.time(), format = "%Y%m%d_%H%M"), "_chemostat_overview.pdf")},
     content = function(file) {
       device <- function(..., version="1.4") grDevices::pdf(..., version=version)
       ggsave(file = file, plot = make_main_plot(), width = 10, height = 8, device = device)
     })
 
+  output$dl_excel <- downloadHandler(
+    filename = function() {paste0(format(Sys.time(), format = "%Y%m%d_%H%M"), "_chemostat_data.xlsx")},
+    content = function(file) {
+      get_plot_data() %>%
+        select(datetime, time.hrs, vessel, trace, value) %>%
+        arrange(vessel, datetime) %>% distinct() %>% # make sure there are no replicate issues (might discard some replicate timepoint data)
+        spread(trace, value) %>%
+        openxlsx::write.xlsx(file = file)
+    })
+
+  output$dl_data <- downloadHandler(
+    filename = function() {paste0(format(Sys.time(), format = "%Y%m%d_%H%M"), "_chemostat_data.RData")},
+    content = function(file) {
+      data <- get_plot_data()
+      save(data, file = file)
+    })
+
+  #' plots
   output$main_plot <- renderPlotly({
     ggplotly(make_main_plot(), tooltip = "all")
   })
