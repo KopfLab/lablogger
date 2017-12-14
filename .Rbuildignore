@@ -1,2 +1,6 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^tmp/
+^\.httr-oauth$
+^Makefile$
+^db/

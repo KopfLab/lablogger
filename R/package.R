@@ -1,15 +1,23 @@
-#' @title Chemostat Control Center (C3)
-#' @description Test
-#' @name labwareC3
-#' @docType package
-#' @author Sebastian Kopf
-#' @import dplyr ggplot2
-#' @importFrom tidyr gather
-#' @importFrom stats setNames
-#'
-#' @include gui.R
-NULL
+#' @keywords internal
+"_PACKAGE"
 
+#' @importFrom glue glue
+#' @importFrom dplyr select rename filter as_data_frame %>% tbl collect
+#' @importFrom pool dbPool
+#' @importFrom RPostgreSQL PostgreSQL
+#' @importFrom tidyr gather
+#' @importFrom purrr map map2
+#' @import shiny
+#' @import shinydashboard
+#' @importFrom shinyjs useShinyjs hidden
+#' @importFrom shinyAce aceEditor
+#' @importFrom shinyBS bsTooltip
+#' @importFrom shinycssloaders withSpinner
+#' @importFrom plotly plotlyOutput renderPlotly
+#' @importFrom stats setNames
+#' @importFrom utils packageVersion
+#' @importFrom methods is
+NULL
 
 #' install the latest version of labwareC3 from GitHub
 #' @param ref which version to install, master (=newest) is the default
@@ -17,7 +25,7 @@ NULL
 update_package <- function(ref = "master") {
   on.exit({
     remove.packages("labwareC3")
-    devtools::install_github("kopflab/labware_c3", ref = ref)
+    devtools::install_github("kopflab/labwareC3", ref = ref)
     message("\nInstallation complete: labwareC3 version ", packageVersion("labwareC3"), "\n")
   })
 }
