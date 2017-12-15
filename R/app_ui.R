@@ -1,7 +1,7 @@
 #' Chemostat Control Center UI
 #'
 #' @description Generates the user interface part of the isoviewer app
-app_ui <- function(start_menu = "live") {
+app_ui <- function(start_menu = "traces") {
 
 
   header <- dashboardHeader(title = "Chemostat", titleWidth = 150)

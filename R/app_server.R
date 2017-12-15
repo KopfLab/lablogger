@@ -7,7 +7,7 @@ app_server <- function(pool) {
 
     # REACTIVE VALUES ----
     values <- reactiveValues(
-      cameras = get_camera_df(pool),
+      cameras = get_cameras_df(pool),
       last_gs_update = NULL,
       vessels = c(),
       traces = c(),

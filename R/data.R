@@ -2,9 +2,9 @@
 
 
 # retrieve active cameras
-get_camera_df <- function(pool) {
+get_cameras_df <- function(pool) {
   cat("\nInfo: retrieving active cameras... ")
-  df <- tbl(pool, "camera") %>%
+  df <- tbl(pool, "cameras") %>%
     filter(active) %>%
     collect()
   cat(glue("found {nrow(df)}\n"))
