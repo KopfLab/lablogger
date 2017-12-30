@@ -1,0 +1,35 @@
+# simplifying make commands
+SHELL := /bin/bash
+
+# install the virtual environments and all dependencies
+install: bin bin/lambda lib/python2.7/site-packages/pg8000
+
+bin:
+	virtualenv . --python=python2.7
+
+bin/lambda:
+	source bin/activate && pip install python-lambda
+
+lib/python2.7/site-packages/pg8000:
+	source bin/activate && pip install pg8000
+
+# initialize project (only needed once)
+init: service.py
+
+service.py:
+	source bin/activate && lambda init
+
+# cleanup the virtual environment installation
+clean:
+	rm -R dist
+	rm -R lib
+	rm -R include
+	rm -R bin
+
+# invoke the lambda function
+invoke:
+	source bin/activate && lambda invoke -v
+
+# deploy the lambda function (requires config.yaml to have the necessary credentials)
+deploy:
+	source bin/activate && lambda deploy
