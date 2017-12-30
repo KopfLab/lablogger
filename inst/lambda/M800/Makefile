@@ -21,10 +21,10 @@ service.py:
 
 # cleanup the virtual environment installation
 clean:
-	rm -R dist
-	rm -R lib
-	rm -R include
-	rm -R bin
+	rm -R -f dist
+	rm -R -f lib
+	rm -R -f include
+	rm -R -f bin
 
 # invoke the lambda function
 invoke:
