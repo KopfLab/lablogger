@@ -31,5 +31,8 @@ invoke:
 	source bin/activate && lambda invoke -v
 
 # deploy the lambda function (requires config.yaml to have the necessary credentials)
-deploy:
+deploy: config.yaml
 	source bin/activate && lambda deploy
+
+config.yaml:
+	cp config_template.yaml config.yaml
