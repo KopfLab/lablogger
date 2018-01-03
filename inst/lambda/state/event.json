@@ -1,0 +1,16 @@
+{
+  "published_at": "2018-01-03T03:50:22.070Z",
+  "data": {
+    "msg": "",
+    "data": [
+      {
+        "k": "data-log",
+        "v": "on"
+      }
+    ],
+    "notes": "",
+    "type": "state changed",
+    "name": "scale-01"
+  },
+  "device_id": "31005f000e51353532343635"
+}
