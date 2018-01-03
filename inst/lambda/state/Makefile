@@ -14,7 +14,7 @@ lib/python2.7/site-packages/pg8000:
 	source bin/activate && pip install pg8000
 
 # initialize project (only needed once)
-init: service.py
+init: install service.py
 
 service.py:
 	source bin/activate && lambda init
@@ -27,9 +27,9 @@ clean:
 	rm -R -f bin
 
 # invoke the lambda function
-invoke:
+invoke: install
 	source bin/activate && lambda invoke -v
 
 # deploy the lambda function (requires config.yaml to exist and have the necessary credentials)
-deploy: config.yaml
+deploy: install config.yaml
 	source bin/activate && lambda deploy

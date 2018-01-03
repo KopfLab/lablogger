@@ -1,11 +1,11 @@
 {
   "event": "device_state_log",
   "url": "https://<<ACCESS_POINT>>.execute-api.us-west-2.amazonaws.com/<<STAGE>>/<<RESOURCE>>",
-  "requestType": "POST",
+  "requestType": "PUT",
   "headers": {
         "x-api-key" : "<<API-KEY>>",
         "Content-Type": "application/json"
-   },
+  },
   "body": "{ \"device_id\":\"{{SPARK_CORE_ID}}\", \"published_at\":\"{{PARTICLE_PUBLISHED_AT}}\", \"data\":{{{PARTICLE_EVENT_VALUE}}} }",
   "mydevices": true,
   "noDefaults": true
