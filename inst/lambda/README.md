@@ -41,21 +41,33 @@
 
 ## Deployment
 
+ - when no `config.yaml` exists yet, run `make config.yaml`
+ - fill out the settings in `config.yaml` (no worries if not everything correct right away, deploy will throw errors)
  - run `make deploy` to deploy the lambda function:
-  - uses `lambda deploy` in the virtual environment (requires config.yaml to exist and be fully defined - see `config_template.yaml` for details)
+  - uses `lambda deploy` in the virtual environment
  - Note: for large project dependencies, consider using S3 bucket for the labmda function, see [docs](https://github.com/nficano/python-lambda#uploading-to-s3) for details
  - Note: for the lambda function to work properly, it needs to be well integrated into other services (see below for details)
 
 ## Integration
 
-For the lambda function to be useful, it needs to be setup with the right IAM role and usually some sort of API gateway. This happens separately from the lambda function development and deployment, for a good intro see https://docs.aws.amazon.com/apigateway/latest/developerguide/getting-started-lambda-non-proxy-integration.html#getting-started-new-lambda
+Once the Lambda function is deployed it can be viewed and tested in the Lambda functions console https://console.aws.amazon.com/lambda. Detailed log messages and errors are available at the Cloudwatch console https://console.aws.amazon.com/cloudwatch. For the lambda function to be useful though, it usually needs to be setup with the right IAM role, VPC access and usually some sort of API gateway.
 
 - IAM administration: https://console.aws.amazon.com/iam
   - It is useful to create an IAM role for the lambda function, a useful default policy is `AWSLambdaVPCAccessExecutionRole` (see [setup docs](https://docs.aws.amazon.com/lambda/latest/dg/vpc-rds-create-iam-role.html) for details)
-- API gateway administration: https://us-west-2.console.aws.amazon.com/apigateway/
-- Lambda functions administration: https://us-west-2.console.aws.amazon.com/lambda (this is where the deployed functions should appear)
-- Additionally, to get access to the an RDS database running in a Virtual Private Container (VPC), the lambda function needs to be added to the VPC the database is in, this can be configured after the function is created:
-  - in `Network` settings for the lambda function, select the proper VPC
-  - select all the subnets
-  - select the default security group (or even better, make a simple custom one for the lambda function)
-- make sure to add the assigned security group to the allowed **Inbound** traffic rules of the RDS security group (enter the lambda security group ID under **Source**)
+  - Add the name of the role in the `role` setting of the `config.yaml`
+- Additionally, to get access to the an RDS database running in a Virtual Private Container (VPC), the lambda function needs to be added to the VPC the database is in:
+  - Subnets:
+    - find the subnet IDs for your primary VPC in the **Subnets** menu at https://console.aws.amazon.com/vpc
+    - add at least one (might as well add all though) in the `subnet_ids` setting in `config.yaml` - format: `[subnet-1,subnet-2,...]`
+  - Security group(s):
+    - if none exists yet, make a simple security group for lambda functions in the **Security Groups** menu at https://console.aws.amazon.com/vpc (doesn't need any custom inbound or outbound definitions) and note the Group ID
+    - add at least one (usually one is enough) in the `security_group_ids` setting in `config.yaml` - format: `[sg-1,sg-2,...]`
+    - make sure to add the assigned security group to the allowed **Inbound** traffic rules of the RDS databases' security group (enter the lambda security group ID under **Source**)
+  - redeploy the lambda function (`make deploy`), these settings should now all be listed in the details for the lambda function at https://console.aws.amazon.com/lambda
+- API gateway administration: https://console.aws.amazon.com/apigateway
+  - for the lambda function to be easily accessible via web API (be it http or something else), an API gateway needs to be set up, see [this linke for a good example](https://docs.aws.amazon.com/apigateway/latest/developerguide/getting-started-lambda-non-proxy-integration.html#getting-started-new-lambda)
+  - Notes:
+    - API gateway configuration is _completely_ independent of the lambda function deployment and must be configured separately (i.e. no setting in the `config.yaml` that plays a role here)
+    - if you want to make the API secure, good to include an API key requirement which requires creating an API key and setting up a usage plan that allows the API key for a specific API gateway and deployed stage (this stage's method must have the `API Key Required` setting in the `Method->Method Request` set to `true`).
+    - for details on how to configure Particle Photon webhooks to forward to API gateways, see https://docs.particle.io/reference/webhooks/
+    - API development can be very tricky, [POSTMAN](https://www.getpostman.com/) helps with testing APIs:
