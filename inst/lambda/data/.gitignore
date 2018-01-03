@@ -1,0 +1,12 @@
+# configuration details
+config.yaml
+
+# installation
+bin
+dist
+include
+lib
+
+# temp files
+pip-selfcheck.json
+service.pyc
