@@ -2,6 +2,7 @@
 
 export(c3_get_cameras)
 export(c3_get_device_name_from_cloud)
+export(c3_get_device_state_logs)
 export(c3_get_devices)
 export(c3_set_access_token)
 export(c3_set_db_con)

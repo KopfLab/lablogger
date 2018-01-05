@@ -4,6 +4,41 @@ validate_db_connection <- function(con_quo) {
   eval_tidy(resolve_defaults(con_quo))
 }
 
+#' Retrieve state logs
+#'
+#' @param filter what filter conditions to apply (forwarded to \link[dplyr]{filter})
+#' @param select what columns to select (forwarded to \link[select]{select})
+#' @param convert_to_local_TZ wheteher to convert the log_datetime to the local timezone stored in \code{Sys.getenv("TZ")} (if FALSE, will keep it as UTC)
+#' @return device state logs
+#' @export
+c3_get_device_state_logs <- function(filter = TRUE, select = everything(), convert_to_local_TZ = TRUE, con = default(con), quiet = default(quiet)) {
+  con <- validate_db_connection(enquo(con))
+
+  if (!quiet) cat("\nInfo: retrieving device state logs... ")
+  filter_quo <- enquo(filter)
+  select_quo <- enquo(select)
+
+
+  logs <- tbl(con, "device_state_logs") %>%
+    dplyr::filter(UQ(filter_quo)) %>%
+    dplyr::select(UQ(select_quo)) %>%
+    collect()
+
+  if ("log_datetime" %in% names(logs)) {
+    # server stores everything in UTC
+    logs <- mutate(logs, log_datetime = force_tz(log_datetime, "UTC"))
+
+    # local TZ conversion
+    if (convert_to_local_TZ)
+      logs <- mutate(logs, log_datetime = with_tz(log_datetime, Sys.getenv("TZ")))
+  }
+
+  if (!quiet) cat(glue("found {nrow(logs)} entries\n\n"))
+
+  return(logs)
+}
+
+
 #' retrieve active cameras
 #' @export
 c3_get_cameras <- function(con = default(con), quiet = default(quiet)) {
@@ -31,7 +66,7 @@ c3_get_devices <- function(in_use_only = TRUE, con = default(con), quiet = defau
   return(df)
 }
 
-#' Update device names
+#' Synchronize device names
 #'
 #' Update device names in the database from the cloud.
 #' @return devices with updated device names
