@@ -1,12 +1,17 @@
 #' @keywords internal
 "_PACKAGE"
 
-#' @importFrom glue glue
+#' @importFrom rlang quo enquo !! !!! is_quosure quo_expr quo_text quo_is_symbol quo_is_lang lang_head sym eval_tidy
+#' @importFrom curl new_handle curl_fetch_memory
+#' @importFrom jsonlite fromJSON toJSON
+#' @importFrom glue glue collapse
 #' @importFrom dplyr select rename filter as_data_frame %>% tbl collect
+#' @importFrom purrr map map_lgl map_chr map_dbl map2 map2_chr
+#' @importFrom stringr str_c str_replace
+#' @importFrom DBI dbExecute
 #' @importFrom pool dbPool
 #' @importFrom RPostgreSQL PostgreSQL
 #' @importFrom tidyr gather
-#' @importFrom purrr map map2
 #' @import shiny
 #' @import shinydashboard
 #' @importFrom shinyjs useShinyjs hidden
