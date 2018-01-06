@@ -2,7 +2,7 @@
 SHELL := /bin/bash
 
 # install the virtual environments and all dependencies
-install: bin bin/lambda
+install: bin bin/lambda lib/python2.7/site-packages/pg8000
 
 bin:
 	virtualenv . --python=python2.7
