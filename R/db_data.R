@@ -78,21 +78,21 @@ c3_snyc_device_names_from_cloud <- function(in_use_only = TRUE, con = default(co
   devices <-
     c3_get_devices(in_use_only = in_use_only, con = con, quiet = quiet) %>%
     mutate(
-      device_name = map_chr(device_id, c3_get_device_name_from_cloud, access_token = access_token, quiet = quiet),
+      device_name = map_chr(device_particle_id, c3_get_device_name_from_cloud, access_token = access_token, quiet = quiet),
       last_name_sync = with_tz(now(), tzone = "UTC"),
-      values = map2_chr(device_id, device_name, ~sprintf("('%s', '%s')", .x, str_replace(.y, fixed("'"), "''")))
+      values = map2_chr(device_particle_id, device_name, ~sprintf("('%s', '%s')", .x, str_replace(.y, fixed("'"), "''")))
     )
 
   sql <-
     glue(
       "update devices as tbl set device_name = map.device_name
-      from (values {collapse(devices$values, ',\n')}) as map(device_id, device_name)
-      where map.device_id = tbl.device_id")
+      from (values {collapse(devices$values, ',\n')}) as map(device_particle_id, device_name)
+      where map.device_particle_id = tbl.device_particle_id")
 
   if (!quiet) cat(glue("\nInfo: updating device names in DB... "))
   result <- dbExecute(con, sql)
   if (!quiet) cat(glue("{result} updated successfully.\n\n"))
 
   # return the updated devices invisibly
-  return(invisible(devices))
+  return(invisible(devices %>% select(-values)))
 }

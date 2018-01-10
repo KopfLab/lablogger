@@ -73,12 +73,10 @@ def handler(event, context):
         device_data_log_ids = []
         cur = conn.cursor()
         for data in payload.get('data'):
-            cur.execute("INSERT INTO device_data_logs_temp (device_raw_log_id, device_id, log_datetime, data_key, data_value, data_units, data_n) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING device_data_log_id",
-                (device_raw_log_id, device_id, published_at, data.get('k'), data.get('v'), data.get('u'), data.get('n')))
-            device_data_log_ids = device_data_log_ids + cur.fetchone()
-            # update time offset -- there should be an easier way to do this!!
-            # FIXME: make time offset positive in the paylod and just do - interval here
-            cur.execute("UPDATE device_data_logs_temp SET log_datetime = log_datetime + interval '{} milliseconds' WHERE device_data_log_id = (%s)".format(payload.get('to')), (device_data_log_ids[-1], ))
+            if(not(data.get('v') is None)):
+                cur.execute("INSERT INTO device_data_logs_temp (device_raw_log_id, device_id, log_datetime, log_time_offset, data_key, data_value, data_units, data_n) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING device_data_log_id",
+                    (device_raw_log_id, device_id, published_at, payload.get('to')/1000, data.get('k'), data.get('v'), data.get('u'), data.get('n')))
+                device_data_log_ids = device_data_log_ids + cur.fetchone()
         conn.commit()
         logger.info("device in use, created {} log entries (IDs: {})".format(len(device_data_log_ids), ', '.join(map(str, device_data_log_ids))))
         return("Device in use ({} log entries created).".format(len(device_data_log_ids)))
