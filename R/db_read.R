@@ -1,9 +1,3 @@
-# general data retrieval functions
-validate_db_connection <- function(con_quo) {
-  if(!is_quosure(con_quo)) stop("connection not supplied as quosure", call. = FALSE)
-  eval_tidy(resolve_defaults(con_quo))
-}
-
 #' Retrieve state logs
 #'
 #' @param filter what filter conditions to apply (forwarded to \link[dplyr]{filter})

@@ -1,13 +1,14 @@
 #' @keywords internal
 "_PACKAGE"
 
-#' @importFrom rlang quo enquo !! !!! is_quosure quo_expr quo_text quo_is_symbol quo_is_lang lang_head sym eval_tidy
+#' @importFrom rlang quo quos enquo !! !!! is_quosure quo_expr quo_text quo_is_symbol quo_is_lang lang_head sym eval_tidy
 #' @importFrom curl new_handle curl_fetch_memory
 #' @importFrom jsonlite fromJSON toJSON
 #' @importFrom glue glue collapse
-#' @importFrom dplyr select rename filter as_data_frame %>% tbl collect
+#' @importFrom dplyr select rename filter as_data_frame %>% tbl collect mutate
+#' @importFrom lubridate with_tz force_tz now
 #' @importFrom purrr map map_lgl map_chr map_dbl map2 map2_chr
-#' @importFrom stringr str_c str_replace
+#' @importFrom stringr str_c str_replace fixed
 #' @importFrom DBI dbExecute
 #' @importFrom pool dbPool
 #' @importFrom RPostgreSQL PostgreSQL

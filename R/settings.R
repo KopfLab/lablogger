@@ -13,6 +13,8 @@ set_default <- function(name, value, overwrite = TRUE) {
   return(invisible(value))
 }
 
+
+
 #' Set default database connection or pool
 #' @param con database connection or pool object
 #' @export
@@ -25,6 +27,16 @@ c3_set_db_con <- function(con) {
 #' @export
 c3_set_access_token <- function(token) {
   set_default("access_token", access_token)
+}
+
+#' Set default owner ID
+#'
+#' Note that this is not checked wheter it exists, simply used as the default for other functions.
+#'
+#' @param owner_id owner
+#' @export
+c3_set_owner_id <- function(owner_id) {
+  set_default("owner_id", owner_id)
 }
 
 #' Turn information messages on/off
