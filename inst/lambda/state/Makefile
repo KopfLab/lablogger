@@ -14,7 +14,7 @@ lib/python2.7/site-packages/pg8000:
 	source bin/activate && pip install pg8000
 
 # initialize project (only needed once)
-init: install service.py
+init: install config.yaml webhooks service.py
 
 service.py:
 	source bin/activate && lambda init
@@ -34,11 +34,15 @@ invoke_state_log: install
 invoke_data_log: install
 	source bin/activate && lambda invoke -v --event-file event_data_log.json
 
+# configuration for deployment - generate from template file (automatically git-ignored)
+config.yaml: config_template.yaml
+	cp config_template.yaml config.yaml
+
 # deploy the lambda function (requires config.yaml to exist and have the necessary credentials)
-deploy: install config.yaml
+deploy: install
 	source bin/activate && lambda deploy
 
-# webhook files - generate webhook files
+# webhook files - generate webhook files from template (automatically git-ignored)
 webhooks: webhook_data_log.json webhook_state_log.json
 webhook_data_log.json: webhook_data_log_template.json
 	cp webhook_data_log_template.json webhook_data_log.json
