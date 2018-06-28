@@ -1,5 +1,6 @@
 # configuration details
 config.yaml
+webhook*log.json
 
 # installation
 bin
