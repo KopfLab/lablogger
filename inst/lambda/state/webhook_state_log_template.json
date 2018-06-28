@@ -1,0 +1,12 @@
+{
+  "event": "device_state_log",
+  "url": "https://<<ACCESS_POINT>>.execute-api.us-west-2.amazonaws.com/<<STAGE>>/<<RESOURCE>>",
+  "requestType": "PUT",
+  "headers": {
+        "x-api-key" : "<<API-KEY>>",
+        "Content-Type": "application/json"
+  },
+  "body": "{ \"particle_id\":\"{{SPARK_CORE_ID}}\", \"published_at\":\"{{PARTICLE_PUBLISHED_AT}}\", \"log\":\"state\", \"owner\":\"<<OWNER>>\", \"payload\":{{{PARTICLE_EVENT_VALUE}}} }",
+  "mydevices": true,
+  "noDefaults": true
+}
