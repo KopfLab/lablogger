@@ -6,7 +6,7 @@
         "x-api-key" : "<<API-KEY>>",
         "Content-Type": "application/json"
   },
-  "body": "{ \"particle_id\":\"{{SPARK_CORE_ID}}\", \"published_at\":\"{{PARTICLE_PUBLISHED_AT}}\", \"log\":\"state\", \"owner\":\"<<OWNER>>\", \"payload\":{{{PARTICLE_EVENT_VALUE}}} }",
+  "body": "{ \"particle_id\":\"{{SPARK_CORE_ID}}\", \"published_at\":\"{{PARTICLE_PUBLISHED_AT}}\", \"log\":\"state\", \"owner_id\":\"<<OWNER>>\", \"payload\":{{{PARTICLE_EVENT_VALUE}}} }",
   "mydevices": true,
   "noDefaults": true
 }
