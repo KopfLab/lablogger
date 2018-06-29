@@ -29,14 +29,14 @@ c3_set_access_token <- function(token) {
   set_default("access_token", access_token)
 }
 
-#' Set default owner ID
+#' Set default group ID
 #'
 #' Note that this is not checked wheter it exists, simply used as the default for other functions.
 #'
-#' @param owner_id owner
+#' @param group_id group
 #' @export
-c3_set_owner_id <- function(owner_id) {
-  set_default("owner_id", owner_id)
+c3_set_group_id <- function(group_id) {
+  set_default("group_id", group_id)
 }
 
 #' Turn information messages on/off
