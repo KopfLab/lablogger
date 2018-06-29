@@ -26,7 +26,7 @@ def get_parameter(event, param_name):
         sys.exit()
     return(param)
 
-# log environment
+# create raw log
 def log_event(event):
     # event raw log
     cur = conn.cursor()
@@ -35,49 +35,60 @@ def log_event(event):
     conn.commit()
     return(device_raw_log_id)
 
-# check device, return device_in_use
-def check_device(device_particle_id):
-    # get in use
-    cur = conn.cursor()
-    cur.execute("SELECT device_id, in_use FROM devices WHERE device_particle_id = (%s)", (device_particle_id,))
-    device = cur.fetchone()
-
-    # check if need to create new device entry
-    undefined_device_type_id = "undefined"
-    if device is None:
-        logger.info("creating new devices entry")
-        cur.execute("INSERT INTO devices (device_particle_id, device_type_id, in_use) VALUES (%s, %s, %s) RETURNING device_id, in_use",
-            (device_particle_id, undefined_device_type_id, True, ))
-        device = cur.fetchone()
-        conn.commit()
-
-    return(device)
-
 # handler
 def handler(event, context):
     # event log
     device_raw_log_id = log_event(event)
 
     # safety checks
-    device_particle_id = get_parameter(event, 'device_id')
+    group_id = get_parameter(event, 'group_id')
+    particle_id = get_parameter(event, 'particle_id')
     published_at = get_parameter(event, 'published_at')
     payload = get_parameter(event, 'payload')
-    logger.info("processing data for device_particle_id '{}' (device_raw_log_id={}): {}".format(device_particle_id, device_raw_log_id, event));
+    device_name = get_parameter(payload, 'id')
+    log_type = get_parameter(event, 'log')
 
-    # check device
-    [device_id, device_in_use] = check_device(device_particle_id)
+    logger.info("processing '{}' log for device '{}' (group_id={}, particle_id={}, device_raw_log_id={}): {}".format(
+        log_type, device_name, group_id, particle_id, device_raw_log_id, event))
 
-    # proceed according to device in use
-    if device_in_use == True:
+    # valid log_type?
+    if log_type != "state" and log_type != "data":
+        logger.info("invalid log type");
+        return("Log type not supported.");
+
+    # get device
+    cur = conn.cursor()
+    cur.execute("SELECT device_id, particle_id, in_use FROM devices WHERE device_name = (%s) AND group_id = (%s)", (device_name, group_id,))
+    device = cur.fetchone()
+
+    # no device
+    if device is None:
+        logger.info("device/group pair not listed in database")
+        return("Device does not exist for group.")
+
+    [device_id, known_particle_id, in_use] = device
+    # device in use?
+    if in_use != True:
+        logger.info("device not in use, discarding log entries")
+        return("Device not in use.")
+
+    # update particle_id?
+    if particle_id != known_particle_id:
+        logger.info("updating device particle_id from {} to {}".format(known_particle_id, particle_id))
+        cur.execute("UPDATE devices SET particle_id = %s WHERE device_id = %s",
+            (particle_id, device_id, ))
+        conn.commit()
+
+    # process state logs
+    if log_type == "state":
         device_state_log_ids = []
         cur = conn.cursor()
-        for data in payload.get('data'):
+        for state in payload.get('s'):
             cur.execute("INSERT INTO device_state_logs (device_raw_log_id, device_id, log_datetime, log_type, log_message, state_key, state_value, state_units, notes) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING device_state_log_id",
-                (device_raw_log_id, device_id, published_at, payload.get('type'), payload.get('msg'), data.get('k'), data.get('v'), data.get('u'), payload.get('notes')))
+                (device_raw_log_id, device_id, published_at, payload.get('t'), payload.get('m'), state.get('k'), state.get('v'), state.get('u'), payload.get('n')))
             device_state_log_ids = device_state_log_ids + cur.fetchone()
         conn.commit()
         logger.info("device in use, created {} log entries (IDs: {})".format(len(device_state_log_ids), ', '.join(map(str, device_state_log_ids))))
-        return("Device in use ({} log entries created).".format(len(device_state_log_ids)))
-    else:
-        logger.info("device not in use, discarding log entries")
-        return("Device not in use.")
+        return("Device in use ({} state log entries created).".format(len(device_state_log_ids)))
+    elif log_type == "data":
+        return("FIXME: data log")
