@@ -1,33 +1,80 @@
+#' Retrieve devices
+#' @param group_id devices from which group to fetch
+#' @return devices
+#' @export
+c3_get_devices <- function(group_id = default(group_id), in_use_only = TRUE, con = default(con), quiet = default(quiet)) {
+  con <- validate_db_connection(enquo(con))
+  group_id_value <- group_id
+  if (!quiet) {
+    glue("Info: retrieving {if(in_use_only) 'in-use' else 'all'} devices ",
+         "for group '{group_id_value}'...") %>% message(appendLF = FALSE)
+  }
+  df <- tbl(con, "devices") %>%
+    filter(group_id == group_id_value, in_use | !in_use_only) %>%
+    collect()
+  if (!quiet) glue("found {nrow(df)}.") %>% message()
+  return(df)
+}
+
 #' Retrieve state logs
 #'
-#' @param filter what filter conditions to apply (forwarded to \link[dplyr]{filter})
-#' @param select what columns to select (forwarded to \link[select]{select})
-#' @param convert_to_local_TZ wheteher to convert the log_datetime to the local timezone stored in \code{Sys.getenv("TZ")} (if FALSE, will keep it as UTC)
+#' Returns state logs joined with devices table so filter conditions can be applied on the devices as well. Sorted by descending order (i.e. latest record first).
+#'
+#' @param filter what filter conditions to apply, if any (forwarded to \link[dplyr]{filter})
+#' @param select what columns to select (forwarded to \link[select]{select}), by default a selection of the most commonly used columns
+#' @param max_rows if provided, only selects the indicated number of rows (more efficient this way than part of the filter)
+#' @param convert_to_TZ if provided, converts the log_datetime to the provided timezone (by default the local one stored in \code{Sys.getenv("TZ")}). If NULL, will keep it as UTC.
 #' @return device state logs
 #' @export
-c3_get_device_state_logs <- function(filter = TRUE, select = everything(), convert_to_local_TZ = TRUE, con = default(con), quiet = default(quiet)) {
-  con <- validate_db_connection(enquo(con))
+c3_get_device_state_logs <- function(
+  group_id = default(group_id), filter = NULL,
+  select = c(device_id, device_name, device_state_log_id, log_datetime, log_type, log_message, starts_with("state"), notes),
+  max_rows = NULL,
+  convert_to_TZ = Sys.getenv("TZ"),
+  con = default(con), quiet = default(quiet)) {
 
-  if (!quiet) cat("\nInfo: retrieving device state logs... ")
+  con <- validate_db_connection(enquo(con))
   filter_quo <- enquo(filter)
   select_quo <- enquo(select)
+  group_id_value <- group_id
 
+  if (!quiet) {
+    glue("Info: retrieving device state logs for devices in group '{group_id_value}'",
+         "{if(!quo_is_null(filter_quo)) str_c(\" with filter '\", quo_text(filter_quo), \"'\")}",
+         "{if(!is.null(max_rows)) str_c(\", limited to \", max_rows, \" rows max\")}... ") %>%
+    message(appendLF = FALSE)
+  }
 
   logs <- tbl(con, "device_state_logs") %>%
-    dplyr::filter(UQ(filter_quo)) %>%
+    left_join(tbl(con, "devices"), by = "device_id") %>%
+    arrange(desc(device_state_log_id)) %>%
+    dplyr::filter(group_id == group_id_value) %>%
+    {
+      if(!quo_is_null(filter_quo)) dplyr::filter(., !!filter_quo)
+      else .
+    } %>%
+    {
+      if (!is.null(max_rows)) dplyr::filter(., row_number() <= max_rows)
+      else .
+    } %>%
     dplyr::select(UQ(select_quo)) %>%
     collect()
+
+
+  if (!quiet) glue("found {nrow(logs)} entries. ") %>% message(appendLF = FALSE)
 
   if ("log_datetime" %in% names(logs)) {
     # server stores everything in UTC
     logs <- mutate(logs, log_datetime = force_tz(log_datetime, "UTC"))
 
     # local TZ conversion
-    if (convert_to_local_TZ)
-      logs <- mutate(logs, log_datetime = with_tz(log_datetime, Sys.getenv("TZ")))
+    if (!is.null(convert_to_TZ)) {
+      if (!quiet) glue("Converting to timezone '{convert_to_TZ}'.") %>%
+        message(appendLF = FALSE)
+      logs <- mutate(logs, log_datetime = with_tz(log_datetime, convert_to_TZ))
+    }
   }
-
-  if (!quiet) cat(glue("found {nrow(logs)} entries\n\n"))
+  message("")
 
   return(logs)
 }
@@ -45,28 +92,14 @@ c3_get_cameras <- function(con = default(con), quiet = default(quiet)) {
   return(df)
 }
 
-#' retrieve devices
-#' @export
-c3_get_devices <- function(in_use_only = TRUE, con = default(con), quiet = default(quiet)) {
-  con <- validate_db_connection(enquo(con))
-  if (!quiet) {
-    if (in_use_only) cat("\nInfo: retrieving in-use devices... ")
-    else cat("\nInfo: retrieving all devices... ")
-  }
-  df <- tbl(con, "devices") %>%
-    filter(in_use | !in_use_only) %>%
-    collect()
-  if (!quiet) cat(glue("found {nrow(df)}\n\n"))
-  return(df)
-}
-
 #' Synchronize device names
-#'
+#' @note no longer necessary, sync happens during logging
 #' Update device names in the database from the cloud.
 #' @return devices with updated device names
 #' @export
 c3_snyc_device_names_from_cloud <- function(in_use_only = TRUE, con = default(con), access_token = default(access_token), quiet = default(quiet)) {
 
+  stop("this function is deprecated", call. = FALSE)
   con <- validate_db_connection(enquo(con))
 
   devices <-
