@@ -2,7 +2,7 @@
 default <- function(name, allow_null = FALSE) {
   name <- enquo(name) %>% quos_to_text(variable = "setting")
   value <- getOption(str_c("c3.", name))
-  if (!allow_null && is.null(value)) stop("c3 setting '", name, "' does not exist", call. = FALSE)
+  if (!allow_null && is.null(value)) stop("c3 setting '", name, "' does not exist, make sure to set the default first", call. = FALSE)
   return(value)
 }
 
