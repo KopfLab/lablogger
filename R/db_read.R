@@ -2,15 +2,24 @@
 #' @param group_id devices from which group to fetch
 #' @return devices
 #' @export
-c3_get_devices <- function(group_id = default(group_id), in_use_only = TRUE, con = default(con), quiet = default(quiet)) {
+c3_get_devices <- function(group_id = default(group_id), filter = NULL, in_use_only = TRUE, con = default(con), quiet = default(quiet)) {
+
   con <- validate_db_connection(enquo(con))
+  filter_quo <- enquo(filter)
   group_id_value <- group_id
+
   if (!quiet) {
     glue("Info: retrieving {if(in_use_only) 'in-use' else 'all'} devices ",
-         "for group '{group_id_value}'...") %>% message(appendLF = FALSE)
+         "for group '{group_id_value}'",
+         "{if(!quo_is_null(filter_quo)) str_c(\" with filter '\", quo_text(filter_quo), \"'\") else ''}",
+         "...") %>% message(appendLF = FALSE)
   }
   df <- tbl(con, "devices") %>%
-    filter(group_id == group_id_value, in_use | !in_use_only) %>%
+    dplyr::filter(group_id == group_id_value, in_use | !in_use_only) %>%
+    {
+      if(!quo_is_null(filter_quo)) dplyr::filter(., !!filter_quo)
+      else .
+    } %>%
     collect()
   if (!quiet) glue("found {nrow(df)}.") %>% message()
   return(df)
@@ -40,8 +49,8 @@ c3_get_device_state_logs <- function(
 
   if (!quiet) {
     glue("Info: retrieving device state logs for devices in group '{group_id_value}'",
-         "{if(!quo_is_null(filter_quo)) str_c(\" with filter '\", quo_text(filter_quo), \"'\")}",
-         "{if(!is.null(max_rows)) str_c(\", limited to \", max_rows, \" rows max\")}... ") %>%
+         "{if(!quo_is_null(filter_quo)) str_c(\" with filter '\", quo_text(filter_quo), \"'\") else ''}",
+         "{if(!is.null(max_rows)) str_c(\", limited to \", max_rows, \" rows max\") else ''}... ") %>%
     message(appendLF = FALSE)
   }
 
