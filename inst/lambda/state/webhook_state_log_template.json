@@ -1,5 +1,5 @@
 {
-  "event": "device_state_log",
+  "event": "state_log",
   "url": "https://<<ACCESS_POINT>>.execute-api.us-west-2.amazonaws.com/<<STAGE>>/<<RESOURCE>>",
   "requestType": "PUT",
   "headers": {
