@@ -19,6 +19,7 @@ Imports:
     tidyr,
     dplyr,
     dbplyr,
+    lubridate,
     DBI,
     pool,
     RPostgreSQL,
