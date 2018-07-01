@@ -14,7 +14,6 @@ set_default <- function(name, value, overwrite = TRUE) {
 }
 
 
-
 #' Set default database connection or pool
 #' @param con database connection or pool object
 #' @export
@@ -38,6 +37,15 @@ c3_set_access_token <- function(token) {
 c3_set_group_id <- function(group_id) {
   set_default("group_id", group_id)
 }
+
+#' Set default request timeout
+#'
+#' @param group_id group
+#' @export
+c3_set_request_timeout <- function(timeout) {
+  set_default("request_timeout", timeout)
+}
+
 
 #' Turn information messages on/off
 #'

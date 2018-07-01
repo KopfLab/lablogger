@@ -6,7 +6,7 @@
 #' @importFrom jsonlite fromJSON toJSON
 #' @importFrom glue glue collapse
 #' @importFrom dplyr select rename filter as_data_frame %>% tbl collect mutate
-#' @importFrom lubridate with_tz force_tz now
+#' @importFrom lubridate with_tz force_tz now ymd_hms
 #' @importFrom purrr map map_lgl map_chr map_dbl map2 map2_chr
 #' @importFrom stringr str_c str_replace fixed
 #' @importFrom DBI dbExecute

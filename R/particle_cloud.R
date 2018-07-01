@@ -1,54 +1,211 @@
 # functions to interact with the particle cloud --------
 
-#' Get device information
+# helper function to make a particle cloud request
+# @param timeout how long to wait for curl request
+# @param nr which request this is (purely for info messages)
+# @param total total number of requests (purely for info messages)
+# @note consider implementing an asynchronious version with curl_fetch_multi (if possible to intet4q53 well into shiny app.)
+make_particle_cloud_request <- function(endpoint, nr = NULL, total = NULL, timeout = default(request_timeout), access_token = default(access_token), quiet = default(quiet)) {
+
+  # safety checks
+  if (nchar(access_token) == 0) stop("missing access token", call. = FALSE)
+
+  # request
+  handle <- new_handle(timeout = timeout)
+  request <- sprintf("https://api.particle.io/v1/%s?access_token=%s", endpoint, access_token)
+
+  if (!quiet) {
+    glue("\nInfo: making cloud request ",
+         "{if(!is.null(nr) && !is.null(total)) str_c(nr, '/', total, ' ') else ''}",
+         "('{endpoint}')... ") %>%
+      message(appendLF = FALSE)
+  }
+
+  # generate curl handle
+  result <-
+    tryCatch(
+      handle %>%
+        # make request
+        curl_fetch_memory(request, handle = .) %>%
+        { rawToChar(.$content) } %>%
+        fromJSON(),
+      error = function(e) {
+        if (str_detect(e$message, ":")) {
+          return(list(error =  str_extract(e$message, "^[^:]*"), error_details = str_extract(e$message, "[^:\\s][^:]*$")))
+        } else {
+          return(list(error = e$message))
+        }
+      }
+    )
+
+  if (!is.null(result$error)) {
+    if (!quiet) glue("failed.") %>% message()
+    glue("encountered the following error: {result$error}") %>%
+      warning(immediate. = TRUE, call. = FALSE)
+  } else if (!quiet) {
+    glue("successful.") %>% message()
+  }
+
+  return(result)
+}
+
+#' Get general device information
 #'
 #' Get information from the particle cloud about devices.
 #'
 #' @param particle_id the ID(s) of the particle device(s)
 #' @param access_token the access token for the accout
 #' @return nested data frame (converted from JSON)
-c3_get_devices_cloud_info <- function(particle_id, access_token = default(access_token), quiet = default(quiet)) {
+# @ note: consider making a function to udpate particle ids in the DB from here (overkill? since state/data logs cause update too)
+c3_get_devices_cloud_info <- function(devices = c3_get_devices(group_id = group_id, con = con), group_id = default(group_id), con = default(con), access_token = default(access_token), quiet = default(quiet)) {
 
   # safety checks
-  if (missing(particle_id) || length(particle_id) == 0) stop("missing particle_id", call. = FALSE)
-  if (nchar(access_token) == 0) stop("missing access token", call. = FALSE)
+  if (!is.data.frame(devices) | !all(c("particle_id", "device_name") %in% names(devices)))
+    stop("devices needs to be supplied as a data frame with columns (at the least) 'particle_id' and 'device_name'", call. = FALSE)
 
-  # request
-  total_n <- length(particle_id)
-  info <- map2(particle_id, 1:length(particle_id), function(particle_id, idx) {
-    request <- sprintf("https://api.particle.io/v1/devices/%s?access_token=%s", particle_id, access_token)
+  # request general info
+  info <- make_particle_cloud_request(
+    endpoint = "devices",
+    access_token = access_token,
+    quiet = quiet,
+    ...
+  )
 
-    if (!quiet) {
-      glue("\nInfo: making cloud request for device {idx}/{total_n} ('{particle_id}')... ") %>%
-        message(appendLF = FALSE)
-    }
-
-    # generate curl handle
-    result <- new_handle() %>%
-      # make request
-      curl_fetch_memory(request, handle = .) %>%
-      { rawToChar(.$content) } %>%
-      fromJSON()
-
-    if (!is.null(result$error)) {
-      if (!quiet) glue("failed.") %>% message()
-      glue("encountered the following error for device '{particle_id}': {result$error}") %>%
+  if (nrow(info) > 0) {
+    devices <- devices %>% left_join(info, by = c("device_name" = "name"))
+    problematic_particle_ids <- filter(devices, particle_id != id)
+    if (nrow(problematic_particle_ids) > 0) {
+      problematic_particle_ids %>% mutate(problem = str_c(device_name, " (db: ", particle_id, ", cloud: ", id, ")"))
+      glue("some devices' particle ids are not yet updated in the database (will happen at the next successful data/state log)") %>%
         warning(immediate. = TRUE, call. = FALSE)
-    } else if (!quiet) {
-      glue("successful.") %>% message()
     }
-    return(result)
-  })
+    devices <- devices %>% select(-id)
+  } else
+    warning("no information retrieved from cloud", immediate. = TRUE, call. = FALSE)
 
-  unpack_lists_data_frame(data_frame(lists = info), unnest_single_values = TRUE, unpack_sub_lists = TRUE)
+  return(devices)
 }
 
-#' Get device name
-#' @export
-c3_get_device_name_from_cloud <- function(particle_id, access_token = default(access_token), quiet = default(quiet)) {
-  name <- c3_get_device_info_from_cloud(particle_id, access_token, quiet)$name
-  if (is.null(name)) return(NA_character_)
-  else return(name)
+# helper function for cloud variable request
+get_devices_cloud_variable <- function(devices, variable, access_token, quiet) {
+  # safety checks
+  if (!is.data.frame(devices) | !all(c("particle_id", "device_name") %in% names(devices)))
+    stop("devices needs to be supplied as a data frame with columns (at the least) 'particle_id' and 'device_name'", call. = FALSE)
+
+  # request state
+  ..device_variable.. <- variable
+  devices %>%
+    mutate(
+      lists = map2(
+        particle_id, row_number(),
+        ~make_particle_cloud_request(
+          endpoint = sprintf("devices/%s/%s", .x, ..device_variable..),
+          nr = .y,
+          total = nrow(devices),
+          access_token = access_token,
+          quiet = quiet
+        )
+      )
+    ) %>%
+    unpack_lists_data_frame(unnest_single_values = TRUE, unpack_sub_lists = TRUE, nest_into_data_frame = FALSE)
 }
 
+# helper function to unpack cloud variable result
+unpack_cloud_variable_result <- function(var_data, data_column, renames = c(), convert_to_TZ = Sys.getenv("TZ"), spread_function = NULL) {
 
+  var_data <- mutate(var_data, ..rowid.. = row_number())
+  data_column_quo <- enquo(data_column)
+
+  # unpack state data
+  if (nrow(var_data) > 0 && "result" %in% names(var_data)) {
+    var_data_unpacked <-
+      var_data %>%
+      select(..rowid.., result) %>%
+      mutate(result = map(result, ~if(!is.na(.x)) fromJSON (.x) else list())) %>%
+      unpack_lists_data_frame(result) %>%
+      unnest(!!data_column_quo)
+
+    if (nrow(var_data_unpacked) > 0) {
+      var_data_unpacked <-
+        var_data_unpacked %>%
+        rename(!!!renames) %>%
+        mutate(datetime = ymd_hms(datetime)) %>%
+        {
+          if (!is.null(convert_to_TZ)) mutate(., datetime = with_tz(datetime, convert_to_TZ))
+          else .
+        }
+
+      if (!is.null(spread_function)) {
+        var_data_unpacked <- spread_function(var_data_unpacked)
+      }
+
+      var_data <- left_join(var_data %>% select(-result), var_data_unpacked, by = "..rowid..")
+    }
+  }
+
+  return (select(var_data, -..rowid..))
+}
+
+#' Get device state
+#'
+#' Get state from the particle cloud for devices.
+#' @inheritParams c3_get_devices_cloud_info
+#' @inheritParams c3_get_device_state_logs
+#' @param spread whether to convert the state data into wide format (note that this combines value and units columns!)
+#' @return nested data frame (converted from JSON)
+c3_get_devices_cloud_state <-
+  function(devices = c3_get_devices(group_id = group_id, con = con),
+           group_id = default(group_id),
+           con = default(con),
+           access_token = default(access_token),
+           convert_to_TZ = Sys.getenv("TZ"),
+           spread = FALSE,
+           quiet = default(quiet)) {
+
+    devices %>%
+      # request state info
+      get_devices_cloud_variable(
+        variable = "device_state",
+        access_token = access_token,
+        quiet = quiet
+      ) %>%
+      # unpack state data
+      unpack_cloud_variable_result(
+        data_column = s,
+        renames = c(datetime = "dt", key = "k", value = "v", units = "u"),
+        convert_to_TZ = convert_to_TZ,
+        spread_function = if (spread) spread_state_columns else NULL
+      )
+  }
+
+#' Get device data
+#'
+#' Get latest data from the particle cloud for devices.
+#' @inheritParams c3_get_devices_cloud_info
+#' @inheritParams c3_get_device_state_logs
+#' @param spread whether to convert the state data into wide format (note that this combines key and index, as well as, value and units columns!)
+#' @return nested data frame (converted from JSON)
+c3_get_devices_cloud_data <-
+  function(devices = c3_get_devices(group_id = group_id, con = con),
+           group_id = default(group_id),
+           con = default(con),
+           access_token = default(access_token),
+           convert_to_TZ = Sys.getenv("TZ"),
+           spread = FALSE,
+           quiet = default(quiet)) {
+
+    devices %>%
+      # request state info
+      get_devices_cloud_variable(
+        variable = "device_data",
+        access_token = access_token,
+        quiet = quiet
+      ) %>%
+      # unpack state data
+      unpack_cloud_variable_result(
+        data_column = d,
+        renames = c(datetime = "dt", idx = "i", key = "k", value = "v", units = "u"),
+        convert_to_TZ = convert_to_TZ,
+        spread_function = if (spread) spread_data_columns else NULL
+      )
+  }

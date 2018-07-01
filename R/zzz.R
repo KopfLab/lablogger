@@ -4,7 +4,8 @@ initialize_options <- function() {
     c3.quiet = FALSE,
     c3.tz = Sys.getenv("TZ"),
     c3.access_token = "",
-    c3.con = NULL
+    c3.con = NULL,
+    c3.request_timeout = 3
   )
   options(default_options)
 }
