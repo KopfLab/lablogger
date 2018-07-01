@@ -1,7 +1,9 @@
 # general data retrieval functions
 validate_db_connection <- function(con_quo) {
   if(!is_quosure(con_quo)) stop("connection not supplied as quosure", call. = FALSE)
-  eval_tidy(resolve_defaults(con_quo))
+  con <- resolve_defaults(con_quo)
+  while (is_quosure(con)) con <- eval_tidy(con)
+  return(con)
 }
 
 # convert data to sql compatible
