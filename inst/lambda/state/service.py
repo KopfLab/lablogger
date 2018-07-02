@@ -102,11 +102,13 @@ def handler(event, context):
 
         # loop through data and create log entries as needed
         device_data_log_ids = []
+        exp_ids = []
         global_to = payload.get('to')
         for data in payload.get('d'):
             if(not(data.get('v') is None)):
                 for exp_device_idx in exp_device_idxs:
                     if exp_device_idx[0] == data.get('i'):
+                        exp_ids.append(exp_device_idx[2])
                         # figure out global or local time offset
                         local_to = data.get('to')
                         if (local_to is None):
@@ -114,7 +116,12 @@ def handler(event, context):
                         # generate a record for the exp_device_data_id
                         cur.execute("INSERT INTO device_data_logs (device_raw_log_id, device_id, exp_device_data_id, log_datetime, log_time_offset, data_idx, data_key, data_value, data_sd, data_units, data_n) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING device_data_log_id",
                                     (device_raw_log_id, device_id, exp_device_idx[1], published_at, local_to/1000., data.get('i'), data.get('k'), data.get('v'), data.get('s'), data.get('u'), data.get('n')))
-                        device_data_log_ids = device_data_log_ids + cur.fetchone()
+                        device_data_log_ids.append(cur.fetchone())
         conn.commit()
-        logger.info("device in use, created {} log entries (IDs: {})".format(len(device_data_log_ids), ', '.join(map(str, device_data_log_ids))))
-        return("Device in use ({} log entries created).".format(len(device_data_log_ids)))
+        exp_ids = list(set(exp_ids))
+        logger.info("device in use, created {} log entries (IDs: {}) for {} experiments (IDs: {})".format(
+            len(device_data_log_ids), ', '.join(map(str, device_data_log_ids)), len(exp_ids), ', '.join(map(str, exp_ids))))
+        if (len(device_data_log_ids) > 0):
+            return("Device in use ({} log entries created for {} experiments).".format(len(device_data_log_ids), len(exp_ids)))
+        else:
+            return("Device in use but no log entries created (no active experiments).")
