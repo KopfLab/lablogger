@@ -56,14 +56,16 @@ def handler(event, context):
         logger.info("invalid log type");
         return("Log type not supported.");
 
-    # get device
+    # session
     cur = conn.cursor()
+
+    # get device
     cur.execute("SELECT device_id, particle_id, in_use FROM devices WHERE device_name = (%s) AND group_id = (%s)", (device_name, group_id,))
     device = cur.fetchone()
 
     # no device
     if device is None:
-        logger.info("device/group pair not listed in database")
+        logger.info("device/group pair not listed in base")
         return("Device does not exist for group.")
 
     [device_id, known_particle_id, in_use] = device
@@ -82,7 +84,6 @@ def handler(event, context):
     # process state logs
     if log_type == "state":
         device_state_log_ids = []
-        cur = conn.cursor()
         for state in payload.get('s'):
             cur.execute("INSERT INTO device_state_logs (device_raw_log_id, device_id, log_datetime, log_type, log_message, state_key, state_value, state_units, notes) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING device_state_log_id",
                 (device_raw_log_id, device_id, published_at, payload.get('t'), payload.get('m'), state.get('k'), state.get('v'), state.get('u'), payload.get('n')))
@@ -90,5 +91,30 @@ def handler(event, context):
         conn.commit()
         logger.info("device in use, created {} log entries (IDs: {})".format(len(device_state_log_ids), ', '.join(map(str, device_state_log_ids))))
         return("Device in use ({} state log entries created).".format(len(device_state_log_ids)))
+
+    # process data logs
     elif log_type == "data":
-        return("FIXME: data log")
+
+        # get device data logs
+        cur.execute("SELECT data_idx, exp_device_data_id, experiments.exp_id FROM experiments, experiment_device_data WHERE experiments.exp_id = experiment_device_data.exp_id AND device_id = (%s) AND group_id = (%s) AND recording = true",
+            (device_id, group_id,))
+        exp_device_idxs = cur.fetchall()
+
+        # loop through data and create log entries as needed
+        device_data_log_ids = []
+        global_to = payload.get('to')
+        for data in payload.get('d'):
+            if(not(data.get('v') is None)):
+                for exp_device_idx in exp_device_idxs:
+                    if exp_device_idx[0] == data.get('i'):
+                        # figure out global or local time offset
+                        local_to = data.get('to')
+                        if (local_to is None):
+                            local_to = global_to
+                        # generate a record for the exp_device_data_id
+                        cur.execute("INSERT INTO device_data_logs (device_raw_log_id, device_id, exp_device_data_id, log_datetime, log_time_offset, data_idx, data_key, data_value, data_sd, data_units, data_n) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING device_data_log_id",
+                                    (device_raw_log_id, device_id, exp_device_idx[1], published_at, local_to/1000., data.get('i'), data.get('k'), data.get('v'), data.get('s'), data.get('u'), data.get('n')))
+                        device_data_log_ids = device_data_log_ids + cur.fetchone()
+        conn.commit()
+        logger.info("device in use, created {} log entries (IDs: {})".format(len(device_data_log_ids), ', '.join(map(str, device_data_log_ids))))
+        return("Device in use ({} log entries created).".format(len(device_data_log_ids)))
