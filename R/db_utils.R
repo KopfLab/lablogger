@@ -59,6 +59,6 @@ run_insert_sql <- function(df, table, con, quiet) {
     df_to_insert_sql(table) %>%
     run_sql(con)
 
-  if (!quiet) glue("{result} new record created.") %>% message()
+  if (!quiet) glue("{result} new record(s) created.") %>% message()
   return(result)
 }

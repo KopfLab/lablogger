@@ -87,7 +87,7 @@ c3_get_devices_cloud_info <- function(devices = c3_get_devices(group_id = group_
 }
 
 # helper function for cloud variable request
-get_devices_cloud_variable <- function(devices, variable, access_token, quiet) {
+get_devices_cloud_variable <- function(devices, variable, access_token = default(access_token), quiet = default(quiet)) {
   # safety checks
   if (!is.data.frame(devices) | !all(c("particle_id", "device_name") %in% names(devices)))
     stop("devices needs to be supplied as a data frame with columns (at the least) 'particle_id' and 'device_name'", call. = FALSE)
@@ -165,7 +165,7 @@ c3_get_devices_cloud_state <-
     devices %>%
       # request state info
       get_devices_cloud_variable(
-        variable = "device_state",
+        variable = "state",
         access_token = access_token,
         quiet = quiet
       ) %>%
@@ -197,7 +197,7 @@ c3_get_devices_cloud_data <-
     devices %>%
       # request state info
       get_devices_cloud_variable(
-        variable = "device_data",
+        variable = "data",
         access_token = access_token,
         quiet = quiet
       ) %>%
@@ -207,5 +207,33 @@ c3_get_devices_cloud_data <-
         renames = c(datetime = "dt", idx = "i", key = "k", value = "v", units = "u"),
         convert_to_TZ = convert_to_TZ,
         spread_function = if (spread) spread_data_columns else NULL
-      )
+      ) %>%
+      # rename raw data
+      {
+        if ("r" %in% names(.)) rename(., raw_serial = r)
+        else .
+      }
   }
+
+#' Test which values one gets for a set of experiment devices
+#' @param experiment_devices experiment_devices records, see \link{c3_get_experiment_devices}
+c3_test_experiment_devices_data <- function(experiment_devices, spread = FALSE, access_token = default(access_token), quiet = default(quiet)) {
+
+  if (!"particle_id" %in% names(experiment_devices))
+    stop("particle_id is a required column in experiment_devices data frame", call. = FALSE)
+  if (!"device_name" %in% names(experiment_devices))
+    stop("device_name is a required column in experiment_devices data frame", call. = FALSE)
+  if (!"data_idx" %in% names(experiment_devices))
+    stop("data_idx is a required column in experiment_devices data frame", call. = FALSE)
+
+  data <- c3_get_devices_cloud_data(devices = experiment_devices %>% select(particle_id, device_name) %>% unique(), spread = FALSE)
+  if (nrow(data) > 0) {
+    data <- select(data, particle_id, device_name, datetime, raw_serial, idx, key, value, units)
+    experiment_devices %>%
+      rename(idx = data_idx) %>%
+      left_join(data, by = c("particle_id", "device_name", "idx")) %>%
+      { if (spread) spread_data_columns(.) else . }
+  } else {
+    experiment_devices
+  }
+}
