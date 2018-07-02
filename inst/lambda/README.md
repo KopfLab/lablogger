@@ -68,6 +68,7 @@ Once the Lambda function is deployed it can be viewed and tested in the Lambda f
     - add at least one (usually one is enough) in the `security_group_ids` setting in `config.yaml` - format: `[sg-1,sg-2,...]`
     - make sure to add the assigned security group to the allowed **Inbound** traffic rules of the RDS databases' security group (enter the lambda security group ID under **Source**)
   - redeploy the lambda function (`make deploy`), these settings should now all be listed in the details for the lambda function at https://console.aws.amazon.com/lambda
+  - troubleshooting: if the labmda function times out with a test JSON, most likely the security settings aren't quite right, sometimes the security group and subnets don't get saved properly by the `lambda deploy`, simply add them manually in the console at https://console.aws.amazon.com/lambda for the new lambda function (under the **Network** section)
 
 ### API gateway
 
