@@ -12,4 +12,3 @@ generate_gs_token(data_dir)
 \description{
 authenticate for google spreadsheets and store token in target directory (allows GUI to access the spreadsheet data)
 }
-
