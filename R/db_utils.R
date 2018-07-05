@@ -44,8 +44,9 @@ df_to_insert_sql <- function(df, table) {
 
 # run sql with error catching
 run_sql <- function(sql, con) {
+  con <- validate_db_connection(con)
   tryCatch(
-    result <- dbExecute(con, sql),
+    result <- dbExecute(con, as.character(sql)),
     error = function(e) {
       glue("SQL statement failed ('{sql}') with message:\n{e$message}") %>% stop(call. = FALSE)
     })

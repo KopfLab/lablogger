@@ -2,34 +2,193 @@
 #'
 #' Generates the server part of the isoviewer app
 #' @param pool ideally database connection pool, see \link[pool]{dbPool} but can also be a single db connection (not recommended)
-app_server <- function(pool) {
+#' @inheritParams run
+app_server <- function(group_id, access_token, pool, app_pwd, start_screen = "data") {
   shinyServer(function(input, output, session) {
+
+    message("\n\nINFO: Loading GUI instance ...")
 
     # REACTIVE VALUES ----
     values <- reactiveValues(
-      cameras = get_cameras_df(pool),
-      last_gs_update = NULL,
-      vessels = c(),
-      traces = c(),
-      date_filter = NULL
+      menu = NULL,
+      logged_in = FALSE,
+      selected_exp_ids = c(),
+      refresh_experiments = NULL,
+      refresh_device_data_logs = NULL
+      #cameras = get_cameras_df(pool),
+      #vessels = c(),
+      #traces = c(),
+      #date_filter = NULL
     )
 
-    # RASPI CAMS ====
-    output$raspicams <- renderUI({
+    # DATABASE
 
-      # refresh if refresh is pushed
-      input$refresh_cams
-
-      # retrieve raspi camp ip addresses
-      boxes <- map2(values$cameras$label, values$cameras$ip,
-                    function(label, ip) {
-                      box(title = a(glue("{label} camera"), href = glue("http://{ip}"), target = "_new"), collapsible = TRUE, collapsed = FALSE,
-                          width = 12, status = "success", solidHeader = TRUE,
-                          tags$iframe(src=glue("http://{ip}"), width = "640px", height = "480px", frameborder="0")) %>%
-                        column(width = 12)
-                    })
-      return(tagAppendChildren(fluidRow(), list = boxes))
+    # experiments ====
+    get_experiments <- reactive({
+      values$refresh_experiments
+      message("INFO: fetching experiments...")
+      c3_get_experiments(group_id = group_id, con = pool)
     })
+    refresh_experiments <- function() {
+      values$refresh_experiments <- if(is.null(values$refresh_experiments)) 1 else values$refresh_experiments + 1
+    }
+    observeEvent(input$data_exp_selector_refresh, { refresh_experiments() })
+    observeEvent(data_exp_selector$get_selected(), { values$selected_exp_ids <- data_exp_selector$get_selected()})
+
+    # device data logs ====
+    get_device_data_logs <- eventReactive(values$refresh_device_data_logs, {
+      filter_quo <- quo(exp_id %in% c(!!!values$selected_exp_ids))
+      if (length(values$selected_exp_ids) > 0) {
+        c3_get_device_data_logs(filter = !!filter_quo, group_id = group_id, con = pool, convert_to_TZ = "America/Denver")
+      } else {
+        data_frame()
+      }
+    })
+    refresh_device_data_logs <- function() {
+      values$refresh_device_data_logs <- if(is.null(values$refresh_device_data_logs)) 1 else values$refresh_device_data_logs + 1
+    }
+
+
+    # LOGIN ====
+
+    observeEvent(input$menu, {
+      if (is.null(values$menu) || input$menu != values$menu) {
+        if (!values$logged_in) updateTabItems(session, "menu", "login")
+        else values$menu = input$menu
+      }
+    })
+    observeEvent(input$login, login(input$password))
+    observeEvent(input$auto_login_trigger, { if (is.null(app_pwd)) login(NULL) })
+
+    login <- function(pwd) {
+      log_in = FALSE
+      if (is.null(app_pwd)) {
+        message("INFO: No app_pwd required, logged in automatically")
+        log_in = TRUE
+      } else {
+        glue("INFO: checking app_pwd '{pwd}'... ") %>% message(appendLF = FALSE)
+        if (!is.null(pwd) && app_pwd == pwd) {
+          message("correct.")
+          log_in = TRUE
+        } else {
+          message("incorrect.")
+          showModal(modalDialog(h2(str_c("Sorry, password not recognized.")), easyClose = TRUE, fade = FALSE))
+        }
+      }
+
+      if (log_in) {
+        hide("login-panel")
+        show("welcome-panel")
+        values$logged_in = TRUE
+        updateTabItems(session, "menu", start_screen)
+      }
+    }
+
+    # DATA SCREEN ====
+    output$data <- renderUI({
+      values$logged_in
+      if (!values$logged_in) return(NULL)
+      message("INFO: Generating 'data' screen")
+      generate_data_screen("data_exp_selector")
+    })
+
+    # data exp selector
+    data_exp_selector <- callModule(selectorTableServer, "data_exp_selector", id_column = "exp_id", col_headers = c("ID", "Name", "Recording"))
+    observe({
+      df <- get_experiments()
+      if (nrow(df) > 0) {
+        df <- select(df, exp_id, exp_name, recording)
+        data_exp_selector$set_table(df)
+      }
+    })
+
+    # visibility of plot buttons  ====
+    observe({
+      toggle("data_plot_actions", condition = length(values$selected_exp_ids) > 0)
+      toggle("data_plot_messages", condition = length(values$selected_exp_ids) == 0)
+    })
+
+    # plot messages ====
+    output$data_plot_message <- renderText({
+      validate(
+        need(length(values$selected_exp_ids) > 0, "Please select at least one experiment.")
+        #%then%
+        #need(length(mass_ratio_selector$get_selected()) > 0, "Please select at least one mass or ratio.")
+      )
+    })
+
+    # refresh plot ====
+
+
+    observeEvent(input$render_data_plot, refresh_device_data_logs())
+
+    # generate data plot ====
+
+    generate_data_plot <- eventReactive(values$refresh_device_data_logs, {
+      message("INFO: generating data plot")
+      logs <- get_device_data_logs()
+      if (nrow(logs) == 0) {
+        ggplot() + annotate("text", x = 0, y = 0, label = "no data available for\nthe selected experiment(s)", vjust = 0.5, hjust = 0.5, size = 10) + theme_void()
+      } else {
+        logs %>%
+          mutate(trace = ifelse(!is.na(data_units) & nchar(data_units) > 0, str_c(data_key, " [", data_units, "]"), data_key)) %>%
+          ggplot() +
+          aes(x = datetime, y = data_value, color = trace) +
+          geom_line() +
+          facet_grid(data_key ~ exp_id, scales = "free") +
+          scale_x_datetime() +
+          theme_bw() +
+          labs(x = NULL, y = NULL)
+      }
+    })
+
+    # data plot output ====
+
+    output$data_plot <- renderPlot(generate_data_plot(), height = 500)
+    # fixme reactive({ refresh_plot(); isolate(input$plot_height) }))
+
+    # FIXME
+    # # plot download ====
+    # download_handler <- callModule(
+    #   plotDownloadServer, "plot_download",
+    #   plot_func = generate_plot,
+    #   filename_func = reactive({ str_c(dataset_name(), ".pdf") }))
+    #
+
+    # LOGS SCREEN ====
+    output$logs <- renderUI({
+      values$logged_in
+      if (!values$logged_in) return(NULL)
+      message("INFO: Generating 'logs' screen")
+      tagList(h3("Coming soon..."))
+    })
+
+    # EXPERIMENTS SCREEN ====
+    output$experiments <- renderUI({
+      values$logged_in
+      if (!values$logged_in) return(NULL)
+      message("INFO: Generating 'experiments' screen")
+      tagList(h3("Coming soon..."))
+    })
+
+    # DEVICES SCREEN ====
+    output$experiments <- renderUI({
+      values$logged_in
+      if (!values$logged_in) return(NULL)
+      message("INFO: Generating 'devices' screen")
+      tagList(h3("Coming soon..."))
+    })
+
+    # WEBCAMS SCREEN ====
+    output$live <- renderUI({
+      values$logged_in
+      if (!values$logged_in) return(NULL)
+      message("INFO: Generating 'webcams' screen")
+      tagList(h3("Coming soon..."))
+    })
+
+
+
 
     #' # google spreadsheet authentication
     #' options(googlesheets.httr_oauth_cache = FALSE)

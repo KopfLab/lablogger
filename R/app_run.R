@@ -2,25 +2,19 @@
 #'
 #' Run the user interface for the chemostat control center
 #'
-#' @param db_host data base host
-#' @param db_name data base name
-#' @param db_user data base user
-#' @param db_pwd data base user password
-#' @param db_drv data base driver function, default is PostgreSQL
+#' @param group_id which group to run for
+#' @param access_token access token for particle account
+#' @param pool the database pool
+#' @param password which password to require for login. If NULL, login will be automatic. (NOTE: maybe manage by data base at some point?)
 #' @param ... passed on to the \code{\link[shiny]{runApp}} call (only if \code{launch = TRUE}), can include server-specific parameters such as host or port
 #' @param launch whether to launch the app (TRUE) or return a shiny app object (FALSE) that then can be launched via \code{\link[shiny]{runApp}}
 #' (note: if \code{launch=TRUE}, \code{...} gets ignored)
 #' @export
-run <- function(db_host, db_name, db_user, db_pwd, db_drv = PostgreSQL, ..., launch = TRUE) {
+run <- function(group_id, access_token, pool, app_pwd = NULL, ..., launch = TRUE) {
 
-  cat("\n\n***************************************************************",
-      "\nINFO: Launching chemostat control center GUI...",
-      "\nINFO: Connection to database... ")
-
-  # start data base pool
-  pool <- dbPool(drv = db_drv(), host = db_host, dbname = db_name, user = db_user, password = db_pwd)
-  onStop(function() { poolClose(pool) })
-  cat("successful.\n")
+  glue("\n\n***************************************************************",
+       "\nINFO: Launching chemostat control center GUI for group '{group_id}'...") %>%
+    message()
 
   # make sure shinyBS on attach runs
   shinyBS:::.onAttach()
@@ -28,7 +22,7 @@ run <- function(db_host, db_name, db_user, db_pwd, db_drv = PostgreSQL, ..., lau
   # generate app
   app <- shinyApp(
     ui = app_ui(),
-    server = app_server(pool)
+    server = app_server(group_id = group_id, access_token = access_token, pool = pool, app_pwd = app_pwd)
   )
 
   # launch or return

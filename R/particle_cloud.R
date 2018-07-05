@@ -209,10 +209,8 @@ c3_get_devices_cloud_data <-
         spread_function = if (spread) spread_data_columns else NULL
       ) %>%
       # rename raw data
-      {
-        if ("r" %in% names(.)) rename(., raw_serial = r)
-        else .
-      }
+      { if ("r" %in% names(.)) rename(., raw_serial = r) else . } %>%
+      { if ("e" %in% names(.)) rename(., raw_serial_errors = e) else . }
   }
 
 #' Test which values one gets for a set of experiment devices

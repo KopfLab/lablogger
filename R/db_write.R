@@ -65,7 +65,8 @@ c3_add_experiment_devices <- function(exp_id, device_names, data_idxs, device_id
 
   if (missing(exp_id)) stop("must supply an existing experiment id", call. = FALSE)
   if (missing(data_idxs) || !is.numeric(data_idxs)) stop("must supply integer data indices", call. = FALSE)
-  if (length(device_ids) != length(data_idxs)) stop("not the same number of device ids and data indices provided", call. = FALSE)
+  if (length(device_ids) != length(data_idxs) && !(length(device_ids) == 1 || length(data_idxs) == 1))
+      stop("not the same number of device ids and data indices provided", call. = FALSE)
 
   if (!quiet) {
     device_info <- { if(!missing(device_names)) device_names else device_ids } %>%
@@ -74,7 +75,7 @@ c3_add_experiment_devices <- function(exp_id, device_names, data_idxs, device_id
     message(appendLF = FALSE)
   }
   data <- data_frame(exp_id, device_id = device_ids, data_idx = data_idxs, data_key_prefix)
-  run_insert_sql(data, "experiment_device_data", con, quiet = quiet)
+  run_insert_sql(data, "experiment_device_data", con = con, quiet = quiet)
   return(invisible(data));
 }
 

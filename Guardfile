@@ -6,7 +6,14 @@
 
 port = 5000
 
-guard 'process', name: 'Shiny', command: ['R', '-e', "source('db/connection.R'); devtools::load_all('.'); labwareC3::run(db_host, db_name, db_user, db_pwd, port = #{port})"] do
+guard 'process', name: 'Shiny', command: ['R', '-e', " \
+source('db/connection.R'); \
+message('INFO: Connection to database... ', appendLF = FALSE); \
+pool <- pool::dbPool(drv = RPostgreSQL::PostgreSQL(), host = db_host, dbname = db_name, user = db_user, password = db_pwd); \
+message('successful.'); \
+shiny::onStop(function() { pool::poolClose(pool) }); \
+devtools::load_all('.'); \
+labwareC3::run(group_id = group_id, access_token = access_token, pool = pool, app_pwd = NULL, port = #{port})"] do
   watch(%r{NAMESPACE})
   watch(%r{R/.+\.R$})
 end

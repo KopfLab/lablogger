@@ -32,6 +32,7 @@ Imports:
     shinydashboard,
     shinyAce,
     shinycssloaders,
+    rhandsontable,
     plotly (>= 4.5.6.900)
 Suggests:
     testthat,
