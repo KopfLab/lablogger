@@ -12,4 +12,3 @@ update_package(ref = "master")
 \description{
 install the latest version of labwareC3 from GitHub
 }
-

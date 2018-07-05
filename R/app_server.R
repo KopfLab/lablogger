@@ -1,0 +1,477 @@
+#' Chemostat Control Center Server
+#'
+#' Generates the server part of the isoviewer app
+#' @param pool ideally database connection pool, see \link[pool]{dbPool} but can also be a single db connection (not recommended)
+#' @inheritParams run
+app_server <- function(group_id, access_token, pool, app_pwd, start_screen = "data") {
+  shinyServer(function(input, output, session) {
+
+    message("\n\nINFO: Loading GUI instance ...")
+
+    # REACTIVE VALUES ----
+    values <- reactiveValues(
+      menu = NULL,
+      logged_in = FALSE,
+      selected_exp_ids = c(),
+      refresh_experiments = NULL,
+      refresh_device_data_logs = NULL
+      #cameras = get_cameras_df(pool),
+      #vessels = c(),
+      #traces = c(),
+      #date_filter = NULL
+    )
+
+    # DATABASE
+
+    # experiments ====
+    get_experiments <- reactive({
+      values$refresh_experiments
+      message("INFO: fetching experiments...")
+      c3_get_experiments(group_id = group_id, con = pool)
+    })
+    refresh_experiments <- function() {
+      values$refresh_experiments <- if(is.null(values$refresh_experiments)) 1 else values$refresh_experiments + 1
+    }
+    observeEvent(input$data_exp_selector_refresh, { refresh_experiments() })
+    observeEvent(data_exp_selector$get_selected(), { values$selected_exp_ids <- data_exp_selector$get_selected()})
+
+    # device data logs ====
+    get_device_data_logs <- eventReactive(values$refresh_device_data_logs, {
+      filter_quo <- quo(exp_id %in% c(!!!values$selected_exp_ids))
+      if (length(values$selected_exp_ids) > 0) {
+        c3_get_device_data_logs(filter = !!filter_quo, group_id = group_id, con = pool, convert_to_TZ = "America/Denver")
+      } else {
+        data_frame()
+      }
+    })
+    refresh_device_data_logs <- function() {
+      values$refresh_device_data_logs <- if(is.null(values$refresh_device_data_logs)) 1 else values$refresh_device_data_logs + 1
+    }
+
+
+    # LOGIN ====
+
+    observeEvent(input$menu, {
+      if (is.null(values$menu) || input$menu != values$menu) {
+        if (!values$logged_in) updateTabItems(session, "menu", "login")
+        else values$menu = input$menu
+      }
+    })
+    observeEvent(input$login, login(input$password))
+    observeEvent(input$auto_login_trigger, { if (is.null(app_pwd)) login(NULL) })
+
+    login <- function(pwd) {
+      log_in = FALSE
+      if (is.null(app_pwd)) {
+        message("INFO: No app_pwd required, logged in automatically")
+        log_in = TRUE
+      } else {
+        glue("INFO: checking app_pwd '{pwd}'... ") %>% message(appendLF = FALSE)
+        if (!is.null(pwd) && app_pwd == pwd) {
+          message("correct.")
+          log_in = TRUE
+        } else {
+          message("incorrect.")
+          showModal(modalDialog(h2(str_c("Sorry, password not recognized.")), easyClose = TRUE, fade = FALSE))
+        }
+      }
+
+      if (log_in) {
+        hide("login-panel")
+        show("welcome-panel")
+        values$logged_in = TRUE
+        updateTabItems(session, "menu", start_screen)
+      }
+    }
+
+    # DATA SCREEN ====
+    output$data <- renderUI({
+      values$logged_in
+      if (!values$logged_in) return(NULL)
+      message("INFO: Generating 'data' screen")
+      generate_data_screen("data_exp_selector")
+    })
+
+    # data exp selector
+    data_exp_selector <- callModule(selectorTableServer, "data_exp_selector", id_column = "exp_id", col_headers = c("ID", "Name", "Recording"))
+    observe({
+      df <- get_experiments()
+      if (nrow(df) > 0) {
+        df <- select(df, exp_id, exp_name, recording)
+        data_exp_selector$set_table(df)
+      }
+    })
+
+    # visibility of plot buttons  ====
+    observe({
+      toggle("data_plot_actions", condition = length(values$selected_exp_ids) > 0)
+      toggle("data_plot_messages", condition = length(values$selected_exp_ids) == 0)
+    })
+
+    # plot messages ====
+    output$data_plot_message <- renderText({
+      validate(
+        need(length(values$selected_exp_ids) > 0, "Please select at least one experiment.")
+        #%then%
+        #need(length(mass_ratio_selector$get_selected()) > 0, "Please select at least one mass or ratio.")
+      )
+    })
+
+    # refresh plot ====
+
+
+    observeEvent(input$render_data_plot, refresh_device_data_logs())
+
+    # generate data plot ====
+
+    generate_data_plot <- eventReactive(values$refresh_device_data_logs, {
+      message("INFO: generating data plot")
+      logs <- get_device_data_logs()
+      if (nrow(logs) == 0) {
+        ggplot() + annotate("text", x = 0, y = 0, label = "no data available for\nthe selected experiment(s)", vjust = 0.5, hjust = 0.5, size = 10) + theme_void()
+      } else {
+        logs %>%
+          mutate(trace = ifelse(!is.na(data_units) & nchar(data_units) > 0, str_c(data_key, " [", data_units, "]"), data_key)) %>%
+          ggplot() +
+          aes(x = datetime, y = data_value, color = trace) +
+          geom_line() +
+          facet_grid(data_key ~ exp_id, scales = "free") +
+          scale_x_datetime() +
+          theme_bw() +
+          labs(x = NULL, y = NULL)
+      }
+    })
+
+    # data plot output ====
+
+    output$data_plot <- renderPlot(generate_data_plot(), height = 500)
+    # fixme reactive({ refresh_plot(); isolate(input$plot_height) }))
+
+    # FIXME
+    # # plot download ====
+    # download_handler <- callModule(
+    #   plotDownloadServer, "plot_download",
+    #   plot_func = generate_plot,
+    #   filename_func = reactive({ str_c(dataset_name(), ".pdf") }))
+    #
+
+    # LOGS SCREEN ====
+    output$logs <- renderUI({
+      values$logged_in
+      if (!values$logged_in) return(NULL)
+      message("INFO: Generating 'logs' screen")
+      tagList(h3("Coming soon..."))
+    })
+
+    # EXPERIMENTS SCREEN ====
+    output$experiments <- renderUI({
+      values$logged_in
+      if (!values$logged_in) return(NULL)
+      message("INFO: Generating 'experiments' screen")
+      tagList(h3("Coming soon..."))
+    })
+
+    # DEVICES SCREEN ====
+    output$experiments <- renderUI({
+      values$logged_in
+      if (!values$logged_in) return(NULL)
+      message("INFO: Generating 'devices' screen")
+      tagList(h3("Coming soon..."))
+    })
+
+    # WEBCAMS SCREEN ====
+    output$live <- renderUI({
+      values$logged_in
+      if (!values$logged_in) return(NULL)
+      message("INFO: Generating 'webcams' screen")
+      tagList(h3("Coming soon..."))
+    })
+
+
+
+
+    #' # google spreadsheet authentication
+    #' options(googlesheets.httr_oauth_cache = FALSE)
+    #' if (file.exists(file.path(.base_dir, "gs_token.rds"))) {
+    #'   message("INFO: Google spreadsheet token found, authenticating...")
+    #'   gs_auth(token = file.path(.base_dir, "gs_token.rds"))
+    #' } else {
+    #'   stop("No googlespreadsheet authentication information found. Please run generate_gs_token() function from interactive environment once first (e.g. from RStudio) and indicate the target_directory for the GUI data.", call. = FALSE)
+    #' }
+    #'
+    #' # SETTINGS =======
+    #' global <- read_excel(file.path(base_dir, SETTINGS_FILE), sheet = "global")
+    #' configs <- read_excel(file.path(base_dir, SETTINGS_FILE), sheet = "configurations")
+    #' channels <- read_excel(file.path(base_dir, SETTINGS_FILE), sheet = "channels")
+    #' data_types <- read_excel(file.path(base_dir, SETTINGS_FILE), sheet = "data_types")
+    #' live <- read_excel(file.path(base_dir, SETTINGS_FILE), sheet = "live")
+    #' message("INFO: Authenticated and all settings loaded.")
+    #' last_update <- subset(gs_ls(), sheet_title == global$gs_title)$updated
+    #' if (length(last_update) == 0) stop("Cannot find log google spreadsheet ", global$gs_title, call. = F)
+    #' message("INFO: Last update of google spreadsheet ", format(last_update, usetz = TRUE))
+    #'
+    #'
+    #' # retrieve logger data
+    #' get_logger_data <- reactivePoll(
+    #'   30000, session,
+    #'   # checks every few seconds if the google spreadsheet online was updated
+    #'   checkFunc = function() {
+    #'     # check for updated tag on the logger spreadsheet
+    #'     last_update <- subset(gs_ls(), sheet_title == global$gs_title)$updated
+    #'     message("INFO: Checking google spreadsheet, last update: ", format(last_update, usetz = TRUE))
+    #'     isolate({
+    #'       if (is.null(values$last_gs_update) || values$last_gs_update != last_update)
+    #'         values$last_gs_update <- last_update
+    #'     })
+    #'     return(last_update)
+    #'   },
+    #'   # reads the log files
+    #'   valueFunc = function() {
+    #'
+    #'     # older RData chached data
+    #'     raw <- data_frame()
+    #'     for (file in list.files(path = file.path(base_dir, DATA_DIR), pattern = "*data_log\\.RData", full.names = TRUE)) {
+    #'       load(file = file)
+    #'       if (exists("cached_data")) {
+    #'         message("INFO: Loading cached RData ", basename(file))
+    #'         raw <- bind_rows(raw, cached_data)
+    #'         rm("cached_data")
+    #'       } else {
+    #'         message("INFO: Failed to load cached RData from ", basename(file))
+    #'       }
+    #'     }
+    #'
+    #'     # newest data
+    #'     last_update <- subset(gs_ls(), sheet_title == global$gs_title)$updated
+    #'     last_log_file <- file.path(base_dir, DATA_DIR, format(last_update, "%Y%m%d_%H%M%S_gs_log.csv"))
+    #'
+    #'     if (file.exists(last_log_file)) {
+    #'       # most recent data available locally
+    #'       message("INFO: Last log file of google spreadsheet data already cached --> read local csv")
+    #'       raw <- bind_rows(raw, read.csv(last_log_file))
+    #'     } else {
+    #'       # go from spread sheet instead
+    #'       message("INFO: Loading google spreadsheet data")
+    #'       withProgress(
+    #'         message = 'Retrieving new data from google spreadsheet',
+    #'         detail = 'This may take a moment...', value = 0.25, {
+    #'           raw.gs <- gs_title(global$gs_title) %>% gs_read_csv(ws = 1)
+    #'           raw <- bind_rows(raw, raw.gs)
+    #'           write.table(raw.gs, file = file.path(base_dir, DATA_DIR, format(last_update, "%Y%m%d_%H%M%S_gs_log.csv")), row.names = FALSE, sep = ",", col.names = TRUE)
+    #'           old_logs <- list.files(path = file.path(base_dir, DATA_DIR), pattern = "*gs_log\\.csv", full.names = TRUE) %>% sort()  %>% tail(-5)
+    #'           if (length(old_logs) > 0) {
+    #'             message("INFO: Data loaded, deleting ", length(old_logs), " old log files (before last 5)")
+    #'             file.remove(old_logs)
+    #'           }
+    #'         })
+    #'     }
+    #'     return(raw)
+    #'   }
+    #' )
+    #'
+    #' # retrieve processed logger data
+    #' processed_logger_data <- reactive({
+    #'   raw_data <- get_logger_data()
+    #'   message("INFO: ", nrow(raw_data), " entries of M800 data loaded")
+    #'
+    #'   # datetime
+    #'   data <- raw_data %>%
+    #'     mutate(
+    #'       datetime = as.POSIXct(datetime, format = "%m/%d/%Y %H:%M:%S"),
+    #'       configuration = NA
+    #'     )
+    #'
+    #'   # assign data to configurations
+    #'   for (i in 1:nrow(configs)) {
+    #'     start_date <- configs$first_tp[i]
+    #'     end_date <- configs$last_tp[i]
+    #'     in_config <-
+    #'       (is.na(start_date) | data$datetime >= start_date) &
+    #'       (is.na(end_date) | data$datetime <= end_date)
+    #'     data <- data %>% mutate(configuration = ifelse(in_config, configs$configuration[i], configuration))
+    #'   }
+    #'   message("INFO: ", nrow(filter(data, is.na(configuration))), " entries of M800 data discarded because they do not belong to any configuration")
+    #'
+    #'   # walk through configurations to regexp check the data and transform into long format
+    #'   number_regexp <- "(-?[0-9]+\\.?[0-9]*|----|\\*{4})"
+    #'   config_channels <- channels %>%
+    #'     group_by(configuration) %>%
+    #'     summarize(regexp = paste0(number_regexp, "\\s*,", trace, ",") %>% paste(collapse=""))
+    #'   data_gathered <- data_frame()
+    #'   for (i in 1:nrow(config_channels)) {
+    #'     config_id <- config_channels$configuration[i]
+    #'     config_data <- data %>%
+    #'       filter(configuration == config_id) %>%
+    #'       mutate(data_err = !grepl(config_channels$regexp[i], data))
+    #'     message("INFO: ", config_data %>% filter(data_err) %>% nrow(),
+    #'             "/", config_data %>% nrow(),
+    #'             " entries of M800 data in configuration ", config_id," discarded because of data errors")
+    #'     message("EXAMPLES of discards:")
+    #'     if ( (error_rows <- config_data %>% filter(data_err) %>% nrow()) > 0) {
+    #'       print(config_data %>% filter(data_err) %>% sample_n(min(5, error_rows)) %>% select(data))
+    #'     }
+    #'     message("\n")
+    #'     # extract and combine with other configurations
+    #'     if (nrow(config_data) > 0) {
+    #'       parsed_config_data <-
+    #'         suppressWarnings(
+    #'           config_data %>%
+    #'             select(datetime, device, type, data, configuration) %>%
+    #'             extract(data, into=as.character(filter(channels, configuration == config_id)$output), config_channels$regexp[i], remove = T, convert = T) %>% # extract data
+    #'             gather("output", "value", -c(datetime, device, type, configuration)) %>% # melt data
+    #'             left_join(channels, by = c("configuration", "output")) %>% # add the setup information of the probes
+    #'             as_data_frame() %>%
+    #'             mutate(value = as.numeric(value)) %>%
+    #'             filter(!is.na(value)) %>%
+    #'             # include time.hrs column
+    #'             group_by(vessel) %>% mutate(time.hrs = difftime(datetime, min(datetime)[1]) %>% as.double(units = "hours")) %>% ungroup()
+    #'         )
+    #'       data_gathered <- bind_rows(data_gathered, parsed_config_data)
+    #'     }
+    #'   }
+    #'
+    #'   # return result
+    #'   if (nrow(data_gathered) == 0) return(NULL)
+    #'
+    #'   data_gathered %>%
+    #'     left_join(data_types, by = "trace")
+    #' })
+    #'
+    #' #--- OUTPUTS
+    #' output$last_gs_update <- renderText({
+    #'   req(values$last_gs_update)
+    #'   return(values$last_gs_update %>% format("Latest data recorded at %H:%M:%S (%d %b %Y %Z)"))
+    #' })
+    #'
+    #' # filters
+    #' observe({
+    #'   data <- processed_logger_data()
+    #'   time_range <- range(data$datetime)
+    #'   message("INFO: update filters")
+    #'   isolate({
+    #'     if (is.null(values$date_filter)) {
+    #'       # no start and end date set yet
+    #'       values$date_filter <- as.Date(time_range)
+    #'       updateDateRangeInput(session, "date_range",
+    #'                            min = time_range[1], max = time_range[2] + 60*60*24,
+    #'                            start = time_range[1], end = time_range[2])
+    #'     } else if (!setequal(values$date_filter, as.Date(time_range))) {
+    #'       # just update the date range limits
+    #'       values$date_filter <- as.Date(time_range)
+    #'       updateDateRangeInput(session, "date_range",
+    #'                            min = time_range[1], max = time_range[2] + 60*60*24)
+    #'     }
+    #'
+    #'     vessels <- (data %>% filter(!is.na(vessel), vessel != ""))$vessel %>% unique()
+    #'     if (!setequal(vessels, values$vessels)) {
+    #'       values$vessels <- vessels
+    #'       updateCheckboxGroupInput(session, "vessels", choices = vessels, sel = c())
+    #'     }
+    #'
+    #'     traces <- data$trace %>% unique()
+    #'     if (!setequal(traces, values$traces)) {
+    #'       values$traces <- traces
+    #'       updateCheckboxGroupInput(session, "traces", choices = traces, sel = c())
+    #'     }
+    #'
+    #'   })
+    #' })
+    #'
+    #' # get data for plot
+    #' get_plot_data <- reactive({
+    #'   validate(
+    #'     need(input$vessels, message = "no experiments selected"),
+    #'     need(input$traces, message = "no data traces selected"),
+    #'     need(input$date_range, message = "no dates selected"))
+    #'
+    #'   m800 <- processed_logger_data()
+    #'
+    #'   isolate({
+    #'     if (is.null(m800)) return(NULL)
+    #'     df <- m800 %>%
+    #'       filter(vessel %in% input$vessels, trace %in% input$traces) %>%
+    #'       filter(as.Date(datetime) >= input$date_range[1] & as.Date(datetime) <= input$date_range[2])
+    #'     if (nrow(df) == 0) return(NULL)
+    #'     return(as_data_frame(df))
+    #'   })
+    #' })
+    #'
+    #' # main plot
+    #' make_main_plot <- reactive({
+    #'   validate(need(get_plot_data(), message = "no data selected"))
+    #'   message("INFO: generating main plot")
+    #'   withProgress(message = 'Rendering plot...', value = 0.2, {
+    #'     setProgress(detail = 'Retrieving plot data ...', value = 0.3)
+    #'     data <- get_plot_data()
+    #'     print(head(data))
+    #'     setProgress(detail = 'Generating graph ...', value = 0.5)
+    #'     if (input$time_format == "time.hrs") {
+    #'       p <- ggplot(data) +
+    #'         aes(time.hrs, value, color = trace)
+    #'     } else {
+    #'       p <- ggplot(data) +
+    #'         aes(datetime, value, color = trace)
+    #'     }
+    #'     p <- p +
+    #'       geom_line() +
+    #'       facet_grid(data_type~vessel, scales = "free") +
+    #'       theme_bw() +
+    #'       labs(color = "Trace")
+    #'     # if (isolate(input$legend) == "below")
+    #'     #   p <- p + theme(legend.position = "bottom")
+    #'     return(p)
+    #'   })
+    #' })
+    #'
+    #' # get data for export
+    #' get_export_data <- reactive({
+    #'   data <- get_plot_data()
+    #'   print(names(data))
+    #'   return(data %>% head())
+    #' })
+    #'
+    #'
+    #' #' downloads
+    #' observe({
+    #'   if (!is.null(input$vessels) & !is.null(input$traces) && !is.null(input$date_range) && !is.null(get_plot_data()) ) {
+    #'     shinyjs::show("dl_actions")
+    #'   } else {
+    #'     shinyjs::hide("dl_actions")
+    #'   }
+    #' })
+    #'
+    #' output$dl_plot <- downloadHandler(
+    #'   filename = function() {paste0(format(Sys.time(), format = "%Y%m%d_%H%M"), "_chemostat_overview.pdf")},
+    #'   content = function(file) {
+    #'     device <- function(..., version="1.4") grDevices::pdf(..., version=version)
+    #'     ggsave(file = file, plot = make_main_plot(), width = 10, height = 8, device = device)
+    #'   })
+    #'
+    #' output$dl_excel <- downloadHandler(
+    #'   filename = function() {paste0(format(Sys.time(), format = "%Y%m%d_%H%M"), "_chemostat_data.xlsx")},
+    #'   content = function(file) {
+    #'     get_plot_data() %>%
+    #'       select(datetime, time.hrs, vessel, trace, value) %>%
+    #'       arrange(vessel, datetime) %>% distinct() %>% # make sure there are no replicate issues (might discard some replicate timepoint data)
+    #'       spread(trace, value) %>%
+    #'       openxlsx::write.xlsx(file = file)
+    #'   })
+    #'
+    #' output$dl_data <- downloadHandler(
+    #'   filename = function() {paste0(format(Sys.time(), format = "%Y%m%d_%H%M"), "_chemostat_data.RData")},
+    #'   content = function(file) {
+    #'     data <- get_plot_data()
+    #'     save(data, file = file)
+    #'   })
+    #'
+    #' #' plots
+    #' output$main_plot <- renderPlotly({
+    #'   ggplotly(make_main_plot(), tooltip = "all")
+    #' })
+    #'
+    #'
+
+
+
+  })
+}

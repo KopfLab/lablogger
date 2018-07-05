@@ -1,0 +1,18 @@
+{
+  "particle_id": "000000000000000000000000",
+  "published_at": "2018-01-03T03:50:22.070Z",
+  "log": "state",
+  "group_id": "testing",
+  "payload": {
+    "id": "testing",
+    "m": "",
+    "s": [
+      {
+        "k": "data-log",
+        "v": "on"
+      }
+    ],
+    "n": "",
+    "t": "state changed"
+  }
+}

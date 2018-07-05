@@ -1,36 +1,51 @@
 Package: labwareC3
 Type: Package
 Title: Chemostat Control Center
-Version: 0.1.3
+Version: 0.3.0
 Author: Sebastian Kopf
 Maintainer: Sebastian Kopf <sebastian.kopf@colorado.edu>
 Roxygen: list(wrap = FALSE)
-URL: https://github.com/kopflab/isorunCSIA
-BugReports: https://github.com/kopflab/isorunCSIA/issues
+URL: https://github.com/kopflab/labwareC3
+BugReports: https://github.com/kopflab/labwareC3/issues
+Depends:
+    R (>= 3.1)
 Imports:
     methods,
     R.utils,
+    rlang,
+    curl,
+    jsonlite,
+    glue,
     tidyr,
     dplyr,
+    dbplyr,
+    lubridate,
+    DBI,
+    pool,
+    RPostgreSQL,
+    purrr,
+    stringr,
     ggplot2,
+    shiny,
+    shinyjs,
+    shinyBS,
+    shinydashboard,
+    shinyAce,
+    shinycssloaders,
+    rhandsontable,
     plotly (>= 4.5.6.900)
 Suggests:
     testthat,
     rmarkdown,
     knitr,
     openxlsx,
-    shiny,
-    shinyjs,
-    shinyBS,
-    shinydashboard,
-    shinyAce,
     dtplyr,
     DT,
     data.table,
     rhandsontable,
     devtools
+License: GPL (>= 2) | file LICENSE
+Encoding: UTF-8
+LazyData: true
 VignetteBuilder: knitr
-Collate:
-    'gui.R'
-    'package.R'
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1

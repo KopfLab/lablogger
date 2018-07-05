@@ -35,6 +35,8 @@ vignettes/*.pdf
 .Rproj.user
 ~$*.xlsx
 
-# Test data
+# Test and temp data
 inst/extdata/*
 inst/gui/*.pdf
+db/
+tmp/
