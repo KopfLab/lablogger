@@ -44,7 +44,7 @@ df_to_insert_sql <- function(df, table) {
 
 # run sql with error catching
 run_sql <- function(sql, con) {
-  con <- validate_db_connection(con)
+  con <- validate_db_connection(enquo(con))
   tryCatch(
     result <- dbExecute(con, as.character(sql)),
     error = function(e) {

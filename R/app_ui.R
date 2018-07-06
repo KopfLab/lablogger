@@ -76,7 +76,7 @@ app_ui <- function(title = "Labware CC") {
             ),
 
             # all other tabs ====
-            tabItem("data", div(id = "data-panel", column(width = 12, uiOutput("data")))),
+            tabItem("data", div(id = "data-panel", column(width = 12, uiOutput("data") %>% withSpinner(type = 5, proxy.height = "450px")))),
             tabItem("logs", div(id = "log-panel", column(width = 12, uiOutput("logs")))),
             tabItem("experiments", div(id = "experiments-panel", column(width = 12, uiOutput("experiments")))),
             tabItem("devices", div(id = "devices-panel", column(width = 12, uiOutput("devices")))),
