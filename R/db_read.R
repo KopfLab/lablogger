@@ -225,8 +225,9 @@ c3_get_device_data_logs <- function(
     dplyr::select(!!select_quo, log_time_offset) %>%
     collect()
 
-
   if (!quiet) glue("found {nrow(logs)} entries. ") %>% message(appendLF = FALSE)
+
+  if (nrow(logs) == 0) return(logs)
 
   if ("log_datetime" %in% names(logs))
     logs <- mutate(logs, log_datetime = force_tz(log_datetime, "UTC"))

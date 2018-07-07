@@ -131,7 +131,7 @@ app_server <- function(group_id, access_token, pool, app_pwd, start_screen = "da
       message("INFO: generating data plot")
       logs <- get_device_data_logs()
       if (nrow(logs) == 0) {
-        ggplot() + annotate("text", x = 0, y = 0, label = "no data available for\nthe selected experiment(s)", vjust = 0.5, hjust = 0.5, size = 10) + theme_void()
+        ggplot() + annotate("text", x = 0, y = 0, label = "no data available yet for\nthe selected experiment(s)", vjust = 0.5, hjust = 0.5, size = 10) + theme_void()
       } else {
         plot_device_data_logs(logs)
       }
