@@ -7,9 +7,10 @@
 #' @importFrom glue glue collapse
 #' @importFrom dplyr select rename filter as_data_frame %>% tbl collect mutate data_frame everything starts_with ends_with left_join arrange
 #' @importFrom ggplot2 ggplot aes geom_point geom_line theme_bw theme_void facet_grid scale_x_datetime labs annotate
-#' @importFrom lubridate with_tz force_tz now ymd_hms
+#' @importFrom lubridate with_tz force_tz now ymd_hms as.duration
 #' @importFrom purrr map map_lgl map_chr map_dbl map2 map2_chr walk
 #' @importFrom stringr str_c str_replace fixed str_interp
+#' @importFrom readr write_rds read_rds
 #' @importFrom DBI dbExecute
 #' @importFrom pool dbPool
 #' @importFrom RPostgreSQL PostgreSQL

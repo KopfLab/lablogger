@@ -16,6 +16,7 @@ Imports:
     curl,
     jsonlite,
     glue,
+    readr,
     tidyr,
     dplyr,
     dbplyr,
