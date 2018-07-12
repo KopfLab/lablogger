@@ -4,24 +4,22 @@
 \alias{run}
 \title{Start the user interface}
 \usage{
-run(db_host, db_name, db_user, db_pwd, db_drv = PostgreSQL, ...,
-  launch = TRUE)
+run(group_id, access_token, pool, app_pwd = NULL,
+  timezone = Sys.getenv("TZ"), ..., launch = TRUE)
 }
 \arguments{
-\item{db_host}{data base host}
+\item{group_id}{which group to run for}
 
-\item{db_name}{data base name}
+\item{access_token}{access token for particle account}
 
-\item{db_user}{data base user}
-
-\item{db_pwd}{data base user password}
-
-\item{db_drv}{data base driver function, default is PostgreSQL}
+\item{pool}{the database pool}
 
 \item{...}{passed on to the \code{\link[shiny]{runApp}} call (only if \code{launch = TRUE}), can include server-specific parameters such as host or port}
 
 \item{launch}{whether to launch the app (TRUE) or return a shiny app object (FALSE) that then can be launched via \code{\link[shiny]{runApp}}
 (note: if \code{launch=TRUE}, \code{...} gets ignored)}
+
+\item{password}{which password to require for login. If NULL, login will be automatic. (NOTE: maybe manage by data base at some point?)}
 }
 \description{
 Run the user interface for the chemostat control center
