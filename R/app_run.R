@@ -10,10 +10,11 @@
 #' @param launch whether to launch the app (TRUE) or return a shiny app object (FALSE) that then can be launched via \code{\link[shiny]{runApp}}
 #' (note: if \code{launch=TRUE}, \code{...} gets ignored)
 #' @export
-run <- function(group_id, access_token, pool, app_pwd = NULL, ..., launch = TRUE) {
+run <- function(group_id, access_token, pool, app_pwd = NULL, timezone = Sys.getenv("TZ"), ..., launch = TRUE) {
 
   glue("\n\n***************************************************************",
-       "\nINFO: Launching chemostat control center GUI for group '{group_id}'...") %>%
+       "\nINFO: Launching chemostat control center GUI for group '{group_id}'...",
+       "{if (default(debug)) {'\nINFO: debug mode ON'} else {''}}") %>%
     message()
 
   # make sure shinyBS on attach runs
@@ -22,7 +23,7 @@ run <- function(group_id, access_token, pool, app_pwd = NULL, ..., launch = TRUE
   # generate app
   app <- shinyApp(
     ui = app_ui(),
-    server = app_server(group_id = group_id, access_token = access_token, pool = pool, app_pwd = app_pwd)
+    server = app_server(group_id = group_id, access_token = access_token, pool = pool, app_pwd = app_pwd, timezone = timezone)
   )
 
   # launch or return

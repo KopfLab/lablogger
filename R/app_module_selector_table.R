@@ -119,8 +119,8 @@ selectorTableUI <- function(id, height = "200px") {
 selectorTableButtons <- function(id) {
   ns <- NS(id)
   tagList(
-    hidden(actionButton(ns("select_all"), "Select all", icon = icon("check-square-o"))),
+    actionButton(ns("select_all"), "Select all", icon = icon("check-square-o")),
     spaces(1),
-    hidden(actionButton(ns("deselect_all"), "Deselect", icon = icon("square-o")))
+    actionButton(ns("deselect_all"), "Deselect", icon = icon("square-o"))
   )
 }

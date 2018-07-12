@@ -1,7 +1,7 @@
 #' Chemostat Control Center UI
 #'
 #' @description Generates the user interface part of the isoviewer app
-app_ui <- function(title = "Labware CC") {
+app_ui <- function(title = "Lab Logger") {
 
   color <- "red" # see ?dashboardPage for options
   #box_default <- "#222d32" # darker
@@ -63,17 +63,7 @@ app_ui <- function(title = "Labware CC") {
       div(class = "row",
           tabItems(
             # login ====
-            tabItem(
-              "login",
-              div(id = "login-panel",
-                  column(width = 12,
-                         textInput("password", NULL, placeholder = "Please enter your password."),
-                         selectInput("auto_login_trigger", NULL, choices = "1", selected = "1") %>% hidden(),
-                         actionButton("login", "Login")
-                  )),
-
-              div(id = "welcome-panel", column(width = 12, h2("Welcome to ", title, ". You have been succesfully logged on."))) %>% hidden()
-            ),
+            tabItem("login", loginUI("login", title = title)),
 
             # all other tabs ====
             tabItem("data", div(id = "data-panel", column(width = 12, uiOutput("data") %>% withSpinner(type = 5, proxy.height = "450px")))),

@@ -2,16 +2,6 @@
 generate_data_screen <- function(selector_name, selector_height = 100) {
   tagList(
 
-    # EXPERIMENTS ===
-    default_box(
-      title = "Experiments", width = 12,
-      selectorTableUI(selector_name, height = selector_height),
-      footer = div(
-        selectorTableButtons(selector_name),
-        spaces(1),
-        tooltipInput(actionButton, str_c(selector_name, "_refresh"), label = "Refresh", icon = icon("refresh"), tooltip = "Refresh experiments.")
-      )
-    ),
 
     # DATA BOX ====
     default_box(
@@ -19,12 +9,12 @@ generate_data_screen <- function(selector_name, selector_height = 100) {
 
       div(style = "min-height: 500px;",
           div(id = "data_plot_messages", textOutput("data_plot_message")),
-          div(align = "right", id = "data_plot_actions",
-              tooltipInput(actionButton, "render_data_plot", "Fetch Data", icon = icon("refresh"),
-                           tooltip = "Fetch the most recent data for the selected experiment(s) from the data base."),
-              spaces(1)
-              #plotDownloadLink(ns("plot_download")) # FIXME
-          ) %>% hidden(),
+          # div(align = "right", id = "data_plot_actions",
+          #     # tooltipInput(actionButton, "render_data_plot", "Fetch Data", icon = icon("refresh"),
+          #     #              tooltip = "Fetch the most recent data for the selected experiment(s) from the data base."),
+          #     spaces(1)
+          #     #plotDownloadLink(ns("plot_download")) # FIXME
+          # ) %>% hidden(),
           div(id = "data_plot_div",
               plotOutput("data_plot", height = "100%") %>% withSpinner(type = 5, proxy.height = "450px")
           )

@@ -133,3 +133,18 @@ spread_data_columns <- function(df) {
     spread(key, value)
 }
 
+# calculations =====
+
+#' Convert datetime to duration
+#'
+#' Does not need to be sorted upfront, makes different to minimum datetime within the group_by groupings.
+#'
+#' @param df data frame with datetime column
+#' @param units any time unit that lubridate understands
+#' @return df with new column \code{duration}
+#' @export
+c3_calculate_duration <- function(df, units) {
+  stopifnot(!missing(units))
+  df %>%
+    mutate(duration = as.duration(datetime - min(datetime)) %>% as.numeric(units))
+}
