@@ -159,7 +159,7 @@ c3_get_device_state_logs <- function(
     collect()
 
 
-  if (!quiet) glue("found {nrow(logs)} entries. ") %>% message(appendLF = FALSE)
+  if (!quiet) glue("found {nrow(logs)} records. ") %>% message(appendLF = FALSE)
 
   if ("log_datetime" %in% names(logs)) {
     # server stores everything in UTC
@@ -227,7 +227,10 @@ c3_get_device_data_logs <- function(
 
   if (!quiet) glue("found {nrow(logs)} entries. ") %>% message(appendLF = FALSE)
 
-  if (nrow(logs) == 0) return(logs)
+  if (nrow(logs) == 0) {
+    message()
+    return(logs)
+  }
 
   if ("log_datetime" %in% names(logs))
     logs <- mutate(logs, log_datetime = force_tz(log_datetime, "UTC"))
@@ -247,6 +250,84 @@ c3_get_device_data_logs <- function(
 
   # after time offset calculation
   return(logs %>% dplyr::select(!!select_quo))
+}
+
+#' Get device data logs for specific experiment(s)
+#'
+#' Also supports efficient caching of the retrieved data.
+#'
+#' @inheritParams c3_get_device_state_logs
+#' @param exp_id experiment ID(s)
+#' @param ... forwarded to c3_get_device_state_logs
+#' @export
+c3_get_exp_device_data_logs <- function(exp_id, group_id = default(group_id), ..., cache = TRUE, read_cache = TRUE, quiet = default(quiet)) {
+
+  # cache paths
+  cache_paths <- data_frame(
+    exp_id = exp_id,
+    path = file.path("cache", str_c(exp_id, "_data_logs.rds")),
+    exists = file.exists(path)
+  )
+
+  # logs
+  logs <- data_frame()
+
+  # read cache
+  if (read_cache && any(cache_paths$exists)) {
+
+    if (!quiet) {
+      glue("Info: reading data logs from local cache for experiment(s) ",
+           "'{collapse(filter(cache_paths, exists)$exp_id, sep = ', ')}'... ") %>%
+        message(appendLF = FALSE)
+    }
+
+    logs <- cache_paths %>% filter(exists) %>%
+      mutate(data = map(path, read_rds)) %>%
+      select(-exp_id, -path, -exists) %>%
+      unnest(data)
+
+    if (!quiet) glue("recovered {nrow(logs)} records; querying database for newer records...") %>% message()
+
+    # more complex filter to account for each experiment
+    filter_quo <-
+      cache_paths %>% select(exp_id) %>%
+      left_join(logs %>% group_by(exp_id) %>% summarize(max_device_data_log_id = max(device_data_log_id)), by = "exp_id") %>%
+      with(ifelse(
+        !is.na(max_device_data_log_id),
+        sprintf("(exp_id == \"%s\" & device_data_log_id > %d)", exp_id, max_device_data_log_id),
+        sprintf("exp_id == \"%s\"", exp_id))) %>%
+      collapse (sep = " | ") %>%
+      parse_expr()
+  } else {
+    # simple filter for all experiments
+    filter_quo <- quo(exp_id %in% c(!!!cache_paths$exp_id))
+  }
+
+  # fetch from database
+  db_logs <- c3_get_device_data_logs(group_id = group_id, filter = !!filter_quo, ..., quiet = quiet)
+  logs <- bind_rows(db_logs, logs)
+
+  # safety check
+  if (nrow(logs) == 0) return(logs)
+
+  # write cache
+  if (cache && nrow(db_logs) > 0) {
+    if (!quiet) {
+      glue("Info: updating local data logs cache for experiment(s) '{collapse(exp_id, sep = ', ')}'... ") %>%
+        message(appendLF = FALSE)
+    }
+
+    if(!dir.exists("cache")) dir.create("cache")
+    logs %>%
+      left_join(cache_paths, by = "exp_id") %>%
+      select(-exists) %>%
+      nest(-path) %>%
+      with(walk2(data, path, ~write_rds(x = .x, path = .y)))
+
+    if (!quiet) message("complete.")
+  }
+
+  return(logs)
 }
 
 # other ====

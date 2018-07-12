@@ -13,6 +13,7 @@ pool <- pool::dbPool(drv = RPostgreSQL::PostgreSQL(), host = db_host, dbname = d
 message('successful.'); \
 shiny::onStop(function() { pool::poolClose(pool) }); \
 devtools::load_all('.'); \
+labwareC3:::turn_debug_on(); \
 labwareC3::run(group_id = group_id, access_token = access_token, pool = pool, app_pwd = NULL, port = #{port})"] do
   watch(%r{NAMESPACE})
   watch(%r{R/.+\.R$})

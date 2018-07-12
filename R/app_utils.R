@@ -1,3 +1,5 @@
+`%then%` <- shiny:::`%OR%`
+
 # display module message
 # @param type if this is an info meessage or debug (debug only shows if in debug mode)
 module_message <- function(ns, type = c("info", "debug"), ...) {

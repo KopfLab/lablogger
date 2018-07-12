@@ -13,6 +13,10 @@ set_default <- function(name, value, overwrite = TRUE) {
   return(invisible(value))
 }
 
+# turn debug on
+turn_debug_on <- function() {
+  set_default("debug", TRUE)
+}
 
 #' Set default database connection or pool
 #' @param con database connection or pool object

@@ -4,7 +4,7 @@
 \alias{app_ui}
 \title{Chemostat Control Center UI}
 \usage{
-app_ui(start_menu = "traces")
+app_ui(title = "Lab Logger")
 }
 \description{
 Generates the user interface part of the isoviewer app
