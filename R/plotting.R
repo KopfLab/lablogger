@@ -60,7 +60,8 @@ c3_plot_device_data_logs <- function(device_data_logs, filter = NULL, duration_u
       p <- p %+% aes(x = datetime) + scale_x_datetime(date_breaks = date_breaks)
     else
       p <- p %+% aes(x = datetime) + scale_x_datetime()
-    p <- p + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+    p <- p + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+      labs(x = "")
   }
 
 
