@@ -4,7 +4,7 @@
 #' @param group_id devices from which group to fetch
 #' @return devices
 #' @export
-c3_get_devices <- function(group_id = default(group_id), filter = NULL, in_use_only = TRUE, con = default(con), quiet = default(quiet)) {
+ll_get_devices <- function(group_id = default(group_id), filter = NULL, in_use_only = TRUE, con = default(con), quiet = default(quiet)) {
 
   con <- validate_db_connection(enquo(con))
   filter_quo <- enquo(filter)
@@ -31,9 +31,9 @@ c3_get_devices <- function(group_id = default(group_id), filter = NULL, in_use_o
 #'
 #' Convenience shortcut function to get the database integer device identifier for one or multiple devices.
 #' @export
-c3_get_device_ids <- function(device_names, group_id = default(group_id), quiet = default(quiet)) {
+ll_get_device_ids <- function(device_names, group_id = default(group_id), quiet = default(quiet)) {
   device_names_filter <- unique(device_names)
-  devices <- c3_get_devices(group_id = group_id, filter = !!quo(device_name %in% c(!!!device_names_filter)), quiet = quiet)
+  devices <- ll_get_devices(group_id = group_id, filter = !!quo(device_name %in% c(!!!device_names_filter)), quiet = quiet)
   device_name_to_id_map <- setNames(devices$device_id, devices$device_name)
   if (any(missing <- !device_names %in% names(device_name_to_id_map))) {
     glue("the folowing device_name(s) do not exist for group '{group_id}' and can therefore not be mapped to id(s): {collapse(device_names[missing], sep = ', ')}") %>%
@@ -48,7 +48,7 @@ c3_get_device_ids <- function(device_names, group_id = default(group_id), quiet 
 #' @param group_id experiments from which group to fetch
 #' @return experiments
 #' @export
-c3_get_experiments <- function(group_id = default(group_id), filter = NULL, con = default(con), quiet = default(quiet)) {
+ll_get_experiments <- function(group_id = default(group_id), filter = NULL, con = default(con), quiet = default(quiet)) {
 
   con <- validate_db_connection(enquo(con))
   filter_quo <- enquo(filter)
@@ -74,10 +74,10 @@ c3_get_experiments <- function(group_id = default(group_id), filter = NULL, con 
 #'
 #' Returns experiment-device links (only for active/in-use devices) joined with experiment and devices tables so filter conditions can be applied on the devices as well.
 #'
-#' @inheritParams c3_get_experiments
+#' @inheritParams ll_get_experiments
 #' @return experiments_devices
 #' @export
-c3_get_experiment_devices <- function(
+ll_get_experiment_devices <- function(
     group_id = default(group_id), filter = NULL,
     select = c(exp_id, exp_name, recording, device_id, device_name, particle_id, data_key_prefix, data_idx),
     con = default(con), quiet = default(quiet)) {
@@ -102,11 +102,13 @@ c3_get_experiment_devices <- function(
       else .
     } %>%
     dplyr::select(!!select_quo, device_name, data_idx) %>%
-    collect() %>%
-    # arrange
-    arrange(device_name, data_idx) %>%
-    dplyr::select(!!select_quo)
+    collect()
 
+  if (nrow(exp_devices) > 0)
+    exp_devices <- exp_devices %>%
+      # arrange
+      arrange(device_name, data_idx) %>%
+      dplyr::select(!!select_quo)
 
   if (!quiet) glue("found {nrow(exp_devices)} links. ") %>% message()
   return(exp_devices)
@@ -124,7 +126,7 @@ c3_get_experiment_devices <- function(
 #' @param convert_to_TZ if provided, converts the log_datetime to the provided timezone (by default the local one stored in \code{Sys.getenv("TZ")}). If NULL, will keep it as UTC.
 #' @return device state logs
 #' @export
-c3_get_device_state_logs <- function(
+ll_get_device_state_logs <- function(
   group_id = default(group_id), filter = NULL,
   select = c(device_id, device_name, device_state_log_id, log_datetime, log_type, log_message, starts_with("state"), notes),
   max_rows = NULL,
@@ -187,9 +189,9 @@ c3_get_device_state_logs <- function(
 #' @param convert_to_TZ if provided, converts the log_datetime to the provided timezone (by default the local one stored in \code{Sys.getenv("TZ")}). If NULL, will keep it as UTC.
 #' @return device state logs
 #' @export
-c3_get_device_data_logs <- function(
+ll_get_device_data_logs <- function(
   group_id = default(group_id), filter = NULL,
-  select = c(exp_id, exp_name, device_id, device_name, device_data_log_id, datetime, data_idx, starts_with("data_key"), starts_with("data_")),
+  select = c(exp_id, device_id, device_name, device_data_log_id, datetime, data_idx, starts_with("data_key"), starts_with("data_")),
   max_rows = NULL,
   convert_to_TZ = Sys.getenv("TZ"),
   con = default(con), quiet = default(quiet)) {
@@ -256,11 +258,11 @@ c3_get_device_data_logs <- function(
 #'
 #' Also supports efficient caching of the retrieved data.
 #'
-#' @inheritParams c3_get_device_state_logs
+#' @inheritParams ll_get_device_state_logs
 #' @param exp_id experiment ID(s)
-#' @param ... forwarded to c3_get_device_state_logs
+#' @param ... forwarded to ll_get_device_state_logs
 #' @export
-c3_get_exp_device_data_logs <- function(exp_id, group_id = default(group_id), ..., cache = TRUE, read_cache = TRUE, quiet = default(quiet)) {
+ll_get_exp_device_data_logs <- function(exp_id, group_id = default(group_id), ..., cache = TRUE, read_cache = TRUE, quiet = default(quiet)) {
 
   # cache paths
   cache_paths <- data_frame(
@@ -294,7 +296,7 @@ c3_get_exp_device_data_logs <- function(exp_id, group_id = default(group_id), ..
       left_join(logs %>% group_by(exp_id) %>% summarize(max_device_data_log_id = max(device_data_log_id)), by = "exp_id") %>%
       with(ifelse(
         !is.na(max_device_data_log_id),
-        sprintf("(exp_id == \"%s\" & device_data_log_id > %d)", exp_id, max_device_data_log_id),
+        sprintf("(exp_id == \"%s\" & device_data_log_id > %g)", exp_id, max_device_data_log_id),
         sprintf("exp_id == \"%s\"", exp_id))) %>%
       collapse (sep = " | ") %>%
       parse_expr()
@@ -304,7 +306,7 @@ c3_get_exp_device_data_logs <- function(exp_id, group_id = default(group_id), ..
   }
 
   # fetch from database
-  db_logs <- c3_get_device_data_logs(group_id = group_id, filter = !!filter_quo, ..., quiet = quiet)
+  db_logs <- ll_get_device_data_logs(group_id = group_id, filter = !!filter_quo, ..., quiet = quiet)
   logs <- bind_rows(db_logs, logs)
 
   # safety check
@@ -334,7 +336,7 @@ c3_get_exp_device_data_logs <- function(exp_id, group_id = default(group_id), ..
 
 #' retrieve active cameras
 #' @export
-c3_get_cameras <- function(con = default(con), quiet = default(quiet)) {
+ll_get_cameras <- function(con = default(con), quiet = default(quiet)) {
   con <- validate_db_connection(enquo(con))
   if (!quiet) cat("\nInfo: retrieving active cameras... ")
   df <- tbl(con, "cameras") %>%
@@ -349,15 +351,15 @@ c3_get_cameras <- function(con = default(con), quiet = default(quiet)) {
 #' Update device names in the database from the cloud.
 #' @return devices with updated device names
 #' @export
-c3_snyc_device_names_from_cloud <- function(in_use_only = TRUE, con = default(con), access_token = default(access_token), quiet = default(quiet)) {
+ll_snyc_device_names_from_cloud <- function(in_use_only = TRUE, con = default(con), access_token = default(access_token), quiet = default(quiet)) {
 
   stop("this function is deprecated", call. = FALSE)
   con <- validate_db_connection(enquo(con))
 
   devices <-
-    c3_get_devices(in_use_only = in_use_only, con = con, quiet = quiet) %>%
+    ll_get_devices(in_use_only = in_use_only, con = con, quiet = quiet) %>%
     mutate(
-      device_name = map_chr(device_particle_id, c3_get_device_name_from_cloud, access_token = access_token, quiet = quiet),
+      device_name = map_chr(device_particle_id, ll_get_device_name_from_cloud, access_token = access_token, quiet = quiet),
       last_name_sync = with_tz(now(), tzone = "UTC"),
       values = map2_chr(device_particle_id, device_name, ~sprintf("('%s', '%s')", .x, str_replace(.y, fixed("'"), "''")))
     )

@@ -5,11 +5,11 @@
 #' @importFrom curl new_handle curl_fetch_memory
 #' @importFrom jsonlite fromJSON toJSON
 #' @importFrom glue glue collapse
-#' @importFrom dplyr select rename filter as_data_frame %>% tbl collect mutate data_frame everything starts_with ends_with left_join arrange group_by do summarize bind_rows between
+#' @importFrom dplyr select rename filter as_data_frame %>% tbl collect mutate data_frame everything starts_with ends_with left_join arrange group_by do summarize bind_rows between desc
 #' @importFrom ggplot2 ggplot aes geom_point geom_line theme_bw theme_void facet_grid scale_x_datetime labs annotate %+% ggsave theme element_text
 #' @importFrom lubridate with_tz force_tz now ymd_hms as.duration as_datetime
-#' @importFrom purrr map map_lgl map_chr map_dbl map2 map2_chr walk walk2
-#' @importFrom stringr str_c str_replace fixed str_interp
+#' @importFrom purrr map map_lgl map_chr map_dbl map2 map2_chr walk walk2 map2_int
+#' @importFrom stringr str_c str_replace fixed str_interp str_to_lower
 #' @importFrom readr write_rds read_rds
 #' @importFrom DBI dbExecute
 #' @importFrom pool dbPool

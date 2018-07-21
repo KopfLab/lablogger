@@ -1,5 +1,5 @@
 
-dataServer <- function(input, output, session, group_id, pool, timezone) {
+dataServer <- function(input, output, session, group_id, access_token, pool, timezone) {
 
   # namespace
   ns <- session$ns
@@ -10,7 +10,8 @@ dataServer <- function(input, output, session, group_id, pool, timezone) {
     selected_exp_ids = c(),
     refresh_devices = NULL,
     selected_device_ids = c(),
-    refresh_device_data_logs = NULL
+    refresh_device_data_logs = NULL,
+    refresh_devices_cloud_state = NULL
   )
 
   # experiments ====
@@ -18,7 +19,7 @@ dataServer <- function(input, output, session, group_id, pool, timezone) {
     req(values$refresh_experiments)
     withProgress(
       message = 'Fetching experiments', detail = "Querying database...", value = 0.5,
-      c3_get_experiments(group_id = group_id, con = pool)
+      ll_get_experiments(group_id = group_id, con = pool) %>% arrange(desc(recording), exp_id)
     )
   })
 
@@ -39,7 +40,7 @@ dataServer <- function(input, output, session, group_id, pool, timezone) {
     req(values$refresh_devices)
     withProgress(
       message = 'Fetching devices', detail = "Querying database...", value = 0.5,
-      c3_get_devices(group_id = group_id, con = pool) %>% arrange(device_name)
+      ll_get_devices(group_id = group_id, con = pool) %>% arrange(device_name)
     )
   })
 
@@ -60,7 +61,7 @@ dataServer <- function(input, output, session, group_id, pool, timezone) {
     if (length(values$selected_exp_ids) > 0) {
       withProgress(
         message = 'Fetching device data logs', detail = "Querying database...", value = 0.5,
-        c3_get_exp_device_data_logs(
+        ll_get_exp_device_data_logs(
           exp_id = values$selected_exp_ids,
           group_id = group_id,
           con = pool,
@@ -79,6 +80,20 @@ dataServer <- function(input, output, session, group_id, pool, timezone) {
     values$refresh_device_data_logs <- if(is.null(values$refresh_device_data_logs)) 1 else values$refresh_device_data_logs + 1
   }
 
+  # cloud state ======
+  get_devices_cloud_state <- eventReactive(values$refresh_devices_cloud_state, {
+    withProgress(
+      message = 'Fetching device state', detail = "Querying device cloud...", value = 0.5,
+      get_devices() %>%
+        filter(device_id %in% values$selected_device_ids) %>%
+        ll_get_devices_cloud_state(access_token = access_token, convert_to_TZ = timezone)
+    )
+  })
+
+  refresh_devices_cloud_state <- function() {
+    values$refresh_devices_cloud_state <- if(is.null(values$refresh_devices_cloud_state)) 1 else values$refresh_devices_cloud_state + 1
+  }
+
   # functions ====
   list(
     # experiments
@@ -94,7 +109,10 @@ dataServer <- function(input, output, session, group_id, pool, timezone) {
     # device data logs
     get_device_data_logs = get_device_data_logs,
     get_device_data_logs_in_time_interval = get_device_data_logs_in_time_interval,
-    refresh_device_data_logs = refresh_device_data_logs
+    refresh_device_data_logs = refresh_device_data_logs,
+    # devices cloud state
+    get_devices_cloud_state = get_devices_cloud_state,
+    refresh_devices_cloud_state = refresh_devices_cloud_state
   )
 
 }

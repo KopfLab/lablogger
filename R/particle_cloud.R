@@ -57,7 +57,7 @@ make_particle_cloud_request <- function(endpoint, nr = NULL, total = NULL, timeo
 #' @param access_token the access token for the accout
 #' @return nested data frame (converted from JSON)
 # @ note: consider making a function to udpate particle ids in the DB from here (overkill? since state/data logs cause update too)
-c3_get_devices_cloud_info <- function(devices = c3_get_devices(group_id = group_id, con = con), group_id = default(group_id), con = default(con), access_token = default(access_token), quiet = default(quiet)) {
+ll_get_devices_cloud_info <- function(devices = ll_get_devices(group_id = group_id, con = con), group_id = default(group_id), con = default(con), access_token = default(access_token), quiet = default(quiet)) {
 
   # safety checks
   if (!is.data.frame(devices) | !all(c("particle_id", "device_name") %in% names(devices)))
@@ -149,12 +149,12 @@ unpack_cloud_variable_result <- function(var_data, data_column, renames = c(), c
 #' Get device state
 #'
 #' Get state from the particle cloud for devices.
-#' @inheritParams c3_get_devices_cloud_info
-#' @inheritParams c3_get_device_state_logs
+#' @inheritParams ll_get_devices_cloud_info
+#' @inheritParams ll_get_device_state_logs
 #' @param spread whether to convert the state data into wide format (note that this combines value and units columns!)
 #' @return nested data frame (converted from JSON)
-c3_get_devices_cloud_state <-
-  function(devices = c3_get_devices(group_id = group_id, con = con),
+ll_get_devices_cloud_state <-
+  function(devices = ll_get_devices(group_id = group_id, con = con),
            group_id = default(group_id),
            con = default(con),
            access_token = default(access_token),
@@ -181,12 +181,12 @@ c3_get_devices_cloud_state <-
 #' Get device data
 #'
 #' Get latest data from the particle cloud for devices.
-#' @inheritParams c3_get_devices_cloud_info
-#' @inheritParams c3_get_device_state_logs
+#' @inheritParams ll_get_devices_cloud_info
+#' @inheritParams ll_get_device_state_logs
 #' @param spread whether to convert the state data into wide format (note that this combines key and index, as well as, value and units columns!)
 #' @return nested data frame (converted from JSON)
-c3_get_devices_cloud_data <-
-  function(devices = c3_get_devices(group_id = group_id, con = con),
+ll_get_devices_cloud_data <-
+  function(devices = ll_get_devices(group_id = group_id, con = con),
            group_id = default(group_id),
            con = default(con),
            access_token = default(access_token),
@@ -214,8 +214,8 @@ c3_get_devices_cloud_data <-
   }
 
 #' Test which values one gets for a set of experiment devices
-#' @param experiment_devices experiment_devices records, see \link{c3_get_experiment_devices}
-c3_test_experiment_devices_data <- function(experiment_devices, spread = FALSE, access_token = default(access_token), quiet = default(quiet)) {
+#' @param experiment_devices experiment_devices records, see \link{ll_get_experiment_devices}
+ll_test_experiment_devices_data <- function(experiment_devices, spread = FALSE, access_token = default(access_token), quiet = default(quiet)) {
 
   if (!"particle_id" %in% names(experiment_devices))
     stop("particle_id is a required column in experiment_devices data frame", call. = FALSE)
@@ -224,7 +224,7 @@ c3_test_experiment_devices_data <- function(experiment_devices, spread = FALSE, 
   if (!"data_idx" %in% names(experiment_devices))
     stop("data_idx is a required column in experiment_devices data frame", call. = FALSE)
 
-  data <- c3_get_devices_cloud_data(devices = experiment_devices %>% select(particle_id, device_name) %>% unique(), spread = FALSE)
+  data <- ll_get_devices_cloud_data(devices = experiment_devices %>% select(particle_id, device_name) %>% unique(), spread = FALSE)
   if (nrow(data) > 0) {
     data <- select(data, particle_id, device_name, datetime, raw_serial, idx, key, value, units)
     experiment_devices %>%

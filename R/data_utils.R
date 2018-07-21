@@ -143,7 +143,7 @@ spread_data_columns <- function(df) {
 #' @param units any time unit that lubridate understands
 #' @return df with new column \code{duration}
 #' @export
-c3_calculate_duration <- function(df, units) {
+ll_calculate_duration <- function(df, units) {
   stopifnot(!missing(units))
   df %>%
     mutate(duration = as.duration(datetime - min(datetime)) %>% as.numeric(units))

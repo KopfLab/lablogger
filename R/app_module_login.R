@@ -13,8 +13,10 @@ loginServer <- function(input, output, session, app_pwd, menu_input) {
   # always jump back to login
   observeEvent(menu_input(), {
     if (is.null(values$menu) || menu_input() != values$menu) {
-      if (!values$logged_in) updateTabItems(session, "menu", "login")
-      else values$menu <- menu_input()
+      if (!values$logged_in) {
+        module_message(ns, "debug", "not logged in yet, jumping back to login screen")
+        updateTabItems(session, "menu", "login")
+      } else values$menu <- menu_input()
     }
   })
   observeEvent(input$login, login(input$password))

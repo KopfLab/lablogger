@@ -5,7 +5,7 @@
 \title{Chemostat Control Center Server}
 \usage{
 app_server(group_id, access_token, pool, app_pwd, timezone,
-  start_screen = "data")
+  start_screen = "devices")
 }
 \arguments{
 \item{pool}{ideally database connection pool, see \link[pool]{dbPool} but can also be a single db connection (not recommended)}

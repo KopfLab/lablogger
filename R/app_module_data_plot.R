@@ -145,7 +145,7 @@ dataPlotServer <- function(input, output, session, data_manager) {
       } else {
         date_breaks <- NULL
       }
-      p <- c3_plot_device_data_logs(logs, date_breaks = date_breaks)
+      p <- ll_plot_device_data_logs(logs, date_breaks = date_breaks)
 
       # legend position
       if (input$legend_position == "bottom") {
