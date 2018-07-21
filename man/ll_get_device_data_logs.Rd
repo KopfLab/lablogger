@@ -5,9 +5,9 @@
 \title{Retrieve data logs}
 \usage{
 ll_get_device_data_logs(group_id = default(group_id), filter = NULL,
-  select = c(exp_id, exp_name, device_id, device_name, device_data_log_id,
-  datetime, data_idx, starts_with("data_key"), starts_with("data_")),
-  max_rows = NULL, convert_to_TZ = Sys.getenv("TZ"), con = default(con),
+  select = c(exp_id, device_id, device_name, device_data_log_id, datetime,
+  data_idx, starts_with("data_key"), starts_with("data_")), max_rows = NULL,
+  convert_to_TZ = Sys.getenv("TZ"), con = default(con),
   quiet = default(quiet))
 }
 \arguments{
