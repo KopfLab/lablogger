@@ -123,7 +123,7 @@ CREATE TABLE experiment_device_data (
   device_id integer NOT NULL references devices(device_id),
   data_idx integer NOT NULL,
   -- additional information for data
-  data_key_prefix character varying (50) NULL,
+  data_group character varying (50) NULL,
   -- constraint
   unique (exp_id, device_id, data_idx)
 );
