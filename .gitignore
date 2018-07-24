@@ -38,5 +38,5 @@ vignettes/*.pdf
 # Test and temp data
 inst/extdata/*
 inst/gui/*.pdf
-db/
+/db/
 tmp/
