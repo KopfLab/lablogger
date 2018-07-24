@@ -60,7 +60,7 @@ ll_add_experiment <- function(exp_id, exp_desc = NA, group_id = default(group_id
 #' @param device_ids one or multiple device ids to add (by default is inferred from the device names)
 #' @param device_names names of the device(s) to link (define alternatively to the device id, will determine device_ids internally)
 #' @param data_idxs the data indices to map for the experiment, must be same length as device_names/device_ids
-ll_add_experiment_devices <- function(exp_id, device_names, data_idxs, device_ids = ll_get_device_ids(device_names, quiet = quiet), data_key_prefix = NA, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
+ll_add_experiment_devices <- function(exp_id, device_names, data_idxs, device_ids = ll_get_device_ids(device_names, quiet = quiet), data_group = NA, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
 
   if (missing(exp_id)) stop("must supply an existing experiment id", call. = FALSE)
   if (missing(data_idxs) || !is.numeric(data_idxs)) stop("must supply integer data indices", call. = FALSE)
@@ -73,7 +73,7 @@ ll_add_experiment_devices <- function(exp_id, device_names, data_idxs, device_id
     glue("\nInfo: linking device data ({device_info}) to experiment '{exp_id}'... ") %>%
     message(appendLF = FALSE)
   }
-  data <- data_frame(exp_id, device_id = device_ids, data_idx = data_idxs, data_key_prefix)
+  data <- data_frame(exp_id, device_id = device_ids, data_idx = data_idxs, data_group)
   run_insert_sql(data, "experiment_device_data", con = con, quiet = quiet)
   return(invisible(data));
 }

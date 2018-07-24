@@ -6,7 +6,7 @@
 \usage{
 ll_get_experiment_devices(group_id = default(group_id), filter = NULL,
   select = c(exp_device_data_id, exp_id, recording, device_id, device_name,
-  particle_id, data_key_prefix, data_idx), con = default(con),
+  particle_id, data_group, data_idx), con = default(con),
   quiet = default(quiet))
 }
 \arguments{

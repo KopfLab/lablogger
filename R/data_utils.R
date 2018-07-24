@@ -51,23 +51,25 @@ unpack_lists_data_frame <- function(lists_df, column = lists, unnest_single_valu
   lists_df_wide <- lists_df_wide[!names(lists_df_wide) %in% null_cols]
 
   # fill NULL values with NA to not loose records during unnesting (except for lists)
-  for (i in 1:nrow(data_classes)) {
-    lists_df_wide <-
-      with(data_classes[i,], {
-        # make sure the function exists
-        if (exists(data_class)) {
-          if (data_class %in% c("character", "integer", "numeric", "logical"))
-            default_value <- do.call(str_c("as.", data_class), args = list(NA))
-          else
-            default_value <- do.call(data_class, args=list())
-          # note, could also do this with a right_join back in (but perhaps slower?)
-          mutate(lists_df_wide,
-                 !!name := map(!!sym(name), ~if (is.null(.x) || length(.x) == 0) { default_value } else { .x }))
-        } else {
-          # don't do anything if it's not a standard class
-          lists_df_wide
-        }
-      })
+  if (nrow(data_classes) > 0) {
+    for (i in 1:nrow(data_classes)) {
+      lists_df_wide <-
+        with(data_classes[i,], {
+          # make sure the function exists
+          if (exists(data_class)) {
+            if (data_class %in% c("character", "integer", "numeric", "logical"))
+              default_value <- do.call(str_c("as.", data_class), args = list(NA))
+            else
+              default_value <- do.call(data_class, args=list())
+            # note, could also do this with a right_join back in (but perhaps slower?)
+            mutate(lists_df_wide,
+                   !!name := map(!!sym(name), ~if (is.null(.x) || length(.x) == 0) { default_value } else { .x }))
+          } else {
+            # don't do anything if it's not a standard class
+            lists_df_wide
+          }
+        })
+    }
   }
 
   # unnest all the ones that have only single value

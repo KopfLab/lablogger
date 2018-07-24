@@ -51,10 +51,11 @@ loginUI <- function(id, title) {
   ns <- NS(id)
 
   tagList(
+    column(width = 12,
+           h1(textOutput(ns("group"))),
+           h3(textOutput(ns("tz")))),
     div(id = ns("login-panel"),
         column(width = 12,
-               h2(textOutput(ns("group"))),
-               h3(textOutput(ns("tz"))),
                passwordInput(ns("password"), NULL, placeholder = "Please enter your password."), br(),
                selectInput(ns("auto_login_trigger"), NULL, choices = "1", selected = "1") %>% hidden(),
                actionButton(ns("login"), "Login")

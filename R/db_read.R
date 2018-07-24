@@ -95,7 +95,7 @@ ll_get_experiments <- function(group_id = default(group_id), filter = NULL, conv
 #' @export
 ll_get_experiment_devices <- function(
     group_id = default(group_id), filter = NULL,
-    select = c(exp_device_data_id, exp_id, recording, device_id, device_name, particle_id, data_key_prefix, data_idx),
+    select = c(exp_device_data_id, exp_id, recording, device_id, device_name, particle_id, data_group, data_idx),
     con = default(con), quiet = default(quiet)) {
 
   con <- validate_db_connection(enquo(con))
@@ -226,7 +226,7 @@ ll_get_device_data_logs <- function(
 
   logs <- tbl(con, "device_data_logs") %>%
     left_join(tbl(con, "devices"), by = "device_id") %>%
-    left_join(dplyr::select(tbl(con, "experiment_device_data"), exp_device_data_id, exp_id, data_key_prefix), by = "exp_device_data_id") %>%
+    left_join(dplyr::select(tbl(con, "experiment_device_data"), exp_device_data_id, exp_id, data_group), by = "exp_device_data_id") %>%
     left_join(tbl(con, "experiments"), by = c("exp_id", "group_id")) %>%
     arrange(desc(device_data_log_id)) %>%
     dplyr::filter(group_id == group_id_value) %>%

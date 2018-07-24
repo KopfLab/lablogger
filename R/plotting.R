@@ -28,11 +28,11 @@ ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, duration_u
     } %>%
     # grouping and trace with units
     mutate(
-      group = str_c(device_name, data_key, data_key_prefix),
+      group = str_c(device_name, data_key, data_group),
       panel =
         ifelse(!is.na(data_units) & nchar(data_units) > 0, str_c(data_key, " [", data_units, "]"), data_key),
       trace =
-        ifelse(!is.na(data_key_prefix), str_c(data_key_prefix, " ", panel), panel)
+        ifelse(!is.na(data_group), str_c(data_group, " ", panel), panel)
     )
 
   # info messages

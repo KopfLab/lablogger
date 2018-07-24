@@ -14,7 +14,8 @@ deviceSelectorServer <- function(input, output, session, data_manager) {
       if (nrow(df) > 0) {
         df <- select(df, device_id, device_name, device_desc)
         selector$set_table(df)
-        data_manager$select_devices(df$device_id)
+        # selet all by default
+        #data_manager$select_devices(df$device_id)
       }
     })
   })

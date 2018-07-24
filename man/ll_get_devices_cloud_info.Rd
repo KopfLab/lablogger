@@ -6,7 +6,8 @@
 \usage{
 ll_get_devices_cloud_info(devices = ll_get_devices(group_id = group_id, con =
   con), group_id = default(group_id), con = default(con),
-  access_token = default(access_token), quiet = default(quiet))
+  access_token = default(access_token), convert_to_TZ = Sys.getenv("TZ"),
+  quiet = default(quiet))
 }
 \arguments{
 \item{access_token}{the access token for the accout}

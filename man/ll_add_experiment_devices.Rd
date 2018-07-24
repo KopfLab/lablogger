@@ -6,7 +6,7 @@
 \usage{
 ll_add_experiment_devices(exp_id, device_names, data_idxs,
   device_ids = ll_get_device_ids(device_names, quiet = quiet),
-  data_key_prefix = NA, group_id = default(group_id), con = default(con),
+  data_group = NA, group_id = default(group_id), con = default(con),
   quiet = default(quiet))
 }
 \arguments{
