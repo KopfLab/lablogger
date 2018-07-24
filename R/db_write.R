@@ -4,7 +4,7 @@
 #' @param group_id the unique identifier/name of the group. Will error if id already exists.
 #' @param desc the description for the device group (optional)
 #' @export
-c3_add_group <- function(group_id, desc = NA, con = default(con), quiet = default(quiet)) {
+ll_add_group <- function(group_id, desc = NA, con = default(con), quiet = default(quiet)) {
   con <- validate_db_connection(enquo(con))
   if (!quiet) glue("\nInfo: add new group '{group_id}'... ") %>% message(appendLF = FALSE)
   data <- data_frame(group_id = group_id, group_desc = desc)
@@ -22,7 +22,7 @@ c3_add_group <- function(group_id, desc = NA, con = default(con), quiet = defaul
 #' @param particle_id optional, will be automatically filled in the first time the device logs to the database
 #' @param in_use whether device is in use (if not, cannot log any data)
 #' @export
-c3_add_device <- function(device_name, desc = NA, device_type_id = "undefined", group_id = default(group_id), particle_id = NA, in_use = TRUE, con = default(con), quiet = default(quiet)) {
+ll_add_device <- function(device_name, desc = NA, device_type_id = "undefined", group_id = default(group_id), particle_id = NA, in_use = TRUE, con = default(con), quiet = default(quiet)) {
   con <- validate_db_connection(enquo(con))
   if (!quiet) glue("\nInfo: add new device '{device_name}' for group '{group_id}'... ") %>%
     message(appendLF = FALSE)
@@ -42,13 +42,12 @@ c3_add_device <- function(device_name, desc = NA, device_type_id = "undefined", 
 #' @param particle_id optional, will be automatically filled in the first time the device logs to the database
 #' @param in_use whether device is in use (if not, cannot log any data)
 #' @export
-c3_add_experiment <- function(exp_id, exp_name, desc = NA, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
+ll_add_experiment <- function(exp_id, exp_desc = NA, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
   con <- validate_db_connection(enquo(con))
   if (missing(exp_id)) stop("must supply an experiment id", call. = FALSE)
-  if (missing(exp_name)) stop("must supply an experiment name", call. = FALSE)
   if (!quiet) glue("\nInfo: add new experiment '{exp_id}' for group '{group_id}'... ") %>%
     message(appendLF = FALSE)
-  data <- data_frame(exp_id, exp_name, exp_desc = desc, group_id, recording = FALSE)
+  data <- data_frame(exp_id, exp_desc, group_id, recording = FALSE)
   run_insert_sql(data, "experiments", con, quiet = quiet)
   return(invisible(data));
 }
@@ -61,7 +60,7 @@ c3_add_experiment <- function(exp_id, exp_name, desc = NA, group_id = default(gr
 #' @param device_ids one or multiple device ids to add (by default is inferred from the device names)
 #' @param device_names names of the device(s) to link (define alternatively to the device id, will determine device_ids internally)
 #' @param data_idxs the data indices to map for the experiment, must be same length as device_names/device_ids
-c3_add_experiment_devices <- function(exp_id, device_names, data_idxs, device_ids = c3_get_device_ids(device_names, quiet = quiet), data_key_prefix = NA, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
+ll_add_experiment_devices <- function(exp_id, device_names, data_idxs, device_ids = ll_get_device_ids(device_names, quiet = quiet), data_group = NA, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
 
   if (missing(exp_id)) stop("must supply an existing experiment id", call. = FALSE)
   if (missing(data_idxs) || !is.numeric(data_idxs)) stop("must supply integer data indices", call. = FALSE)
@@ -74,7 +73,7 @@ c3_add_experiment_devices <- function(exp_id, device_names, data_idxs, device_id
     glue("\nInfo: linking device data ({device_info}) to experiment '{exp_id}'... ") %>%
     message(appendLF = FALSE)
   }
-  data <- data_frame(exp_id, device_id = device_ids, data_idx = data_idxs, data_key_prefix)
+  data <- data_frame(exp_id, device_id = device_ids, data_idx = data_idxs, data_group)
   run_insert_sql(data, "experiment_device_data", con = con, quiet = quiet)
   return(invisible(data));
 }
@@ -90,7 +89,7 @@ change_experiment_recording <- function(exp_id, recording, group_id, con, quiet)
   }
 
   result <-
-    glue("UPDATE experiments SET recording = {if(recording) 'true' else 'false'} WHERE group_id = {to_sql(group_id)} AND exp_id = {to_sql(exp_id)}") %>%
+    glue("UPDATE experiments SET recording = {if(recording) 'true' else 'false'}, last_recording_change={to_sql(format(now('UTC')))} WHERE group_id = {to_sql(group_id)} AND exp_id = {to_sql(exp_id)}") %>%
     run_sql(con)
   if (!quiet) {
     if (result > 0) glue("{result} record updated.") %>% message()
@@ -99,15 +98,15 @@ change_experiment_recording <- function(exp_id, recording, group_id, con, quiet)
 }
 
 #' Start recording for an experiment
-#' @inheritParams c3_add_experiment_devices
-c3_experiment_start_recording <- function(exp_id, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
+#' @inheritParams ll_add_experiment_devices
+ll_experiment_start_recording <- function(exp_id, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
   if (missing(exp_id)) stop("must supply an existing experiment id", call. = FALSE)
   walk(exp_id, ~change_experiment_recording(.x, TRUE, group_id = group_id, con = con, quiet = quiet))
 }
 
 #' stop recording for an experiment
-#' @inheritParams cc3_experiment_stop_recording
-c3_experiment_stop_recording <- function(exp_id, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
+#' @inheritParams cll_experiment_stop_recording
+ll_experiment_stop_recording <- function(exp_id, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
   if (missing(exp_id)) stop("must supply an existing experiment id", call. = FALSE)
   walk(exp_id, ~change_experiment_recording(.x, FALSE, group_id = group_id, con = con, quiet = quiet))
 }

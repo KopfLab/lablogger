@@ -10,10 +10,14 @@ deviceSelectorServer <- function(input, output, session, data_manager) {
   # update data
   observe({
     req(df <- data_manager$get_devices())
-    if (nrow(df) > 0) {
-      df <- select(df, device_id, device_name, device_desc)
-      selector$set_table(df)
-    }
+    isolate({
+      if (nrow(df) > 0) {
+        df <- select(df, device_id, device_name, device_desc)
+        selector$set_table(df)
+        # selet all by default
+        #data_manager$select_devices(df$device_id)
+      }
+    })
   })
 
   # update selected
@@ -30,7 +34,7 @@ deviceSelectorServer <- function(input, output, session, data_manager) {
 
 }
 
-deviceSelectorUI <- function(id, width = 12, selector_height = 100) {
+deviceSelectorUI <- function(id, width = 12, selector_height = 150) {
   ns <- NS(id)
   default_box(
     title = "Devices", width = width,

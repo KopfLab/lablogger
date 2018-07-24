@@ -1,12 +1,12 @@
-Package: labwareC3
+Package: lablogger
 Type: Package
-Title: Chemostat Control Center
-Version: 0.3.0
+Title: Lab Logger
+Version: 0.3.1
 Author: Sebastian Kopf
 Maintainer: Sebastian Kopf <sebastian.kopf@colorado.edu>
 Roxygen: list(wrap = FALSE)
-URL: https://github.com/kopflab/labwareC3
-BugReports: https://github.com/kopflab/labwareC3/issues
+URL: https://github.com/kopflab/lablogger
+BugReports: https://github.com/kopflab/lablogger/issues
 Depends:
     R (>= 3.1)
 Imports:

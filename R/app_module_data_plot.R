@@ -145,7 +145,7 @@ dataPlotServer <- function(input, output, session, data_manager) {
       } else {
         date_breaks <- NULL
       }
-      p <- c3_plot_device_data_logs(logs, date_breaks = date_breaks)
+      p <- ll_plot_device_data_logs(logs, date_breaks = date_breaks, show_error_range = input$show_errors)
 
       # legend position
       if (input$legend_position == "bottom") {
@@ -235,12 +235,20 @@ dataPlotUI <- function(id) {
         default_box(
           title = "Plot Options", width = 4,
           fluidRow(
+            h4("Errors:") %>% column(width = 4),
+            checkboxInput(ns("show_errors"), NULL, value = FALSE) %>%
+              column(width = 8)
+            # h4("Outliers:") %>% column(width = 4),
+            # checkboxInput(ns("show_outliers"), NULL, value = TRUE) %>%
+            #   column(width = 2)
+            ),
+          fluidRow(
             h4("Plot height:") %>% column(width = 4),
             numericInput(ns("plot_height"), NULL, value = 500, min = 100, step = 50) %>%
               column(width = 8)),
           fluidRow(
             h4("Time intervals:") %>% column(width = 4),
-            numericInput(ns("time_intervals_number"), NULL, value = 2, min = 1, step = 1) %>% column(width = 3),
+            numericInput(ns("time_intervals_number"), NULL, value = NA, min = 1, step = 1) %>% column(width = 3),
             selectInput(ns("time_intervals_unit"), NULL, choices = c("default", "mins", "hours", "days"), selected = "default") %>% column(width = 5)
           ),
           fluidRow(

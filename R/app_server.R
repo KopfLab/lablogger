@@ -9,11 +9,17 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
     message("\n\nINFO: Loading GUI instance ...")
 
     # data server
-    data_manager <- callModule(dataServer, "data", group_id = group_id, pool = pool, timezone = timezone)
+    data_manager <- callModule(dataServer, "data", group_id = group_id, access_token = access_token, pool = pool, timezone = timezone)
 
     # login server
-    login_manager <- callModule(loginServer, "login", app_pwd = app_pwd, menu_input = reactive({ input$menu }))
-    observe({
+    login_manager <- callModule(loginServer, "login", app_pwd = app_pwd, group = group_id, timezone = timezone)
+    observeEvent(input$menu, {
+      if (!login_manager$is_logged_in()) {
+          module_message(NULL, "debug", "not logged in yet, jumping back to login screen")
+          updateTabItems(session, "menu", selected = "login")
+      }
+    })
+    observeEvent(login_manager$is_logged_in(), {
       if (login_manager$is_logged_in()) {
         updateTabItems(session, "menu", start_screen)
         data_manager$refresh_experiments(init = TRUE)
@@ -42,20 +48,21 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
     output$logs <- renderUI({
       if (!login_manager$is_logged_in()) return(NULL)
       message("INFO: Generating 'logs' screen")
-      tagList(
-        tabsetPanel(
-          type = "tabs",
-          tabPanel(
-            "State Logs", br(),
-            deviceSelectorUI("state_logs_devices", width = 12)
-          ),
-          tabPanel(
-            "Data Logs", br(),
-            deviceSelectorUI("data_logs_devices", width = 6),
-            experimentSelectorUI("data_logs_exps", width = 6)
-          )
-        )
-      )
+      tagList(h3("Coming soon..."))
+      # tagList(
+      #   tabsetPanel(
+      #     type = "tabs",
+      #     tabPanel(
+      #       "State Logs", br(),
+      #       deviceSelectorUI("state_logs_devices", width = 12)
+      #     ),
+      #     tabPanel(
+      #       "Data Logs", br(),
+      #       deviceSelectorUI("data_logs_devices", width = 6),
+      #       experimentSelectorUI("data_logs_exps", width = 6)
+      #     )
+      #   )
+      # )
     })
 
     # EXPERIMENTS SCREEN ====
@@ -66,10 +73,15 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
     })
 
     # DEVICES SCREEN ====
-    output$experiments <- renderUI({
+    devices <- callModule(deviceSelectorServer, "devices", data_manager)
+    devices_cloud_info <- callModule(deviceCloudInfoServer, "devices_cloud_info", data_manager)
+    output$devices <- renderUI({
       if (!login_manager$is_logged_in()) return(NULL)
       message("INFO: Generating 'devices' screen")
-      tagList(h3("Coming soon..."))
+      tagList(
+        deviceSelectorUI("devices", width = 12, selector_height = 200),
+        deviceCloudInfoUI("devices_cloud_info")
+      )
     })
 
     # WEBCAMS SCREEN ====

@@ -1,5 +1,5 @@
 
-loginServer <- function(input, output, session, app_pwd, menu_input) {
+loginServer <- function(input, output, session, app_pwd, group, timezone) {
 
   # namespace
   ns <- session$ns
@@ -10,13 +10,11 @@ loginServer <- function(input, output, session, app_pwd, menu_input) {
     logged_in = FALSE
   )
 
+  # output
+  output$group <- renderText(str_c("Group: ", group))
+  output$tz <- renderText(str_c("Timezone: ", timezone))
+
   # always jump back to login
-  observeEvent(menu_input(), {
-    if (is.null(values$menu) || menu_input() != values$menu) {
-      if (!values$logged_in) updateTabItems(session, "menu", "login")
-      else values$menu <- menu_input()
-    }
-  })
   observeEvent(input$login, login(input$password))
   observeEvent(input$auto_login_trigger, { if (is.null(app_pwd)) login(NULL) })
 
@@ -53,9 +51,12 @@ loginUI <- function(id, title) {
   ns <- NS(id)
 
   tagList(
+    column(width = 12,
+           h1(textOutput(ns("group"))),
+           h3(textOutput(ns("tz")))),
     div(id = ns("login-panel"),
         column(width = 12,
-               textInput(ns("password"), NULL, placeholder = "Please enter your password."),
+               passwordInput(ns("password"), NULL, placeholder = "Please enter your password."), br(),
                selectInput(ns("auto_login_trigger"), NULL, choices = "1", selected = "1") %>% hidden(),
                actionButton(ns("login"), "Login")
         )),

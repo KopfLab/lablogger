@@ -5,15 +5,17 @@ experimentSelectorServer <- function(input, output, session, data_manager) {
   ns <- session$ns
 
   # selector
-  selector <- callModule(selectorTableServer, "selector", id_column = "exp_id", col_headers = c("ID", "Name", "Recording"))
+  selector <- callModule(selectorTableServer, "selector", id_column = "exp_id", col_headers = c("ID", "Description", "Recording"))
 
   # update data
   observe({
     req(df <- data_manager$get_experiments())
-    if (nrow(df) > 0) {
-      df <- select(df, exp_id, exp_name, recording)
-      selector$set_table(df)
-    }
+    isolate({
+      if (nrow(df) > 0) {
+        df <- select(df, exp_id, exp_desc, recording)
+        selector$set_table(df)
+      }
+    })
   })
 
   # update selected
@@ -31,7 +33,7 @@ experimentSelectorServer <- function(input, output, session, data_manager) {
 }
 
 
-experimentSelectorUI <- function(id, width = 12, selector_height = 100) {
+experimentSelectorUI <- function(id, width = 12, selector_height = 150) {
   ns <- NS(id)
   default_box(
     title = "Experiments", width = width,
