@@ -48,7 +48,7 @@ ll_get_device_ids <- function(device_names, group_id = default(group_id), quiet 
 #' @param group_id experiments from which group to fetch
 #' @return experiments
 #' @export
-ll_get_experiments <- function(group_id = default(group_id), filter = NULL, con = default(con), quiet = default(quiet)) {
+ll_get_experiments <- function(group_id = default(group_id), filter = NULL, convert_to_TZ = Sys.getenv("TZ"), con = default(con), quiet = default(quiet)) {
 
   con <- validate_db_connection(enquo(con))
   filter_quo <- enquo(filter)
@@ -65,8 +65,24 @@ ll_get_experiments <- function(group_id = default(group_id), filter = NULL, con 
       if(!quo_is_null(filter_quo)) dplyr::filter(., !!filter_quo)
       else .
     } %>%
+    arrange(desc(recording), desc(last_recording_change)) %>%
     collect()
-  if (!quiet) glue("found {nrow(df)}.") %>% message()
+
+  if (!quiet) glue("found {nrow(df)}.") %>% message(appendLF = FALSE)
+
+  if ("last_recording_change" %in% names(df)) {
+    # server stores everything in UTC
+    df <- mutate(df, last_recording_change = force_tz(last_recording_change, "UTC"))
+
+    # local TZ conversion
+    if (!is.null(convert_to_TZ)) {
+      if (!quiet) glue("Converting last_recording_change to timezone '{convert_to_TZ}'.") %>%
+        message(appendLF = FALSE)
+      df <- mutate(df, last_recording_change = with_tz(last_recording_change, convert_to_TZ))
+    }
+  }
+  message("")
+
   return(df)
 }
 
@@ -79,7 +95,7 @@ ll_get_experiments <- function(group_id = default(group_id), filter = NULL, con 
 #' @export
 ll_get_experiment_devices <- function(
     group_id = default(group_id), filter = NULL,
-    select = c(exp_id, exp_name, recording, device_id, device_name, particle_id, data_key_prefix, data_idx),
+    select = c(exp_device_data_id, exp_id, recording, device_id, device_name, particle_id, data_key_prefix, data_idx),
     con = default(con), quiet = default(quiet)) {
 
   con <- validate_db_connection(enquo(con))

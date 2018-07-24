@@ -90,7 +90,7 @@ change_experiment_recording <- function(exp_id, recording, group_id, con, quiet)
   }
 
   result <-
-    glue("UPDATE experiments SET recording = {if(recording) 'true' else 'false'} WHERE group_id = {to_sql(group_id)} AND exp_id = {to_sql(exp_id)}") %>%
+    glue("UPDATE experiments SET recording = {if(recording) 'true' else 'false'}, last_recording_change={to_sql(format(now('UTC')))} WHERE group_id = {to_sql(group_id)} AND exp_id = {to_sql(exp_id)}") %>%
     run_sql(con)
   if (!quiet) {
     if (result > 0) glue("{result} record updated.") %>% message()

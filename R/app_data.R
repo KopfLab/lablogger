@@ -19,7 +19,7 @@ dataServer <- function(input, output, session, group_id, access_token, pool, tim
     req(values$refresh_experiments)
     withProgress(
       message = 'Fetching experiments', detail = "Querying database...", value = 0.5,
-      ll_get_experiments(group_id = group_id, con = pool) %>% arrange(desc(recording), exp_id)
+      ll_get_experiments(group_id = group_id, con = pool)
     )
   })
 
