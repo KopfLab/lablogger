@@ -3,8 +3,10 @@
 #' Generates the server part of the isoviewer app
 #' @param pool ideally database connection pool, see \link[pool]{dbPool} but can also be a single db connection (not recommended)
 #' @inheritParams run
-app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_screen = "devices") {
+app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_screen = "logs") {
   shinyServer(function(input, output, session) {
+
+    #app_pwd <- "test"
 
     message("\n\nINFO: Loading GUI instance ...")
 
@@ -42,21 +44,20 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
     output$logs <- renderUI({
       if (!login_manager$is_logged_in()) return(NULL)
       message("INFO: Generating 'logs' screen")
-      # tagList(
-      #   tabsetPanel(
-      #     type = "tabs",
-      #     tabPanel(
-      #       "State Logs", br(),
-      #       deviceSelectorUI("state_logs_devices", width = 12)
-      #     ),
-      #     tabPanel(
-      #       "Data Logs", br(),
-      #       deviceSelectorUI("data_logs_devices", width = 6),
-      #       experimentSelectorUI("data_logs_exps", width = 6)
-      #     )
-      #   )
-      # )
-      tagList(h3("Coming soon..."))
+      tagList(
+        tabsetPanel(
+          type = "tabs",
+          tabPanel(
+            "State Logs", br(),
+            deviceSelectorUI("state_logs_devices", width = 12)
+          ),
+          tabPanel(
+            "Data Logs", br(),
+            deviceSelectorUI("data_logs_devices", width = 6),
+            experimentSelectorUI("data_logs_exps", width = 6)
+          )
+        )
+      )
     })
 
     # EXPERIMENTS SCREEN ====

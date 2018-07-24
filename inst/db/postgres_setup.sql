@@ -105,11 +105,11 @@ CREATE TABLE experiments
   last_recording_change timestamp without time zone default NOW()
 );
 
-INSERT INTO experiments(exp_id, group_id, exp_name, recording)
+INSERT INTO experiments(exp_id, group_id, exp_desc, recording)
   VALUES('TEST', 'testing', 'Test Exp', true);
-INSERT INTO experiments(exp_id, group_id, exp_name, recording)
+INSERT INTO experiments(exp_id, group_id, exp_desc, recording)
   VALUES('TEST2', 'testing', 'Test Exp', true);
-INSERT INTO experiments(exp_id, group_id, exp_name, recording)
+INSERT INTO experiments(exp_id, group_id, exp_desc, recording)
   VALUES('TEST3', 'testing', 'Inactive Test Exp', false);
 
 -- Table: experiment_device_data

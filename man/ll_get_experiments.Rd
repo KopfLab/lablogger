@@ -5,7 +5,8 @@
 \title{Retrieve experiments}
 \usage{
 ll_get_experiments(group_id = default(group_id), filter = NULL,
-  con = default(con), quiet = default(quiet))
+  convert_to_TZ = Sys.getenv("TZ"), con = default(con),
+  quiet = default(quiet))
 }
 \arguments{
 \item{group_id}{experiments from which group to fetch}

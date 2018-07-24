@@ -5,8 +5,9 @@
 \title{Retrieve experiment devices}
 \usage{
 ll_get_experiment_devices(group_id = default(group_id), filter = NULL,
-  select = c(exp_id, exp_name, recording, device_id, device_name, particle_id,
-  data_key_prefix, data_idx), con = default(con), quiet = default(quiet))
+  select = c(exp_device_data_id, exp_id, recording, device_id, device_name,
+  particle_id, data_key_prefix, data_idx), con = default(con),
+  quiet = default(quiet))
 }
 \arguments{
 \item{group_id}{experiments from which group to fetch}

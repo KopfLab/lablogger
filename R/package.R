@@ -14,7 +14,7 @@
 #' @importFrom DBI dbExecute
 #' @importFrom pool dbPool
 #' @importFrom RPostgreSQL PostgreSQL
-#' @importFrom tidyr gather nest unnest
+#' @importFrom tidyr gather nest unnest spread
 #' @import shiny
 #' @import shinydashboard
 #' @importFrom shinyjs useShinyjs hidden show hide toggle disabled toggleState

@@ -42,13 +42,12 @@ ll_add_device <- function(device_name, desc = NA, device_type_id = "undefined", 
 #' @param particle_id optional, will be automatically filled in the first time the device logs to the database
 #' @param in_use whether device is in use (if not, cannot log any data)
 #' @export
-ll_add_experiment <- function(exp_id, exp_name, desc = NA, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
+ll_add_experiment <- function(exp_id, exp_desc = NA, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
   con <- validate_db_connection(enquo(con))
   if (missing(exp_id)) stop("must supply an experiment id", call. = FALSE)
-  if (missing(exp_name)) stop("must supply an experiment name", call. = FALSE)
   if (!quiet) glue("\nInfo: add new experiment '{exp_id}' for group '{group_id}'... ") %>%
     message(appendLF = FALSE)
-  data <- data_frame(exp_id, exp_name, exp_desc = desc, group_id, recording = FALSE)
+  data <- data_frame(exp_id, exp_desc, group_id, recording = FALSE)
   run_insert_sql(data, "experiments", con, quiet = quiet)
   return(invisible(data));
 }
