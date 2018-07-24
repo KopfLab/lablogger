@@ -5,7 +5,8 @@
 \title{Plot device data logs}
 \usage{
 ll_plot_device_data_logs(device_data_logs, filter = NULL,
-  duration_units = NULL, date_breaks = NULL, quiet = default(quiet))
+  show_error_range = FALSE, duration_units = NULL, date_breaks = NULL,
+  quiet = default(quiet))
 }
 \arguments{
 \item{duration_units}{specify a time unit (e.g. "mins") to indicate whether x axis should be displayed as a duration since the first data point within each experiment, if NULL x axis is displayed as regular date time.}
