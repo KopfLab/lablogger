@@ -16,8 +16,10 @@ deviceCloudInfoServer <- function(input, output, session, data_manager) {
     state <- data_manager$get_devices_cloud_state()
     validate(need(nrow(state) > 0, "No state information available."))
     module_message(ns, "debug", "rendering cloud state table")
+    vars_start <- which(names(state) == "version")
     state %>% filter(in_use) %>% arrange(device_name) %>%
-      select(Name = device_name, Description = device_desc, `Last seen` = datetime, Version = version)
+      mutate(datetime = format(datetime)) %>%
+      select(Name = device_name, Description = device_desc, `Last seen` = datetime, Version = version, vars_start:ncol(state))
   }, striped = TRUE, spacing = 'xs', width = '100%', align = NULL)
 
 }

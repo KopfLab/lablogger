@@ -3,10 +3,8 @@
 #' Generates the server part of the isoviewer app
 #' @param pool ideally database connection pool, see \link[pool]{dbPool} but can also be a single db connection (not recommended)
 #' @inheritParams run
-app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_screen = "logs") {
+app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_screen = "devices") {
   shinyServer(function(input, output, session) {
-
-    #app_pwd <- "test"
 
     message("\n\nINFO: Loading GUI instance ...")
 
@@ -14,7 +12,13 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
     data_manager <- callModule(dataServer, "data", group_id = group_id, access_token = access_token, pool = pool, timezone = timezone)
 
     # login server
-    login_manager <- callModule(loginServer, "login", app_pwd = app_pwd, menu_input = reactive({ input$menu }))
+    login_manager <- callModule(loginServer, "login", app_pwd = app_pwd, group = group_id, timezone = timezone)
+    observeEvent(input$menu, {
+      if (!login_manager$is_logged_in()) {
+          module_message(NULL, "debug", "not logged in yet, jumping back to login screen")
+          updateTabItems(session, "menu", selected = "login")
+      }
+    })
     observeEvent(login_manager$is_logged_in(), {
       if (login_manager$is_logged_in()) {
         updateTabItems(session, "menu", start_screen)

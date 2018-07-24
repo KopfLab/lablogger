@@ -1,7 +1,7 @@
 #' @keywords internal
 "_PACKAGE"
 
-#' @importFrom rlang quo quos enquo !! !!! is_quosure quo_expr quo_text quo_is_null quo_is_symbol quo_is_lang lang_head sym eval_tidy parse_expr
+#' @importFrom rlang quo quos enquo !! !!! is_quosure quo_expr quo_text quo_is_null quo_is_symbol quo_is_lang lang_head sym syms eval_tidy parse_expr
 #' @importFrom curl new_handle curl_fetch_memory
 #' @importFrom jsonlite fromJSON toJSON
 #' @importFrom glue glue collapse
@@ -9,7 +9,7 @@
 #' @importFrom ggplot2 ggplot aes geom_point geom_line theme_bw theme_void facet_grid scale_x_datetime labs annotate %+% ggsave theme element_text
 #' @importFrom lubridate with_tz force_tz now ymd_hms as.duration as_datetime
 #' @importFrom purrr map map_lgl map_chr map_dbl map2 map2_chr walk walk2 map2_int
-#' @importFrom stringr str_c str_replace fixed str_interp str_to_lower
+#' @importFrom stringr str_c str_replace fixed str_interp str_to_lower str_detect
 #' @importFrom readr write_rds read_rds
 #' @importFrom DBI dbExecute
 #' @importFrom pool dbPool

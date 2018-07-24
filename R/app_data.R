@@ -19,7 +19,7 @@ dataServer <- function(input, output, session, group_id, access_token, pool, tim
     req(values$refresh_experiments)
     withProgress(
       message = 'Fetching experiments', detail = "Querying database...", value = 0.5,
-      ll_get_experiments(group_id = group_id, con = pool)
+      ll_get_experiments(group_id = group_id, con = pool, convert_to_TZ = timezone)
     )
   })
 
@@ -86,7 +86,7 @@ dataServer <- function(input, output, session, group_id, access_token, pool, tim
       message = 'Fetching device state', detail = "Querying device cloud...", value = 0.5,
       get_devices() %>%
         filter(device_id %in% values$selected_device_ids) %>%
-        ll_get_devices_cloud_state(access_token = access_token, convert_to_TZ = timezone)
+        ll_get_devices_cloud_state(access_token = access_token, convert_to_TZ = timezone, spread = TRUE)
     )
   })
 

@@ -4,17 +4,17 @@
 \alias{ll_add_experiment}
 \title{Add new experiment}
 \usage{
-ll_add_experiment(exp_id, exp_name, desc = NA, group_id = default(group_id),
+ll_add_experiment(exp_id, exp_desc = NA, group_id = default(group_id),
   con = default(con), quiet = default(quiet))
 }
 \arguments{
 \item{exp_id}{the unique identifier of the experiment (usually a few letter code). Will error if id already exists.}
 
+\item{group_id}{group name, must exist in database (will error if not)}
+
 \item{exp_name}{longer name of the experiment}
 
 \item{desc}{device description}
-
-\item{group_id}{group name, must exist in database (will error if not)}
 
 \item{device_type_id}{device type name, must exist in database (will error if not)}
 
