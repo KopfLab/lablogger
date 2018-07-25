@@ -1,9 +1,12 @@
 
-deviceCloudInfoServer <- function(input, output, session, data_manager) {
+deviceInfoServer <- function(input, output, session, data_manager) {
 
 
   # namespace
   ns <- session$ns
+
+  # fetch experiment devices
+  observeEvent(input$fetch_experiment_devices, data_manager$refresh_recording_experiment_devices())
 
   # fetch state
   observeEvent(input$fetch_state, data_manager$refresh_devices_cloud_state())
@@ -16,15 +19,26 @@ deviceCloudInfoServer <- function(input, output, session, data_manager) {
 
   # fetch all
   observe({
+    input$fetch_experiment_devices_all
     input$fetch_state_all
     input$fetch_data_all
     input$fetch_info_all
     isolate({
+      data_manager$refresh_recording_experiment_devices()
       data_manager$refresh_devices_cloud_state()
       data_manager$refresh_devices_cloud_data()
       data_manager$refresh_devices_cloud_info()
     })
   })
+
+  # experiment devices
+  output$experiment_devices_table <- renderTable({
+    exp_devices <- data_manager$get_recording_experiment_devices()
+    validate(need(nrow(exp_devices) > 0, "No active linked experiments."))
+    module_message(ns, "debug", "rendering experiment devices table")
+    exp_devices %>% arrange(device_name, data_idx) %>%
+      select(Name = device_name, idx = data_idx, `Exp ID` = exp_id, `Data Group` = data_group)
+  }, striped = TRUE, spacing = 'xs', width = '100%', align = NULL)
 
   # state table
   output$state_table <- renderTable({
@@ -62,11 +76,25 @@ deviceCloudInfoServer <- function(input, output, session, data_manager) {
 
 
 
-deviceCloudInfoUI <- function(id, width = 12) {
+deviceInfoUI <- function(id, width = 12) {
 
   ns <- NS(id)
 
   tagList(
+
+    # live state
+    default_box(
+      title = "Active Experiment Device Links", width = width,
+      tableOutput(ns("experiment_devices_table")),
+      footer =
+        div(
+          tooltipInput(actionButton, ns("fetch_experiment_devices"), "Fetch Experiments", icon = icon("cloud-download"),
+                       tooltip = "Fetch active experiments using this device from the database."),
+          spaces(1),
+          tooltipInput(actionButton, ns("fetch_experiment_devices_all"), "Fetch All", icon = icon("cloud-download"),
+                       tooltip = "Fetch all device information from the cloud and database.")
+        )
+    ),
 
     # live state
     default_box(
@@ -78,7 +106,7 @@ deviceCloudInfoUI <- function(id, width = 12) {
                             tooltip = "Fetch the most recent state information from the cloud."),
           spaces(1),
           tooltipInput(actionButton, ns("fetch_state_all"), "Fetch All", icon = icon("cloud-download"),
-                       tooltip = "Fetch the most recent state, data and information from the cloud.")
+                       tooltip = "Fetch all device information from the cloud and database.")
         )
     ),
 
@@ -91,7 +119,7 @@ deviceCloudInfoUI <- function(id, width = 12) {
                      tooltip = "Fetch the most recent live data from the cloud."),
         spaces(1),
         tooltipInput(actionButton, ns("fetch_data_all"), "Fetch All", icon = icon("cloud-download"),
-                     tooltip = "Fetch the most recent state, data and information from the cloud.")
+                     tooltip = "Fetch all device information from the cloud and database.")
       )
     ),
 
@@ -104,7 +132,7 @@ deviceCloudInfoUI <- function(id, width = 12) {
                      tooltip = "Fetch the most recent device information from the cloud."),
         spaces(1),
         tooltipInput(actionButton, ns("fetch_info_all"), "Fetch All", icon = icon("cloud-download"),
-                     tooltip = "Fetch the most recent state, data and information from the cloud.")
+                     tooltip = "Fetch all device information from the cloud and database.")
       )
     )
 

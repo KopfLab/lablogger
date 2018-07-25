@@ -74,13 +74,13 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
 
     # DEVICES SCREEN ====
     devices <- callModule(deviceSelectorServer, "devices", data_manager)
-    devices_cloud_info <- callModule(deviceCloudInfoServer, "devices_cloud_info", data_manager)
+    devices_info <- callModule(deviceInfoServer, "devices_info", data_manager)
     output$devices <- renderUI({
       if (!login_manager$is_logged_in()) return(NULL)
       message("INFO: Generating 'devices' screen")
       tagList(
         deviceSelectorUI("devices", width = 12, selector_height = 200),
-        deviceCloudInfoUI("devices_cloud_info")
+        deviceInfoUI("devices_info")
       )
     })
 
