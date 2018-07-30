@@ -5,35 +5,43 @@ deviceInfoServer <- function(input, output, session, data_manager) {
   # namespace
   ns <- session$ns
 
-  # fetch experiment devices
-  observeEvent(input$fetch_experiment_devices, data_manager$refresh_recording_experiment_devices())
+  # fetch cloud data - experiment device links
+  observeEvent(input$fetch_cloud_data_experiment_links, {
+    data_manager$refresh_experiment_device_links()
+    data_manager$refresh_devices_cloud_data()
+  })
 
   # fetch state
   observeEvent(input$fetch_state, data_manager$refresh_devices_cloud_state())
 
   # fetch data
-  observeEvent(input$fetch_data, data_manager$refresh_devices_cloud_data())
+  observeEvent(input$fetch_data, {
+    data_manager$refresh_devices_cloud_data()
+    # only trigger this if currently showing exp links info
+    data_manager$refresh_experiment_device_links(
+      init = !any(c("r_exps", "nr_exps") %in% input$data_table_options)
+    )
+  })
 
   # fetch info
   observeEvent(input$fetch_info, data_manager$refresh_devices_cloud_info())
 
   # fetch all
   observe({
-    input$fetch_experiment_devices_all
     input$fetch_state_all
     input$fetch_data_all
     input$fetch_info_all
     isolate({
-      data_manager$refresh_recording_experiment_devices()
       data_manager$refresh_devices_cloud_state()
       data_manager$refresh_devices_cloud_data()
+      data_manager$refresh_experiment_device_links() # always trigger in this case
       data_manager$refresh_devices_cloud_info()
     })
   })
 
   # experiment devices
-  output$experiment_devices_table <- renderTable({
-    exp_devices <- data_manager$get_recording_experiment_devices()
+  output$cloud_data_experiment_links_table <- renderTable({
+    exp_devices <- data_manager$get_cloud_data_experiment_links()
     validate(need(nrow(exp_devices) > 0, "No active linked experiments."))
     module_message(ns, "debug", "rendering experiment devices table")
     exp_devices %>% arrange(device_name, data_idx) %>%
@@ -54,11 +62,25 @@ deviceInfoServer <- function(input, output, session, data_manager) {
   # data table
   output$data_table <- renderTable({
     data <- data_manager$get_devices_cloud_data()
+    links <- data_manager$get_experiment_device_links()
     validate(need(nrow(data) > 0, "No live device data available."))
-    module_message(ns, "debug", "rendering cloud data table")
-    data %>% arrange(device_name) %>%
+    data_links <- ll_summarize_cloud_data_experiment_links(cloud_data = data, experiment_device_links = links) %>%
+      arrange(device_name, idx) %>%
       mutate(datetime = format(datetime)) %>%
-      select(Name = device_name, `Last data update` = datetime, idx, key, value, units, raw_serial, raw_serial_errors)
+      select(Name = device_name, `Last data update` = datetime,
+             `Exp IDs (recording)` = recording_exp_ids, `Exp IDs (not recording)` = non_recording_exp_ids,
+             idx, key, value, units,
+             raw_serial, raw_serial_errors)
+    module_message(ns, "debug", "rendering cloud data table")
+
+    if (!"serial" %in% input$data_table_options)
+      data_links <- select(data_links, -raw_serial, -raw_serial_errors)
+    if (!"r_exps" %in% input$data_table_options)
+      data_links <- select(data_links, -`Exp IDs (recording)`)
+    if (!"nr_exps" %in% input$data_table_options)
+      data_links <- select(data_links, -`Exp IDs (not recording)`)
+
+    return(data_links)
   }, striped = TRUE, spacing = 'xs', width = '100%', align = NULL)
 
 
@@ -69,7 +91,7 @@ deviceInfoServer <- function(input, output, session, data_manager) {
     module_message(ns, "debug", "rendering cloud info table")
     info %>% arrange(device_name) %>%
       mutate(last_heard = format(last_heard)) %>%
-      select(Name = device_name, `Last software update` = last_heard, Connected = connected, Status = status, Firmware = system_firmware_version)
+      select(Name = device_name, `Last restart` = last_heard, Connected = connected, Status = status, Firmware = system_firmware_version)
   }, striped = TRUE, spacing = 'xs', width = '100%', align = NULL)
 
 }
@@ -81,20 +103,6 @@ deviceInfoUI <- function(id, width = 12) {
   ns <- NS(id)
 
   tagList(
-
-    # live state
-    default_box(
-      title = "Active Experiment Device Links", width = width,
-      tableOutput(ns("experiment_devices_table")),
-      footer =
-        div(
-          tooltipInput(actionButton, ns("fetch_experiment_devices"), "Fetch Experiments", icon = icon("cloud-download"),
-                       tooltip = "Fetch active experiments using this device from the database."),
-          spaces(1),
-          tooltipInput(actionButton, ns("fetch_experiment_devices_all"), "Fetch All", icon = icon("cloud-download"),
-                       tooltip = "Fetch all device information from the cloud and database.")
-        )
-    ),
 
     # live state
     default_box(
@@ -113,10 +121,18 @@ deviceInfoUI <- function(id, width = 12) {
     # live data
     default_box(
       title = "Live Data", width = width,
+
+      checkboxGroupInput(ns("data_table_options"), NULL,
+                         c("Experiment Links (recording)" = "r_exps",
+                           "Experiment Links (not recording)" = "nr_exps",
+                           "Raw Serial Data" = "serial"),
+                         selected = c("r_exps", "serial"),
+                         inline = TRUE),
+
       tableOutput(ns("data_table")),
       footer = div(
         tooltipInput(actionButton, ns("fetch_data"), "Fetch Data", icon = icon("cloud-download"),
-                     tooltip = "Fetch the most recent live data from the cloud."),
+                     tooltip = "Fetch the most recent live data and experiment links from the cloud."),
         spaces(1),
         tooltipInput(actionButton, ns("fetch_data_all"), "Fetch All", icon = icon("cloud-download"),
                      tooltip = "Fetch all device information from the cloud and database.")

@@ -10,7 +10,7 @@ dataServer <- function(input, output, session, group_id, access_token, pool, tim
     selected_exp_ids = c(),
     refresh_devices = NULL,
     selected_device_ids = c(),
-    refresh_recording_experiment_devices = NULL,
+    refresh_experiment_device_links = NULL,
     refresh_device_data_logs = NULL,
     refresh_devices_cloud_state = NULL,
     refresh_devices_cloud_data = NULL,
@@ -59,20 +59,24 @@ dataServer <- function(input, output, session, group_id, access_token, pool, tim
     }
   }
 
-  # experiment devices ====
-  get_recording_experiment_devices <- eventReactive(values$refresh_recording_experiment_devices, {
+  # experiment device links ====
+  get_experiment_device_links <- eventReactive(values$refresh_experiment_device_links, {
     if (length(values$selected_device_ids) > 0) {
       withProgress(
         message = 'Fetching experiment device links', detail = "Querying database...", value = 0.5,
-        ll_get_experiment_devices(group_id = group_id, con = pool, filter = recording & device_id %in% c(!!!values$selected_device_ids))
+        ll_get_experiment_device_links(
+          group_id = group_id, con = pool,
+          select = c(exp_device_data_id, exp_id, recording, device_name, data_group, data_idx, active),
+          filter = device_id %in% c(!!!values$selected_device_ids))
       )
     } else {
       data_frame()
     }
   })
 
-  refresh_recording_experiment_devices <- function() {
-    values$refresh_recording_experiment_devices <- if(is.null(values$refresh_recording_experiment_devices)) 1 else values$refresh_recording_experiment_devices + 1
+  refresh_experiment_device_links <- function(init = FALSE) {
+    if(is.null(values$refresh_experiment_device_links)) values$refresh_experiment_device_links <- 1
+    else if (!init) values$refresh_experiment_device_links <- values$refresh_experiment_device_links + 1
   }
 
   # device data logs ====
@@ -154,8 +158,8 @@ dataServer <- function(input, output, session, group_id, access_token, pool, tim
     select_devices = select_devices,
     get_selected_devices = reactive({values$selected_device_ids}),
     # experiment devices
-    get_recording_experiment_devices = get_recording_experiment_devices,
-    refresh_recording_experiment_devices = refresh_recording_experiment_devices,
+    get_experiment_device_links = get_experiment_device_links,
+    refresh_experiment_device_links = refresh_experiment_device_links,
     # device data logs
     get_device_data_logs = get_device_data_logs,
     get_device_data_logs_in_time_interval = get_device_data_logs_in_time_interval,

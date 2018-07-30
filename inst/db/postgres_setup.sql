@@ -124,6 +124,8 @@ CREATE TABLE experiment_device_data (
   data_idx integer NOT NULL,
   -- additional information for data
   data_group character varying (50) NULL,
+  -- whether this is an active experiment device
+  active boolean NOT NULL DEFAULT True,
   -- constraint
   unique (exp_id, device_id, data_idx)
 );

@@ -240,24 +240,48 @@ ll_get_devices_cloud_data <-
   }
 
 #' Test which values one gets for a set of experiment devices
-#' @param experiment_devices experiment_devices records, see \link{ll_get_experiment_devices}
-ll_test_experiment_devices_data <- function(experiment_devices, spread = FALSE, access_token = default(access_token), quiet = default(quiet)) {
+#' @param experiment_device_links experiment_device_links records, see \link{ll_get_experiment_device_links}
+ll_test_experiment_device_links <- function(experiment_device_links, spread = FALSE, access_token = default(access_token), quiet = default(quiet)) {
 
-  if (!"particle_id" %in% names(experiment_devices))
-    stop("particle_id is a required column in experiment_devices data frame", call. = FALSE)
-  if (!"device_name" %in% names(experiment_devices))
-    stop("device_name is a required column in experiment_devices data frame", call. = FALSE)
-  if (!"data_idx" %in% names(experiment_devices))
-    stop("data_idx is a required column in experiment_devices data frame", call. = FALSE)
+  if (!"particle_id" %in% names(experiment_device_links))
+    stop("particle_id is a required column in experiment_device_links data frame", call. = FALSE)
+  if (!"device_name" %in% names(experiment_device_links))
+    stop("device_name is a required column in experiment_device_links data frame", call. = FALSE)
+  if (!"data_idx" %in% names(experiment_device_links))
+    stop("data_idx is a required column in experiment_device_links data frame", call. = FALSE)
 
-  data <- ll_get_devices_cloud_data(devices = experiment_devices %>% select(particle_id, device_name) %>% unique(), spread = FALSE)
+  data <- ll_get_devices_cloud_data(devices = experiment_device_links %>% select(particle_id, device_name) %>% unique(), spread = FALSE)
   if (nrow(data) > 0) {
-    data <- select(data, particle_id, device_name, datetime, raw_serial, idx, key, value, units)
-    experiment_devices %>%
+    data <- select(data, particle_id, device_name, datetime, raw_serial, raw_serial_errors, idx, key, value, units)
+    experiment_device_links %>%
       rename(idx = data_idx) %>%
       left_join(data, by = c("particle_id", "device_name", "idx")) %>%
       { if (spread) spread_data_columns(.) else . }
   } else {
-    experiment_devices
+    experiment_device_links
   }
+}
+
+#' Cloud data / experiment links summary
+#'
+#' Utility function to combine experimental device links with devices cloud data
+#' @export
+ll_summarize_cloud_data_experiment_links <- function(cloud_data, experiment_device_links) {
+
+  if (missing(experiment_device_links)) stop("on experiment device links provided", call. = FALSE)
+  if (missing(cloud_data)) stop("no cloud data provided")
+
+  experiment_device_links <- experiment_device_links[!names(experiment_device_links) %in% c("data_group", "exp_device_data_id", "particle_id")]
+
+  full_join(
+    select(cloud_data, particle_id, device_name, datetime, raw_serial, raw_serial_errors, idx, key, value, units),
+    experiment_device_links,
+    by = c("device_name", "idx" = "data_idx")) %>%
+    filter(active) %>%
+    nest(exp_id, recording, .key = ..exp_data..) %>%
+    mutate(
+      recording_exp_ids = map_chr(..exp_data.., ~filter(.x, recording)$exp_id %>% { if(length(.) > 0) collapse(., sep = ", ") else NA_character_ }),
+      non_recording_exp_ids = map_chr(..exp_data.., ~filter(.x, !recording)$exp_id %>% { if(length(.) > 0) collapse(., sep = ", ") else NA_character_ })
+    ) %>%
+    select(-..exp_data..)
 }

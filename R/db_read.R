@@ -86,16 +86,16 @@ ll_get_experiments <- function(group_id = default(group_id), filter = NULL, conv
   return(df)
 }
 
-#' Retrieve experiment devices
+#' Retrieve experiment device links
 #'
 #' Returns experiment-device links (only for active/in-use devices) joined with experiment and devices tables so filter conditions can be applied on the devices as well.
 #'
 #' @inheritParams ll_get_experiments
 #' @return experiments_devices
 #' @export
-ll_get_experiment_devices <- function(
+ll_get_experiment_device_links <- function(
     group_id = default(group_id), filter = NULL,
-    select = c(exp_device_data_id, exp_id, recording, device_id, device_name, particle_id, data_group, data_idx),
+    select = c(exp_device_data_id, exp_id, recording, device_id, device_name, particle_id, data_group, data_idx, active),
     con = default(con), quiet = default(quiet)) {
 
   con <- validate_db_connection(enquo(con))
