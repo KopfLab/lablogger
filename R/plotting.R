@@ -1,13 +1,23 @@
-
-
-
+# add data traces, and groups for plotting
+prepare_data_for_plotting <- function(device_data_logs) {
+  if (nrow(device_data_logs) == 0) return(device_data_logs)
+  device_data_logs %>%
+  # grouping and trace with units
+  mutate(
+    group = str_c(device_name, data_key, data_group),
+    data_trace =
+      ifelse(!is.na(data_units) & nchar(data_units) > 0, str_c(data_key, " [", data_units, "]"), data_key),
+    group_trace =
+      ifelse(!is.na(data_group), str_c(data_group, " ", data_trace), data_trace)
+  )
+}
 
 #' Plot device data logs
 #'
 #' @param duration_units specify a time unit (e.g. "mins") to indicate whether x axis should be displayed as a duration since the first data point within each experiment, if NULL x axis is displayed as regular date time.
 #' @param date_breaks formate the datetime breaks if not plotting duration (i.e. is ignored if duration_units is provided)
 #' @export
-ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error_range = FALSE, duration_units = NULL, date_breaks = NULL, quiet = default(quiet)) {
+ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error_range = FALSE, exclude_outliers = FALSE, duration_units = NULL, date_breaks = NULL, quiet = default(quiet)) {
 
   filter_quo <- enquo(filter)
 
@@ -27,13 +37,13 @@ ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error
       else .
     } %>%
     # grouping and trace with units
-    mutate(
-      group = str_c(device_name, data_key, data_group),
-      data_trace =
-        ifelse(!is.na(data_units) & nchar(data_units) > 0, str_c(data_key, " [", data_units, "]"), data_key),
-      group_trace =
-        ifelse(!is.na(data_group), str_c(data_group, " ", data_trace), data_trace)
-    )
+    prepare_data_for_plotting()
+
+  # outliers
+  if (exclude_outliers) {
+    plot_df <- plot_df %>% identify_data_outliers() %>%
+      mutate(data_value = ifelse(outlier, NA_real_, data_value))
+  }
 
   # info messages
   if (!quiet) {
@@ -65,7 +75,7 @@ ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error
 
   # data groups
   if (any(!is.na(plot_df$data_group))) {
-    p <- p %+% aes(linetype = data_group)
+    p <- p %+% aes(linetype = data_group) %+% mutate(plot_df, data_group = ifelse(is.na(data_group), "NA", data_group))
   }
 
   # duration plot aesthetics

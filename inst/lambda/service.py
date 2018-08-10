@@ -96,7 +96,7 @@ def handler(event, context):
     elif log_type == "data":
 
         # get device data logs
-        cur.execute("SELECT data_idx, exp_device_data_id, experiments.exp_id FROM experiments, experiment_device_data WHERE experiments.exp_id = experiment_device_data.exp_id AND device_id = (%s) AND group_id = (%s) AND recording = true",
+        cur.execute("SELECT data_idx, exp_device_data_id, experiments.exp_id FROM experiments, experiment_device_data WHERE experiments.exp_id = experiment_device_data.exp_id AND device_id = (%s) AND group_id = (%s) AND recording = true AND active = true",
             (device_id, group_id,))
         exp_device_idxs = cur.fetchall()
 

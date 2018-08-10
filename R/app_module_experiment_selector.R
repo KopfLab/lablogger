@@ -1,4 +1,4 @@
-
+# FIXME: replace data_manager with get_experiments, refresh_experiments, etc. functions
 experimentSelectorServer <- function(input, output, session, data_manager) {
 
   # namespace

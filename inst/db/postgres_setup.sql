@@ -58,7 +58,9 @@ CREATE TABLE device_types
 INSERT INTO device_types(device_type_id, device_type_desc)
 	VALUES ('undefined', 'undefined device types'),
          ('M800', 'Mettler Toledo multi-channel amplifier'),
-         ('scale', 'Scale');
+         ('scale', 'Scale'),
+         ('mfc', 'Mass Flow Controller'),
+         ('pump', 'Peristaltic Pump');
 
 -- Table: groups
 
@@ -118,12 +120,14 @@ DROP TABLE IF EXISTS experiment_device_data;
 
 CREATE TABLE experiment_device_data (
   exp_device_data_id SERIAL PRIMARY KEY,
-  exp_id character varying(20) NOT NULL references experiments(exp_id),
+  exp_id character varying(20) NOT NULL references experiments(exp_id) ON UPDATE CASCADE,
   -- only used for mapping during log processing
   device_id integer NOT NULL references devices(device_id),
   data_idx integer NOT NULL,
   -- additional information for data
   data_group character varying (50) NULL,
+  -- whether this is an active experiment device
+  active boolean NOT NULL DEFAULT True,
   -- constraint
   unique (exp_id, device_id, data_idx)
 );
