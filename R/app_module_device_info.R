@@ -1,5 +1,6 @@
 
-deviceInfoServer <- function(input, output, session, data_manager) {
+#' @param refresh_experiment_device_links to refresh the database queried list of links between experiments and devices (either from the device or experiment perspective)
+deviceInfoServer <- function(input, output, session, get_cloud_state, refresh_cloud_state, get_cloud_data, refresh_cloud_data, refresh_experiment_device_links, get_cloud_info, refresh_cloud_info) {
 
 
   # namespace
@@ -7,50 +8,40 @@ deviceInfoServer <- function(input, output, session, data_manager) {
 
   # fetch cloud data - experiment device links
   observeEvent(input$fetch_cloud_data_experiment_links, {
-    data_manager$refresh_experiment_device_links()
-    data_manager$refresh_devices_cloud_data()
+    refresh_experiment_device_links()
+    refresh_cloud_data()
   })
 
   # fetch state
-  observeEvent(input$fetch_state, data_manager$refresh_devices_cloud_state())
+  observeEvent(input$fetch_state, refresh_cloud_state())
 
   # fetch data
   observeEvent(input$fetch_data, {
-    data_manager$refresh_devices_cloud_data()
+    refresh_cloud_data()
     # only trigger this if currently showing exp links info
-    data_manager$refresh_experiment_device_links(
+    refresh_experiment_device_links(
       init = !any(c("r_exps", "nr_exps") %in% input$data_table_options)
     )
   })
 
   # fetch info
-  observeEvent(input$fetch_info, data_manager$refresh_devices_cloud_info())
+  observeEvent(input$fetch_info, refresh_cloud_info())
 
   # fetch all
   observe({
-    input$fetch_state_all
-    input$fetch_data_all
-    input$fetch_info_all
+    req(input$fetch_state_all + input$fetch_data_all + input$fetch_info_all > 0)
+    module_message(ns, "debug", "fetching all cloud info")
     isolate({
-      data_manager$refresh_devices_cloud_state()
-      data_manager$refresh_devices_cloud_data()
-      data_manager$refresh_experiment_device_links() # always trigger in this case
-      data_manager$refresh_devices_cloud_info()
+      refresh_cloud_state()
+      refresh_cloud_data()
+      refresh_experiment_device_links() # always trigger in this case
+      refresh_cloud_info()
     })
   })
 
-  # experiment devices
-  output$cloud_data_experiment_links_table <- renderTable({
-    exp_devices <- data_manager$get_cloud_data_experiment_links()
-    validate(need(nrow(exp_devices) > 0, "No active linked experiments."))
-    module_message(ns, "debug", "rendering experiment devices table")
-    exp_devices %>% arrange(device_name, data_idx) %>%
-      select(Name = device_name, idx = data_idx, `Exp ID` = exp_id, `Data Group` = data_group)
-  }, striped = TRUE, spacing = 'xs', width = '100%', align = NULL)
-
   # state table
   output$state_table <- renderTable({
-    state <- data_manager$get_devices_cloud_state()
+    state <- get_cloud_state()
     validate(need(nrow(state) > 0, "No state information available."))
     module_message(ns, "debug", "rendering cloud state table")
     vars_start <- which(names(state) == "version")
@@ -61,10 +52,9 @@ deviceInfoServer <- function(input, output, session, data_manager) {
 
   # data table
   output$data_table <- renderTable({
-    data <- data_manager$get_devices_cloud_data()
-    links <- data_manager$get_experiment_device_links()
-    validate(need(nrow(data) > 0, "No live device data available."))
-    data_links <- ll_summarize_cloud_data_experiment_links(cloud_data = data, experiment_device_links = links) %>%
+    data <- get_cloud_data()
+    validate(need(nrow(data) > 0, "No live data available."))
+    data <- data %>%
       arrange(device_name, idx) %>%
       mutate(datetime = format(datetime)) %>%
       select(Name = device_name, `Last data update` = datetime,
@@ -74,19 +64,19 @@ deviceInfoServer <- function(input, output, session, data_manager) {
     module_message(ns, "debug", "rendering cloud data table")
 
     if (!"serial" %in% input$data_table_options)
-      data_links <- select(data_links, -raw_serial, -raw_serial_errors)
+      data <- select(data, -raw_serial, -raw_serial_errors)
     if (!"r_exps" %in% input$data_table_options)
-      data_links <- select(data_links, -`Exp IDs (recording)`)
+      data <- select(data, -`Exp IDs (recording)`)
     if (!"nr_exps" %in% input$data_table_options)
-      data_links <- select(data_links, -`Exp IDs (not recording)`)
+      data <- select(data, -`Exp IDs (not recording)`)
 
-    return(data_links)
+    return(data)
   }, striped = TRUE, spacing = 'xs', width = '100%', align = NULL)
 
 
   # info table
   output$info_table <- renderTable({
-    info <- data_manager$get_devices_cloud_info()
+    info <- get_cloud_info()
     validate(need(nrow(info) > 0, "No device information available."))
     module_message(ns, "debug", "rendering cloud info table")
     info %>% arrange(device_name) %>%

@@ -3,7 +3,7 @@
 #' Generates the server part of the isoviewer app
 #' @param pool ideally database connection pool, see \link[pool]{dbPool} but can also be a single db connection (not recommended)
 #' @inheritParams run
-app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_screen = "data") {
+app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_screen = "devices") {
   shinyServer(function(input, output, session) {
 
     message("\n\nINFO: Loading GUI instance ...")
@@ -12,6 +12,7 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
     dm_experiments <- callModule(experimentsDataServer, "dm_experiments", group_id, access_token, pool, timezone)
     dm_devices <- callModule(devicesDataServer, "dm_devices", group_id, access_token, pool, timezone)
     dm_datalogs <- callModule(datalogsDataServer, "dm_datalogs", dm_experiments, dm_devices, group_id, access_token, pool, timezone)
+    dm_cloudinfo <- callModule(cloudInfoDataServer, "dm_cloudinfo", dm_experiments, dm_devices, group_id, access_token, pool, timezone)
 
     # login server
     login_manager <- callModule(loginServer, "login", app_pwd = app_pwd, group = group_id, timezone = timezone)
@@ -83,13 +84,22 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
 
     # DEVICES SCREEN ====
     devices <- callModule(deviceSelectorServer, "devices", dm_devices)
-    #devices_info <- callModule(deviceInfoServer, "devices_info", dm_devices)
+    devices_info <- callModule(
+      deviceInfoServer, "devices_info",
+      get_cloud_state = dm_cloudinfo$get_devices_cloud_state,
+      refresh_cloud_state = dm_cloudinfo$refresh_cloud_state,
+      get_cloud_data = dm_cloudinfo$get_devices_cloud_data,
+      refresh_cloud_data = dm_cloudinfo$refresh_cloud_data,
+      refresh_experiment_device_links = dm_devices$refresh_devices_experiments_links,
+      get_cloud_info = dm_cloudinfo$get_devices_cloud_info,
+      refresh_cloud_info = dm_cloudinfo$refresh_cloud_info
+    )
     output$devices <- renderUI({
       if (!login_manager$is_logged_in()) return(NULL)
       message("INFO: Generating 'devices' screen")
       tagList(
-        deviceSelectorUI("devices", width = 12, selector_height = 200)
-        #deviceInfoUI("devices_info")
+        deviceSelectorUI("devices", width = 12, selector_height = 200),
+        deviceInfoUI("devices_info")
       )
     })
 

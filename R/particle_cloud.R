@@ -269,22 +269,30 @@ ll_test_experiment_device_links <- function(experiment_device_links, spread = FA
 #'
 #' Utility function to combine experimental device links with devices cloud data
 #' @export
-ll_summarize_cloud_data_experiment_links <- function(cloud_data, experiment_device_links) {
+ll_summarize_cloud_data_experiment_links <- function(cloud_data, experiment_device_links, linked = TRUE, unlinked = TRUE) {
 
   if (missing(experiment_device_links)) stop("on experiment device links provided", call. = FALSE)
   if (missing(cloud_data)) stop("no cloud data provided")
 
-  experiment_device_links <- experiment_device_links[!names(experiment_device_links) %in% c("data_group", "exp_device_data_id", "particle_id")]
+  experiment_device_links <- experiment_device_links[!names(experiment_device_links) %in% c("exp_device_data_id", "particle_id")]
 
   full_join(
     select(cloud_data, particle_id, device_name, datetime, raw_serial, raw_serial_errors, idx, key, value, units),
-    experiment_device_links,
+    filter(experiment_device_links, active),
     by = c("device_name", "idx" = "data_idx")) %>%
-    filter(active) %>%
-    nest(exp_id, recording, .key = ..exp_data..) %>%
     mutate(
-      recording_exp_ids = map_chr(..exp_data.., ~filter(.x, recording)$exp_id %>% { if(length(.) > 0) collapse(., sep = ", ") else NA_character_ }),
-      non_recording_exp_ids = map_chr(..exp_data.., ~filter(.x, !recording)$exp_id %>% { if(length(.) > 0) collapse(., sep = ", ") else NA_character_ })
+      exp_id_data_group = case_when(
+        !is.na(exp_id) & !is.na(data_group) ~ str_c(exp_id, " (", data_group, ")"),
+        !is.na(exp_id) ~ exp_id,
+        TRUE ~ NA_character_
+      )
+    ) %>%
+    filter(linked & !is.na(exp_id) | unlinked & is.na(exp_id)) %>%
+    select(-exp_id, -data_group) %>%
+    nest(exp_id_data_group, recording, .key = ..exp_data..) %>%
+    mutate(
+      recording_exp_ids = map_chr(..exp_data.., ~filter(.x, recording)$exp_id_data_group %>% { if(length(.) > 0) collapse(., sep = ", ") else NA_character_ }),
+      non_recording_exp_ids = map_chr(..exp_data.., ~filter(.x, !recording)$exp_id_data_group %>% { if(length(.) > 0) collapse(., sep = ", ") else NA_character_ })
     ) %>%
     select(-..exp_data..)
 }

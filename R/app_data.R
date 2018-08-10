@@ -85,7 +85,8 @@ devicesDataServer <- function(input, output, session, group_id, access_token, po
   # reactive values
   values <- reactiveValues(
     refresh_devices = NULL,
-    selected_device_ids = c()
+    selected_device_ids = c(),
+    refresh_devices_experiments_links = NULL
   )
 
   # devices
@@ -109,12 +110,35 @@ devicesDataServer <- function(input, output, session, group_id, access_token, po
     }
   }
 
+  # device experiment links (from the device perspective)
+  get_devices_experiments_links <- eventReactive(values$refresh_devices_experiments_links, {
+    if (length(values$selected_device_ids) > 0) {
+      withProgress(
+        message = 'Fetching device experiment links', detail = "Querying database...", value = 0.5,
+        ll_get_experiment_device_links(
+          group_id = group_id, con = pool,
+          select = c(exp_device_data_id, exp_id, recording, device_name, data_group, data_idx, active),
+          filter = device_id %in% c(!!!values$selected_device_ids))
+      )
+    } else {
+      data_frame()
+    }
+  })
+
+  refresh_devices_experiments_links <- function(init = FALSE) {
+    if(is.null(values$refresh_devices_experiments_links)) values$refresh_devices_experiments_links <- 1
+    else if (!init) values$refresh_devices_experiments_links <- values$refresh_devices_experiments_links + 1
+  }
+
   # devicesDataServer functions ====
   list(
     get_devices = get_devices,
     refresh_devices = refresh_devices,
     select_devices = select_devices,
-    get_selected_devices = reactive({values$selected_device_ids})
+    get_selected_devices = reactive({values$selected_device_ids}),
+    # device experiment links
+    get_devices_experiments_links = get_devices_experiments_links,
+    refresh_devices_experiments_links = refresh_devices_experiments_links
   )
 }
 
@@ -166,6 +190,98 @@ datalogsDataServer <- function(input, output, session, experiments, devices, gro
   )
 }
 
+# FIXME: experiments not currently used, use to make selected_experiment specific device cloud requests!
+cloudInfoDataServer <- function(input, output, session, experiments, devices, group_id, access_token, pool, timezone) {
+
+  # namespace
+  ns <- session$ns
+
+  # reactive values
+  values <- reactiveValues(
+    refresh_devices_experiments_links = NULL,
+    refresh_cloud_state = NULL,
+    refresh_cloud_data = NULL,
+    refresh_cloud_info = NULL
+  )
+
+  # cloud state
+  get_devices_cloud_state <- eventReactive(values$refresh_cloud_state, {
+    module_message(ns, "debug", "fetching cloud state")
+    withProgress(
+      message = 'Fetching device state', detail = "Querying device cloud...", value = 0.5,
+      devices$get_devices() %>%
+        filter(device_id %in% devices$get_selected_devices()) %>%
+        ll_get_devices_cloud_state(access_token = access_token, convert_to_TZ = timezone, spread = TRUE)
+    )
+  })
+
+  refresh_cloud_state <- function() {
+    values$refresh_cloud_state <- if(is.null(values$refresh_cloud_state)) 1 else values$refresh_cloud_state + 1
+  }
+
+  # cloud data for devices
+  get_devices_cloud_data <- eventReactive(values$refresh_cloud_data, {
+    module_message(ns, "debug", "fetching cloud data")
+    # data from cloud
+    data <- withProgress(
+      message = 'Fetching device data', detail = "Querying device cloud...", value = 0.5,
+      devices$get_devices() %>%
+        filter(device_id %in% devices$get_selected_devices()) %>%
+        ll_get_devices_cloud_data(access_token = access_token, convert_to_TZ = timezone)
+    )
+
+    # safety check
+    if (nrow(data) == 0) return(data)
+
+    # device links from data base
+    links <- devices$get_devices_experiments_links()
+    ll_summarize_cloud_data_experiment_links(
+      cloud_data = data, experiment_device_links = links,
+      linked = TRUE, unlinked = TRUE)
+  })
+
+  # cloud data for experiment
+  get_exp_cloud_data <- eventReactive(values$refresh_cloud_data, {
+    # FIXME
+    # fetch cloud data as well and merge with experiment device links but then
+    # only select the ones that are part of the exp (by back merge)
+  })
+
+  refresh_cloud_data <- function() {
+    values$refresh_cloud_data <- if(is.null(values$refresh_cloud_data)) 1 else values$refresh_cloud_data + 1
+  }
+
+  # cloud info
+  get_devices_cloud_info <- eventReactive(values$refresh_cloud_info, {
+    module_message(ns, "debug", "fetching cloud info")
+    withProgress(
+      message = 'Fetching device info', detail = "Querying device cloud...", value = 0.5,
+      devices$get_devices() %>%
+        filter(device_id %in% devices$get_selected_devices()) %>%
+        ll_get_devices_cloud_info(access_token = access_token, convert_to_TZ = timezone)
+    )
+  })
+
+  refresh_cloud_info <- function() {
+    values$refresh_cloud_info <- if(is.null(values$refresh_cloud_info)) 1 else values$refresh_cloud_info + 1
+  }
+
+  # cloudInfoDataServer functions ======
+  list(
+    # devices cloud state
+    get_devices_cloud_state = get_devices_cloud_state,
+    refresh_cloud_state = refresh_cloud_state,
+    # devices cloud data
+    get_devices_cloud_data = get_devices_cloud_data,
+    refresh_cloud_data = refresh_cloud_data,
+    # devices cloud info
+    get_devices_cloud_info = get_devices_cloud_info,
+    refresh_cloud_info = refresh_cloud_info
+  )
+
+
+}
+
 dataServer <- function(input, output, session, group_id, access_token, pool, timezone) {
 
   # namespace
@@ -178,11 +294,11 @@ dataServer <- function(input, output, session, group_id, access_token, pool, tim
     selected_exp_ids = c(),
     refresh_devices = NULL,
     selected_device_ids = c(),
-    refresh_experiment_device_links = NULL,
+    refresh_devices_experiments_links = NULL,
     refresh_device_data_logs = NULL,
-    refresh_devices_cloud_state = NULL,
-    refresh_devices_cloud_data = NULL,
-    refresh_devices_cloud_info = NULL
+    refresh_cloud_state = NULL,
+    refresh_cloud_data = NULL,
+    refresh_cloud_info = NULL
   )
 
   # experiments ====
@@ -234,84 +350,9 @@ dataServer <- function(input, output, session, group_id, access_token, pool, tim
     }
   }
 
-  # experiment device links ====
-  get_experiment_device_links <- eventReactive(values$refresh_experiment_device_links, {
-    if (length(values$selected_device_ids) > 0) {
-      withProgress(
-        message = 'Fetching experiment device links', detail = "Querying database...", value = 0.5,
-        ll_get_experiment_device_links(
-          group_id = group_id, con = pool,
-          select = c(exp_device_data_id, exp_id, recording, device_name, data_group, data_idx, active),
-          filter = device_id %in% c(!!!values$selected_device_ids))
-      )
-    } else {
-      data_frame()
-    }
-  })
-
-  refresh_experiment_device_links <- function(init = FALSE) {
-    if(is.null(values$refresh_experiment_device_links)) values$refresh_experiment_device_links <- 1
-    else if (!init) values$refresh_experiment_device_links <- values$refresh_experiment_device_links + 1
-  }
-
-  # device data logs ====
-  get_device_data_logs <- eventReactive(values$refresh_device_data_logs, {
-    if (length(values$selected_exp_ids) > 0) {
-      withProgress(
-        message = 'Fetching device data logs', detail = "Querying database...", value = 0.5,
-        ll_get_exp_device_data_logs(
-          exp_id = values$selected_exp_ids,
-          group_id = group_id,
-          con = pool,
-          convert_to_TZ = timezone
-        ))
-    } else {
-      data_frame()
-    }
-  })
 
 
-  # cloud state =====
-  get_devices_cloud_state <- eventReactive(values$refresh_devices_cloud_state, {
-    withProgress(
-      message = 'Fetching device state', detail = "Querying device cloud...", value = 0.5,
-      get_devices() %>%
-        filter(device_id %in% values$selected_device_ids) %>%
-        ll_get_devices_cloud_state(access_token = access_token, convert_to_TZ = timezone, spread = TRUE)
-    )
-  })
 
-  refresh_devices_cloud_state <- function() {
-    values$refresh_devices_cloud_state <- if(is.null(values$refresh_devices_cloud_state)) 1 else values$refresh_devices_cloud_state + 1
-  }
-
-  # cloud data =====
-  get_devices_cloud_data <- eventReactive(values$refresh_devices_cloud_data, {
-    withProgress(
-      message = 'Fetching device data', detail = "Querying device cloud...", value = 0.5,
-      get_devices() %>%
-        filter(device_id %in% values$selected_device_ids) %>%
-        ll_get_devices_cloud_data(access_token = access_token, convert_to_TZ = timezone)
-    )
-  })
-
-  refresh_devices_cloud_data <- function() {
-    values$refresh_devices_cloud_data <- if(is.null(values$refresh_devices_cloud_data)) 1 else values$refresh_devices_cloud_data + 1
-  }
-
-  # cloud info ======
-  get_devices_cloud_info <- eventReactive(values$refresh_devices_cloud_info, {
-    withProgress(
-      message = 'Fetching device info', detail = "Querying device cloud...", value = 0.5,
-      get_devices() %>%
-        filter(device_id %in% values$selected_device_ids) %>%
-        ll_get_devices_cloud_info(access_token = access_token, convert_to_TZ = timezone)
-    )
-  })
-
-  refresh_devices_cloud_info <- function() {
-    values$refresh_devices_cloud_info <- if(is.null(values$refresh_devices_cloud_info)) 1 else values$refresh_devices_cloud_info + 1
-  }
 
   # functions ====
 
@@ -329,19 +370,19 @@ dataServer <- function(input, output, session, group_id, access_token, pool, tim
   #   get_selected_devices = reactive({values$selected_device_ids}),
   #   # experiment devices
   #   get_experiment_device_links = get_experiment_device_links,
-  #   refresh_experiment_device_links = refresh_experiment_device_links,
+  #   refresh_devices_experiments_links = refresh_devices_experiments_links,
   #   # device data logs
   #   get_device_data_logs = get_device_data_logs,
   #   refresh_device_data_logs = refresh_device_data_logs,
   #   # devices cloud state
   #   get_devices_cloud_state = get_devices_cloud_state,
-  #   refresh_devices_cloud_state = refresh_devices_cloud_state,
+  #   refresh_cloud_state = refresh_cloud_state,
   #   # devices cloud data
   #   get_devices_cloud_data = get_devices_cloud_data,
-  #   refresh_devices_cloud_data = refresh_devices_cloud_data,
+  #   refresh_cloud_data = refresh_cloud_data,
   #   # devices cloud info
   #   get_devices_cloud_info = get_devices_cloud_info,
-  #   refresh_devices_cloud_info = refresh_devices_cloud_info
+  #   refresh_cloud_info = refresh_cloud_info
   # )
 
   list()
