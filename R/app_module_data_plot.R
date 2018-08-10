@@ -29,6 +29,7 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
     toggle("traces_box", condition = FALSE)
     toggle("groups_box", condition = FALSE)
     toggle("options_box", condition = FALSE)
+    toggle("summary_box", condition = FALSE)
   })
 
   # plot buttons ====
@@ -182,6 +183,7 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
     toggle("traces_box", condition = TRUE)
     toggle("groups_box", condition = TRUE)
     toggle("options_box", condition = TRUE)
+    toggle("summary_box", condition = TRUE)
     #refresh_data_plot() # NOTE consider not triggering this here
   })
 
@@ -198,7 +200,7 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
   observeEvent(input$groups_refresh, refresh_data_plot())
   observeEvent(input$options_refresh, refresh_data_plot())
 
-  generate_data_plot <- eventReactive(values$refresh_data_plot, {
+  get_plot_data_logs <- reactive({
     logs <- get_data_logs() %>% prepare_data_for_plotting()
 
     # zoom
@@ -210,9 +212,13 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
     traces <- traces_selector$get_selected()
     groups <- groups_selector$get_selected()
     groups[groups == NO_DATA_GROUP] <- NA_character_
-    print(traces)
-    print(groups)
-    logs <- logs %>% filter(data_trace %in% traces, data_group %in% groups)
+    logs %>% filter(data_trace %in% traces, data_group %in% groups)
+  })
+
+  generate_data_plot <- eventReactive(values$refresh_data_plot, {
+
+    # logs
+    logs <- get_plot_data_logs()
 
     # plot
     if (nrow(logs) == 0) {
@@ -220,8 +226,8 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
         "text", x = 0, y = 0,
         label = glue("no data available for the\nselected filters and time interval\n",
                      "experiment(s): {paste(get_experiments(), collapse = ', ')}\n",
-                     "trace(s): {paste(traces, collapse = ', ')}\n",
-                     "group(s): {paste(groups, collapse = ', ')}"),
+                     "trace(s): {paste(traces_selector$get_selected(), collapse = ', ')}\n",
+                     "group(s): {paste(groups_selector$get_selected(), collapse = ', ')}"),
         vjust = 0.5, hjust = 0.5, size = 10) + theme_void()
     } else {
 
@@ -231,7 +237,7 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
       } else {
         date_breaks <- NULL
       }
-      p <- ll_plot_device_data_logs(logs, date_breaks = date_breaks, show_error_range = input$show_errors)
+      p <- ll_plot_device_data_logs(logs, date_breaks = date_breaks, show_error_range = input$show_errors, exclude_outliers = !input$show_outliers)
 
       # legend position
       if (input$legend_position == "bottom") {
@@ -250,9 +256,28 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
     return(p)
   })
 
+  # generate data summary =====
+
+  generate_data_summary <- eventReactive(values$refresh_data_plot, {
+    logs <- get_plot_data_logs()
+    if (nrow(logs) > 0) {
+      logs <- logs %>% ll_summarize_data_logs(slope_denom_units = "day", exclude_outliers = !input$show_outliers)
+    }
+    return(logs)
+  })
+
   # data plot output ====
 
   output$data_plot <- renderPlot(generate_data_plot(), height = eventReactive(values$refresh_data_plot, input$plot_height))
+
+  # table output ====
+
+  output$summary_table <- renderTable({
+    summary <- generate_data_summary()
+    module_message(ns, "debug", "rendering plot data summary table")
+    if (nrow(summary) > 0) summary
+    else data_frame(` ` = "No data.")
+  }, striped = TRUE, spacing = 'xs', width = '100%', align = NULL, digits = reactive(input$digits))
 
   # plot download ====
   download_handler <- callModule(
@@ -272,6 +297,7 @@ dataPlotUI <- function(id, plot_height = 650) {
   ns <- NS(id)
 
   tagList(
+    # plot box ------
     default_box(
       title = "Data Plot", width = 8,
       div(style = paste0("min-height: ", plot_height, "px;"),
@@ -319,7 +345,7 @@ dataPlotUI <- function(id, plot_height = 650) {
       )
     ),
 
-    # traces box ---
+    # traces box ----
     div(id = ns("traces_box"),
       default_box(
         title = "Data Traces", width = 4,
@@ -333,7 +359,7 @@ dataPlotUI <- function(id, plot_height = 650) {
       )
     ) %>% hidden(),
 
-    # groups box
+    # groups box ----
     div(id = ns("groups_box"),
         default_box(
           title = "Data Groups", width = 4,
@@ -354,10 +380,10 @@ dataPlotUI <- function(id, plot_height = 650) {
           fluidRow(
             h4("Errors:") %>% column(width = 4),
             checkboxInput(ns("show_errors"), NULL, value = FALSE) %>%
-              column(width = 8)
-            # h4("Outliers:") %>% column(width = 4),
-            # checkboxInput(ns("show_outliers"), NULL, value = TRUE) %>%
-            #   column(width = 2)
+              column(width = 2),
+            h4("Outliers:") %>% column(width = 4),
+            checkboxInput(ns("show_outliers"), NULL, value = TRUE) %>%
+             column(width = 2)
             ),
           fluidRow(
             h4("Plot height:") %>% column(width = 4),
@@ -381,8 +407,16 @@ dataPlotUI <- function(id, plot_height = 650) {
                                 icon = icon("refresh"),
                                 tooltip = "Refresh plot with new plot settings.") %>% disabled()
         )
-    ) %>% hidden()
+    ) %>% hidden(),
 
+    # summary box -----
+    div(id = ns("summary_box"),
+        default_box(
+          title = "Summary of Plotted Data", width = 12,
+          tooltipInput(numericInput, ns("digits"), label = NULL, value = 2, step = 1, tooltip = "Enter number of digits to display."),
+          tableOutput(ns("summary_table"))
+        )
+    ) %>% hidden()
 
   )
 

@@ -1,5 +1,3 @@
-
-
 # add data traces, and groups for plotting
 prepare_data_for_plotting <- function(device_data_logs) {
   if (nrow(device_data_logs) == 0) return(device_data_logs)
@@ -19,7 +17,7 @@ prepare_data_for_plotting <- function(device_data_logs) {
 #' @param duration_units specify a time unit (e.g. "mins") to indicate whether x axis should be displayed as a duration since the first data point within each experiment, if NULL x axis is displayed as regular date time.
 #' @param date_breaks formate the datetime breaks if not plotting duration (i.e. is ignored if duration_units is provided)
 #' @export
-ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error_range = FALSE, duration_units = NULL, date_breaks = NULL, quiet = default(quiet)) {
+ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error_range = FALSE, exclude_outliers = FALSE, duration_units = NULL, date_breaks = NULL, quiet = default(quiet)) {
 
   filter_quo <- enquo(filter)
 
@@ -40,6 +38,12 @@ ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error
     } %>%
     # grouping and trace with units
     prepare_data_for_plotting()
+
+  # outliers
+  if (exclude_outliers) {
+    plot_df <- plot_df %>% identify_data_outliers() %>%
+      mutate(data_value = ifelse(outlier, NA_real_, data_value))
+  }
 
   # info messages
   if (!quiet) {
