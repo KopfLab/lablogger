@@ -95,18 +95,29 @@ change_experiment_recording <- function(exp_id, recording, group_id, con, quiet)
     if (result > 0) glue("{result} record updated.") %>% message()
     else message("no records found, this experiment is not part of this group.")
   }
+  return(result)
 }
 
 #' Start recording for an experiment
 #' @inheritParams ll_add_experiment_devices
 ll_experiment_start_recording <- function(exp_id, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
   if (missing(exp_id)) stop("must supply an existing experiment id", call. = FALSE)
-  walk(exp_id, ~change_experiment_recording(.x, TRUE, group_id = group_id, con = con, quiet = quiet))
+  result <- data_frame(exp_id) %>%
+    mutate(
+      updated = map_int(exp_id, ~change_experiment_recording(.x, TRUE, group_id = group_id, con = con, quiet = quiet)),
+      success = updated > 0
+    )
+  return(invisible(result))
 }
 
 #' stop recording for an experiment
 #' @inheritParams cll_experiment_stop_recording
 ll_experiment_stop_recording <- function(exp_id, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
   if (missing(exp_id)) stop("must supply an existing experiment id", call. = FALSE)
-  walk(exp_id, ~change_experiment_recording(.x, FALSE, group_id = group_id, con = con, quiet = quiet))
+  result <- data_frame(exp_id) %>%
+    mutate(
+      updated = map_int(exp_id, ~change_experiment_recording(.x, FALSE, group_id = group_id, con = con, quiet = quiet)),
+      success = updated > 0
+    )
+  return(invisible(result))
 }

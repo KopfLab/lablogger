@@ -228,15 +228,18 @@ ll_get_devices_cloud_data <-
         convert_to_TZ = convert_to_TZ,
         spread_function = if (spread) spread_data_columns else NULL
       ) %>%
-      # add missing
+      # add missing datetime
       { if (!"datetime" %in% names(.)) mutate(., datetime = NA_real_) else . } %>%
-      { if (!"idx" %in% names(.)) mutate(., idx = NA_integer_) else . } %>%
-      { if (!"key" %in% names(.)) mutate(., key = NA_character_) else . } %>%
-      { if (!"value" %in% names(.)) mutate(., value = NA_real_) else . } %>%
-      { if (!"units" %in% names(.)) mutate(., units = NA_character_) else . } %>%
       # rename raw data
       { if ("r" %in% names(.)) rename(., raw_serial = r) else mutate(., raw_serial = NA_character_) } %>%
-      { if ("e" %in% names(.)) rename(., raw_serial_errors = e) else mutate(., raw_serial_errors = NA_character_) }
+      { if ("e" %in% names(.)) rename(., raw_serial_errors = e) else mutate(., raw_serial_errors = NA_character_) } %>%
+      # add missing data fields
+      { if (!spread && !"idx" %in% names(.)) mutate(., idx = NA_integer_) else . } %>%
+      { if (!spread && !"key" %in% names(.)) mutate(., key = NA_character_) else . } %>%
+      { if (!spread && !"value" %in% names(.)) mutate(., value = NA_real_) else . } %>%
+      { if (!spread && !"units" %in% names(.)) mutate(., units = NA_character_) else . } %>%
+      # arrange
+      { if (spread) arrange(., device_name) else arrange(., device_name, idx) }
   }
 
 #' Test which values one gets for a set of experiment devices

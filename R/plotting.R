@@ -1,6 +1,18 @@
 
 
-
+# add data traces, and groups for plotting
+prepare_data_for_plotting <- function(device_data_logs) {
+  if (nrow(device_data_logs) == 0) return(device_data_logs)
+  device_data_logs %>%
+  # grouping and trace with units
+  mutate(
+    group = str_c(device_name, data_key, data_group),
+    data_trace =
+      ifelse(!is.na(data_units) & nchar(data_units) > 0, str_c(data_key, " [", data_units, "]"), data_key),
+    group_trace =
+      ifelse(!is.na(data_group), str_c(data_group, " ", data_trace), data_trace)
+  )
+}
 
 #' Plot device data logs
 #'
@@ -27,13 +39,7 @@ ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error
       else .
     } %>%
     # grouping and trace with units
-    mutate(
-      group = str_c(device_name, data_key, data_group),
-      data_trace =
-        ifelse(!is.na(data_units) & nchar(data_units) > 0, str_c(data_key, " [", data_units, "]"), data_key),
-      group_trace =
-        ifelse(!is.na(data_group), str_c(data_group, " ", data_trace), data_trace)
-    )
+    prepare_data_for_plotting()
 
   # info messages
   if (!quiet) {
@@ -65,7 +71,7 @@ ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error
 
   # data groups
   if (any(!is.na(plot_df$data_group))) {
-    p <- p %+% aes(linetype = data_group)
+    p <- p %+% aes(linetype = data_group) %+% mutate(plot_df, data_group = ifelse(is.na(data_group), "NA", data_group))
   }
 
   # duration plot aesthetics

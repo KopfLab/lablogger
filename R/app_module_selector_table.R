@@ -20,6 +20,11 @@ selectorTableServer <- function(input, output, session, id_column, col_headers, 
     update_selected = 0 # trigger selection update (circumventing circular triggers with user selection)
   )
 
+  # trigger external selection updates
+  update_selected <- function() {
+    values$update_selected <- values$update_selected + 1
+  }
+
   # render table
   output$selection_table = renderRHandsontable({
 
@@ -54,12 +59,12 @@ selectorTableServer <- function(input, output, session, id_column, col_headers, 
 
   observeEvent(input$select_all, {
     values$selected <- values$table[[id_column]]
-    values$update_selected <- values$update_selected + 1
+    update_selected()
   })
 
   observeEvent(input$deselect_all, {
     values$selected <- c()
-    values$update_selected <- values$update_selected + 1
+    update_selected()
   })
 
   # button visibility
@@ -82,9 +87,9 @@ selectorTableServer <- function(input, output, session, id_column, col_headers, 
 
   set_selected <- function(selected) {
     isolate({
-      if (!identical(selected, values$selected)) {
+      if (!identical(selected, values$selected) && (length(selected) > 0 || length(values$selected) > 0)) {
         values$selected <- selected
-        values$update_selected <- values$update_selected + 1
+        update_selected()
       }
     })
   }

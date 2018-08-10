@@ -18,6 +18,7 @@ Imports:
     glue,
     readr,
     tidyr,
+    tibble,
     dplyr,
     dbplyr,
     lubridate,
