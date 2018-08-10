@@ -3,7 +3,7 @@
 #' Generates the server part of the isoviewer app
 #' @param pool ideally database connection pool, see \link[pool]{dbPool} but can also be a single db connection (not recommended)
 #' @inheritParams run
-app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_screen = "devices") {
+app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_screen = "data") {
   shinyServer(function(input, output, session) {
 
     message("\n\nINFO: Loading GUI instance ...")
@@ -75,11 +75,11 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
     })
 
     # EXPERIMENTS SCREEN ====
-    #experiments <- callModule(experimentOverviewServer, "experiments", dm_experiments, group_id = group_id, access_token = access_token, pool = pool, timezone = timezone)
+    experiments <- callModule(experimentOverviewServer, "experiments", dm_experiments)
     output$experiments <- renderUI({
       if (!login_manager$is_logged_in()) return(NULL)
       message("INFO: Generating 'experiments' screen")
-      #experimentOverviewUI("experiments")
+      experimentOverviewUI("experiments")
     })
 
     # DEVICES SCREEN ====

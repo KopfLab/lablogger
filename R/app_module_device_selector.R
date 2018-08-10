@@ -1,4 +1,4 @@
-
+# FIXME: replace data_manager with get_devices, refresh_devices, etc. functions
 deviceSelectorServer <- function(input, output, session, data_manager) {
 
   # namespace
