@@ -45,7 +45,7 @@ experimentOverviewServer <- function(input, output, session, dm_experiments, dm_
     # devices - select all by default
     dm_experiments$select_loaded_experiment_devices(dm_experiments$get_loaded_experiment_devices()$device_id)
 
-    # cloud data - fetch right away?
+    # cloud data - fetch right away? (alternatively implement a reset for the device data/state/info tables)
     dm_cloudinfo$refresh_cloud_data()
 
     # show tabs
