@@ -96,8 +96,8 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
         df <- df %>% select(data_group) %>% unique() %>% arrange(data_group) %>%
           mutate(data_group = ifelse(is.na(data_group), NO_DATA_GROUP, data_group))
         groups_selector$set_table(df)
-        # selet all by default
-        groups_selector$set_selected(df$data_group)
+        # select all by default if plot doesn't exist yet
+        if (!values$valid_plot) groups_selector$set_selected(df$data_group)
       } else {
         groups_selector$set_table(data_frame(data_group = character(0)))
       }
