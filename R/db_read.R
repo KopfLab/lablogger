@@ -270,6 +270,33 @@ ll_get_device_data_logs <- function(
   return(logs %>% dplyr::select(!!select_quo))
 }
 
+#' Reset device data logs cache
+#'
+#' @param exp_id experiment ID(s)
+#' @export
+ll_reset_exp_device_data_logs_cache <- function(exp_id, quiet = default(quiet)) {
+
+  # cache paths
+  cache_paths <- data_frame(
+    exp_id = exp_id,
+    path = file.path("cache", str_c(exp_id, "_data_logs.rds")),
+    exists = file.exists(path)
+  ) %>% filter(exists)
+
+  # info
+  if (!quiet) {
+    glue("Info: resetting local data logs cache for experiment(s) '{collapse(exp_id, sep = ', ')}'... ") %>%
+      message(appendLF = FALSE)
+  }
+
+  # write cache
+  if (nrow(cache_paths) > 0) {
+    with(cache_paths, walk(path, ~file.remove(.x)))
+  }
+
+  if (!quiet) message("complete.")
+}
+
 #' Get device data logs for specific experiment(s)
 #'
 #' Also supports efficient caching of the retrieved data.
@@ -277,6 +304,8 @@ ll_get_device_data_logs <- function(
 #' @inheritParams ll_get_device_state_logs
 #' @param exp_id experiment ID(s)
 #' @param ... forwarded to ll_get_device_state_logs
+#' @param cache whether to cache the data logs
+#' @param reac_cache whether to read the cache
 #' @export
 ll_get_exp_device_data_logs <- function(exp_id, group_id = default(group_id), ..., cache = TRUE, read_cache = TRUE, quiet = default(quiet)) {
 

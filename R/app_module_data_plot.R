@@ -35,6 +35,7 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
   # plot buttons ====
   observeEvent(is_experiment_selected(), {
     toggleState("fetch_data", condition = is_experiment_selected())
+    toggleState("reset_cache", condition = is_experiment_selected())
   })
 
   observeEvent(values$valid_plot, {
@@ -187,6 +188,17 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
     #refresh_data_plot() # NOTE consider not triggering this here
   })
 
+  # reset cache ====
+
+  observeEvent(input$reset_cache, {
+    values$valid_fetch <- FALSE
+
+    withProgress(
+      message = 'Resetting data logs cache', detail = "Accessing file system...", value = 0.5,
+      ll_reset_exp_device_data_logs_cache(get_experiments())
+    )
+  })
+
   # generate data plot ====
 
   refresh_data_plot <- function() {
@@ -305,7 +317,10 @@ dataPlotUI <- function(id, plot_height = 650) {
               fluidRow(
                 column(width = 4,
                        tooltipInput(actionButton, ns("fetch_data"), "Fetch Data", icon = icon("cloud-download"),
-                                    tooltip = "Fetch the most recent data from the data base.")) %>% disabled(),
+                                    tooltip = "Fetch the most recent data from the data base.") %>% disabled(),
+                       tooltipInput(actionButton, ns("reset_cache"), "Reset Cache", icon = icon("unlink"),
+                                    tooltip = "Reset local cache (only use if experiment configuration changed).") %>% disabled()
+                ),
                 column(width = 4, align = "center",
                        tooltipInput(actionButton, ns("zoom_all"), "", icon = icon("resize-full", lib = "glyphicon"),
                                     tooltip = "Show all data") %>% disabled(),

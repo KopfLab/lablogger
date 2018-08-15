@@ -111,7 +111,7 @@ ll_experiment_start_recording <- function(exp_id, group_id = default(group_id), 
 }
 
 #' stop recording for an experiment
-#' @inheritParams cll_experiment_stop_recording
+#' @inheritParams ll_experiment_stop_recording
 ll_experiment_stop_recording <- function(exp_id, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
   if (missing(exp_id)) stop("must supply an existing experiment id", call. = FALSE)
   result <- data_frame(exp_id) %>%

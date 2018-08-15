@@ -1,4 +1,5 @@
 
+#' Device Info Server
 #' @param refresh_experiment_device_links to refresh the database queried list of links between experiments and devices (either from the device or experiment perspective)
 deviceInfoServer <- function(input, output, session, get_cloud_state, refresh_cloud_state, get_cloud_data, refresh_cloud_data, refresh_experiment_device_links, get_cloud_info, refresh_cloud_info) {
 
