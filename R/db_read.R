@@ -4,10 +4,13 @@
 #' @param group_id devices from which group to fetch
 #' @return devices
 #' @export
-ll_get_devices <- function(group_id = default(group_id), filter = NULL, in_use_only = TRUE, con = default(con), quiet = default(quiet)) {
+ll_get_devices <- function(group_id = default(group_id), filter = NULL,
+                           select = c(device_id, particle_id, device_name, device_type_id, device_type_desc),
+                           in_use_only = TRUE, con = default(con), quiet = default(quiet)) {
 
   con <- validate_db_connection(enquo(con))
   filter_quo <- enquo(filter)
+  select_quo <- enquo(select)
   group_id_value <- group_id
 
   if (!quiet) {
@@ -17,11 +20,13 @@ ll_get_devices <- function(group_id = default(group_id), filter = NULL, in_use_o
          "...") %>% message(appendLF = FALSE)
   }
   df <- tbl(con, "devices") %>%
+    left_join(tbl(con, "device_types"), by = "device_type_id") %>%
     dplyr::filter(group_id == group_id_value, in_use | !in_use_only) %>%
     {
       if(!quo_is_null(filter_quo)) dplyr::filter(., !!filter_quo)
       else .
     } %>%
+    dplyr::select(!!select_quo) %>%
     collect()
   if (!quiet) glue("found {nrow(df)}.") %>% message()
   return(df)
@@ -33,7 +38,7 @@ ll_get_devices <- function(group_id = default(group_id), filter = NULL, in_use_o
 #' @export
 ll_get_device_ids <- function(device_names, group_id = default(group_id), quiet = default(quiet)) {
   device_names_filter <- unique(device_names)
-  devices <- ll_get_devices(group_id = group_id, filter = !!quo(device_name %in% c(!!!device_names_filter)), quiet = quiet)
+  devices <- ll_get_devices(group_id = group_id, filter = !!quo(device_name %in% !!device_names_filter), quiet = quiet)
   device_name_to_id_map <- setNames(devices$device_id, devices$device_name)
   if (any(missing <- !device_names %in% names(device_name_to_id_map))) {
     glue("the folowing device_name(s) do not exist for group '{group_id}' and can therefore not be mapped to id(s): {collapse(device_names[missing], sep = ', ')}") %>%
@@ -88,7 +93,7 @@ ll_get_experiments <- function(group_id = default(group_id), filter = NULL, conv
 
 #' Retrieve experiment device links
 #'
-#' Returns experiment-device links (only for active/in-use devices) joined with experiment and devices tables so filter conditions can be applied on the devices as well.
+#' Returns experiment-device links (only for active/in-use devices) joined with experiment, devices and device types tables so filter conditions can be applied on any of these as well.
 #'
 #' @inheritParams ll_get_experiments
 #' @return experiments_devices
@@ -111,6 +116,7 @@ ll_get_experiment_device_links <- function(
 
   exp_devices <- tbl(con, "experiment_device_data") %>%
     left_join(tbl(con, "devices"), by = "device_id") %>%
+    left_join(tbl(con, "device_types", by = "device_type_id")) %>%
     left_join(tbl(con, "experiments"), by = c("exp_id", "group_id")) %>%
     dplyr::filter(group_id == group_id_value, in_use) %>%
     {
@@ -347,7 +353,7 @@ ll_get_exp_device_data_logs <- function(exp_id, group_id = default(group_id), ..
       parse_expr()
   } else {
     # simple filter for all experiments
-    filter_quo <- quo(exp_id %in% c(!!!cache_paths$exp_id))
+    filter_quo <- quo(exp_id %in% !!cache_paths$exp_id)
   }
 
   # fetch from database

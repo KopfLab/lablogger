@@ -1,12 +1,12 @@
 
-experimentOverviewServer <- function(input, output, session, experiments) {
+experimentOverviewServer <- function(input, output, session, dm_experiments, dm_cloudinfo) {
 
   # namespace
   ns <- session$ns
 
   # select experiment ====
   get_experiments_for_dropdown <- reactive({
-    exps <- experiments$get_experiments() %>% mutate(label = sprintf("%s: %s", exp_id, exp_desc))
+    exps <- dm_experiments$get_experiments() %>% mutate(label = sprintf("%s: %s", exp_id, exp_desc))
     c("Choose an experiment" = "",
       list(
         `Recording` = exps %>% filter(recording) %>% select(label, exp_id) %>% deframe(),
@@ -18,29 +18,35 @@ experimentOverviewServer <- function(input, output, session, experiments) {
   output$experiment <- renderUI(selectInput(ns("experiment"), label = NULL, choices = get_experiments_for_dropdown()))
 
   # trigger refresh
-  observeEvent(input$experiment_refresh, experiments$refresh_experiments())
+  observeEvent(input$experiment_refresh, dm_experiments$refresh_experiments())
 
   # update dropdown
   observe({
-    updateSelectInput(session, "experiment", choices = get_experiments_for_dropdown(), selected = isolate(experiments$get_loaded_experiment()))
+    updateSelectInput(session, "experiment", choices = get_experiments_for_dropdown(), selected = isolate(dm_experiments$get_loaded_experiment()))
     module_message(ns, "debug", "updating experiments dropdown")
   })
 
   # load experiment ===
   observeEvent(input$experiment, {
     req(input$experiment)
-    if (is.null(experiments$get_loaded_experiment()) || input$experiment != experiments$get_loaded_experiment()) {
+    if (is.null(dm_experiments$get_loaded_experiment()) || input$experiment != dm_experiments$get_loaded_experiment()) {
       load_experiment(input$experiment)
     }
   })
 
   load_experiment <- function(exp_id) {
-    experiments$load_experiment(exp_id)
+    dm_experiments$load_experiment(exp_id)
 
     # recording
-    recording <- experiments$is_loaded_experiment_recording()
+    recording <- dm_experiments$is_loaded_experiment_recording()
     toggle("start_recording", condition = !recording)
     toggle("stop_recording", condition = recording)
+
+    # devices - select all by default
+    dm_experiments$select_loaded_experiment_devices(dm_experiments$get_loaded_experiment_devices()$device_id)
+
+    # cloud data - fetch right away?
+    dm_cloudinfo$refresh_cloud_data()
 
     # show tabs
     show("tabs")
@@ -49,31 +55,48 @@ experimentOverviewServer <- function(input, output, session, experiments) {
   # start/stop recording ====
 
   observeEvent(input$start_recording, {
-    result <- experiments$start_experiment()
+    result <- dm_experiments$start_experiment()
     if (result$success) {
-      showModal(modalDialog(title = "Success", p(sprintf("Experiment %s is now recording", experiments$get_loaded_experiment())), footer = modalButton("Close"), fade = FALSE, easyClose = TRUE))
+      showModal(modalDialog(title = "Success",
+                            p(strong(sprintf("Experiment %s is now recording.", dm_experiments$get_loaded_experiment()))),
+                            p("Please note that only data from linked devices that have 'data-log' turned on will actually be recorded. Check the 'Live State' on the 'Devices' tab for an overview of your devices' status."), footer = modalButton("Close"), fade = FALSE, easyClose = TRUE))
     } else {
-      showModal(modalDialog(title = "Error", p(sprintf("Experiment %s could not start recording.", experiments$get_loaded_experiment())), footer = modalButton("Close"), fade = FALSE, easyClose = TRUE))
+      showModal(modalDialog(title = "Error", p(sprintf("Experiment %s could not start recording.", dm_experiments$get_loaded_experiment())), footer = modalButton("Close"), fade = FALSE, easyClose = TRUE))
     }
     toggle("start_recording", condition = FALSE)
     toggle("stop_recording", condition = TRUE)
   })
 
   observeEvent(input$stop_recording, {
-    result <- experiments$stop_experiment()
+    result <- dm_experiments$stop_experiment()
     if (result$success) {
-      showModal(modalDialog(title = "Success", p(sprintf("Experiment %s is now no longer recording", experiments$get_loaded_experiment())), footer = modalButton("Close"), fade = FALSE, easyClose = TRUE))
+      showModal(modalDialog(title = "Success", p(sprintf("Experiment %s is now no longer recording", dm_experiments$get_loaded_experiment())), footer = modalButton("Close"), fade = FALSE, easyClose = TRUE))
     } else {
-      showModal(modalDialog(title = "Error", p(sprintf("Experiment %s could not stop recording.", experiments$get_loaded_experiment())), footer = modalButton("Close"), fade = FALSE, easyClose = TRUE))
+      showModal(modalDialog(title = "Error", p(sprintf("Experiment %s could not stop recording.", dm_experiments$get_loaded_experiment())), footer = modalButton("Close"), fade = FALSE, easyClose = TRUE))
     }
     toggle("start_recording", condition = TRUE)
     toggle("stop_recording", condition = FALSE)
   })
 
-  # experiment device info
-  #FIXME: also include device selector (default is having all devices selected)
-  #devices_info <- callModule(deviceInfoServer, "exp_devices_info", exp_data_manager)
+  # experiment devices ====
 
+  devices <- callModule(
+    deviceSelectorServer, "devices",
+    get_devices = dm_experiments$get_loaded_experiment_devices,
+    get_selected_devices = dm_experiments$get_selected_loaded_experiment_devices,
+    refresh_devices = dm_experiments$load_experiment_device_links,
+    select_devices = dm_experiments$select_loaded_experiment_devices)
+
+  devices_info <- callModule(
+    deviceInfoServer, "devices_info",
+    get_cloud_state = dm_cloudinfo$get_exp_devices_cloud_state,
+    refresh_cloud_state = dm_cloudinfo$refresh_cloud_state,
+    get_cloud_data = dm_cloudinfo$get_exp_devices_cloud_data,
+    refresh_cloud_data = dm_cloudinfo$refresh_cloud_data,
+    refresh_experiment_device_links = dm_experiments$load_experiment_device_links,
+    get_cloud_info = dm_cloudinfo$get_exp_devices_cloud_info,
+    refresh_cloud_info = dm_cloudinfo$refresh_cloud_info
+  )
 
 }
 
@@ -99,16 +122,22 @@ experimentOverviewUI <- function(id, width = 12) {
       type = "tabs",
       tabPanel(
         "Configuration",
-        h2("Recording"),
+        br(),
+        spaces(3),
         tooltipInput(actionButton, ns("start_recording"), label = "Start Recording",
                      icon = icon("play"), style="color: #fff; background-color: #007f1f; border-color: #2e6da4"),
         tooltipInput(actionButton, ns("stop_recording"), label = "Stop Recording",
                      icon = icon("stop"), style="color: #fff; background-color: #f22e10; border-color: #2e6da4"),
+        spaces(1),
         # FIXME
-        tooltipInput(actionButton, ns("add_devices"), label = "Add device links", icon = icon("microchip"), tooltip = "Add additional device links. NOT IMPLEMENETED YET")
-        #h2("Devices")
-        #FIXME: also include device selector
-        #deviceInfoUI(ns("exp_devices_info"))
+        tooltipInput(actionButton, ns("add_devices"), label = "Add device links", icon = icon("microchip"), tooltip = "Add additional device links. NOT IMPLEMENETED YET"),
+        br(), br(),
+        deviceDataUI(ns("devices_info"), include_fetch_all = FALSE)
+      ),
+      tabPanel(
+        "Devices", br(),
+        deviceSelectorUI(ns("devices"), width = 12, selector_height = 100),
+        deviceInfoUI(ns("devices_info"), include_fetch_all = FALSE)
       ),
       tabPanel(
         "Data", br()

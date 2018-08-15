@@ -1,7 +1,7 @@
 #' Chemostat Control Center Server
 #'
 #' Generates the server part of the isoviewer app
-app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_screen = "data") {
+app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_screen = "experiments") {
   shinyServer(function(input, output, session) {
 
     message("\n\nINFO: Loading GUI instance ...")
@@ -73,7 +73,7 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
     })
 
     # EXPERIMENTS SCREEN ====
-    experiments <- callModule(experimentOverviewServer, "experiments", dm_experiments)
+    experiments <- callModule(experimentOverviewServer, "experiments", dm_experiments, dm_cloudinfo)
     output$experiments <- renderUI({
       if (!login_manager$is_logged_in()) return(NULL)
       message("INFO: Generating 'experiments' screen")
@@ -81,7 +81,12 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
     })
 
     # DEVICES SCREEN ====
-    devices <- callModule(deviceSelectorServer, "devices", dm_devices)
+    devices <- callModule(
+      deviceSelectorServer, "devices",
+      get_devices = dm_devices$get_devices,
+      get_selected_devices = dm_devices$get_selected_devices,
+      refresh_devices = dm_devices$refresh_devices,
+      select_devices = dm_devices$select_devices)
     devices_info <- callModule(
       deviceInfoServer, "devices_info",
       get_cloud_state = dm_cloudinfo$get_devices_cloud_state,
@@ -97,6 +102,7 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
       message("INFO: Generating 'devices' screen")
       tagList(
         deviceSelectorUI("devices", width = 12, selector_height = 200),
+        deviceDataUI("devices_info"),
         deviceInfoUI("devices_info")
       )
     })

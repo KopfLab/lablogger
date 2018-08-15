@@ -87,31 +87,14 @@ deviceInfoServer <- function(input, output, session, get_cloud_state, refresh_cl
 
 }
 
-
-
-deviceInfoUI <- function(id, width = 12) {
+deviceDataUI <- function(id, width = 12, include_fetch_all = TRUE) {
 
   ns <- NS(id)
 
   tagList(
-
-    # live state
-    default_box(
-      title = "Live State", width = width,
-      tableOutput(ns("state_table")),
-      footer =
-        div(
-          tooltipInput(actionButton, ns("fetch_state"), "Fetch State", icon = icon("cloud-download"),
-                            tooltip = "Fetch the most recent state information from the cloud."),
-          spaces(1),
-          tooltipInput(actionButton, ns("fetch_state_all"), "Fetch All", icon = icon("cloud-download"),
-                       tooltip = "Fetch all device information from the cloud and database.")
-        )
-    ),
-
     # live data
     default_box(
-      title = "Live Data", width = width,
+      title = "Live Device Data", width = width,
 
       checkboxGroupInput(ns("data_table_options"), NULL,
                          c("Experiment Links (recording)" = "r_exps",
@@ -125,21 +108,46 @@ deviceInfoUI <- function(id, width = 12) {
         tooltipInput(actionButton, ns("fetch_data"), "Fetch Data", icon = icon("cloud-download"),
                      tooltip = "Fetch the most recent live data and experiment links from the cloud."),
         spaces(1),
-        tooltipInput(actionButton, ns("fetch_data_all"), "Fetch All", icon = icon("cloud-download"),
-                     tooltip = "Fetch all device information from the cloud and database.")
+        if (include_fetch_all)
+          tooltipInput(actionButton, ns("fetch_data_all"), "Fetch All", icon = icon("cloud-download"),
+                       tooltip = "Fetch all device information from the cloud and database.")
       )
+    )
+  )
+}
+
+deviceInfoUI <- function(id, width = 12, include_fetch_all = TRUE) {
+
+  ns <- NS(id)
+
+  tagList(
+
+    # live state
+    default_box(
+      title = "Live Device State", width = width,
+      tableOutput(ns("state_table")),
+      footer =
+        div(
+          tooltipInput(actionButton, ns("fetch_state"), "Fetch State", icon = icon("cloud-download"),
+                            tooltip = "Fetch the most recent state information from the cloud."),
+          spaces(1),
+          if (include_fetch_all)
+            tooltipInput(actionButton, ns("fetch_state_all"), "Fetch All", icon = icon("cloud-download"),
+                         tooltip = "Fetch all device information from the cloud and database.")
+        )
     ),
 
     # live info
     default_box(
-      title = "Live Info", width = width,
+      title = "Live Device Info", width = width,
       tableOutput(ns("info_table")),
       footer = div(
         tooltipInput(actionButton, ns("fetch_info"), "Fetch Info", icon = icon("cloud-download"),
                      tooltip = "Fetch the most recent device information from the cloud."),
         spaces(1),
-        tooltipInput(actionButton, ns("fetch_info_all"), "Fetch All", icon = icon("cloud-download"),
-                     tooltip = "Fetch all device information from the cloud and database.")
+        if (include_fetch_all)
+          tooltipInput(actionButton, ns("fetch_info_all"), "Fetch All", icon = icon("cloud-download"),
+                       tooltip = "Fetch all device information from the cloud and database.")
       )
     )
 

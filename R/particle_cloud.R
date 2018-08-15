@@ -271,7 +271,7 @@ ll_test_experiment_device_links <- function(experiment_device_links, spread = FA
 #' @export
 ll_summarize_cloud_data_experiment_links <- function(cloud_data, experiment_device_links, linked = TRUE, unlinked = TRUE) {
 
-  if (missing(experiment_device_links)) stop("on experiment device links provided", call. = FALSE)
+  if (missing(experiment_device_links)) stop("no experiment device links provided", call. = FALSE)
   if (missing(cloud_data)) stop("no cloud data provided")
 
   experiment_device_links <- experiment_device_links[!names(experiment_device_links) %in% c("exp_device_data_id", "particle_id")]
