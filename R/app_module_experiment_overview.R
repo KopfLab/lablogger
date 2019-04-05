@@ -132,7 +132,7 @@ experimentOverviewUI <- function(id, width = 12) {
         # FIXME
         tooltipInput(actionButton, ns("add_devices"), label = "Add device links", icon = icon("microchip"), tooltip = "Add additional device links. NOT IMPLEMENETED YET"),
         br(), br(),
-        deviceDataUI(ns("devices_info"), include_fetch_all = FALSE)
+        deviceDataUI(ns("devices_info"), selected_options = "r_exps", include_fetch_all = FALSE)
       ),
       tabPanel(
         "Devices", br(),

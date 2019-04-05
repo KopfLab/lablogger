@@ -260,6 +260,7 @@ cloudInfoDataServer <- function(input, output, session, experiments, devices, gr
       devices %>%
         filter(device_id %in% !!device_ids) %>%
         ll_get_devices_cloud_data(access_token = access_token, convert_to_TZ = timezone)
+
     )
 
     # safety check
@@ -272,7 +273,8 @@ cloudInfoDataServer <- function(input, output, session, experiments, devices, gr
   }
 
   get_devices_cloud_data <- eventReactive(values$refresh_cloud_data, {
-    get_cloud_data(devices$get_devices(), devices$get_selected_devices(), devices$get_devices_experiments_links(), TRUE, TRUE)
+    get_cloud_data(devices$get_devices(), devices$get_selected_devices(), devices$get_devices_experiments_links(), TRUE, TRUE) %>%
+      arrange(device_name, idx)
   })
 
   # cloud data for experiment
@@ -290,10 +292,10 @@ cloudInfoDataServer <- function(input, output, session, experiments, devices, gr
 
     considered_links <- all_links %>% semi_join(exp_links, by = c("device_name", "data_idx"))
 
-
+    # fetch actual cloud data
     get_cloud_data(experiments$get_loaded_experiment_devices(),
-                   device_ids, considered_links, TRUE, FALSE)
-
+                   device_ids, considered_links, TRUE, FALSE) %>%
+      arrange(recording_exp_ids, device_name, idx)
   })
 
   refresh_cloud_data <- function() {
