@@ -41,5 +41,5 @@ Gemfile.lock
 # Test and temp data
 inst/extdata/*
 inst/gui/*.pdf
-/db/
+dev/
 tmp/
