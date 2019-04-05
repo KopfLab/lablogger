@@ -1,2 +1,3 @@
-# labware_c3
-chemostat control center
+# lablogger
+
+Lab Logger command line interface and GUI.

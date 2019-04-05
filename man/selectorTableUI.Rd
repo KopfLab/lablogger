@@ -13,3 +13,4 @@ Selector table UI
 Other selector table module functions: \code{\link{selectorTableButtons}},
   \code{\link{selectorTableServer}}
 }
+\concept{selector table module functions}
