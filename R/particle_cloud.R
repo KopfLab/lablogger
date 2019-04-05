@@ -291,8 +291,8 @@ ll_summarize_cloud_data_experiment_links <- function(cloud_data, experiment_devi
     select(-exp_id, -data_group) %>%
     nest(exp_id_data_group, recording, .key = ..exp_data..) %>%
     mutate(
-      recording_exp_ids = map_chr(..exp_data.., ~filter(.x, recording)$exp_id_data_group %>% { if(length(.) > 0) collapse(., sep = ", ") else NA_character_ }),
-      non_recording_exp_ids = map_chr(..exp_data.., ~filter(.x, !recording)$exp_id_data_group %>% { if(length(.) > 0) collapse(., sep = ", ") else NA_character_ })
+      recording_exp_ids = map_chr(..exp_data.., ~filter(.x, recording)$exp_id_data_group %>% { if(length(.) > 0) glue::glue_collapse(., sep = ", ") else NA_character_ }),
+      non_recording_exp_ids = map_chr(..exp_data.., ~filter(.x, !recording)$exp_id_data_group %>% { if(length(.) > 0) glue::glue_collapse(., sep = ", ") else NA_character_ })
     ) %>%
     select(-..exp_data..)
 }

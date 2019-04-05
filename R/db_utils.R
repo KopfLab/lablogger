@@ -24,7 +24,7 @@ to_sql <- function(...) {
         } else {
           stop(glue("unsupported value type: {class(.x)[1]}"), call. = FALSE)
         }) %>%
-    collapse(", ")
+    glue::glue_collapse(", ")
 }
 
 # convert whole df to sql compatible list of values
@@ -34,12 +34,12 @@ df_to_sql <- function(df) {
     mutate(rowid = row_number()) %>%
     nest(-rowid) %>%
     mutate(sql = map_chr(data, ~to_sql(as.list(.x)))) %>%
-    { str_c("(", collapse(.$sql, sep = "), ("), ")") }
+    { str_c("(", glue::glue_collapse(.$sql, sep = "), ("), ")") }
 }
 
 # make insert statement from data frame
 df_to_insert_sql <- function(df, table) {
-  glue("INSERT INTO {table} ({collapse(names(df), sep = ', ')}) VALUES {df_to_sql(df)}")
+  glue("INSERT INTO {table} ({glue::glue_collapse(names(df), sep = ', ')}) VALUES {df_to_sql(df)}")
 }
 
 # run sql with error catching

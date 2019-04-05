@@ -1,7 +1,7 @@
-#' Chemostat Control Center UI
+#' Lab Logger UI
 #'
 #' @description Generates the user interface part of the isoviewer app
-app_ui <- function(title = "Lab Logger") {
+app_ui <- function(title = "Lab Logger", group_id = NULL, timezone = NULL) {
 
   color <- "red" # see ?dashboardPage for options
   #box_default <- "#222d32" # darker
@@ -23,6 +23,8 @@ app_ui <- function(title = "Lab Logger") {
       width = 150,
       sidebarMenu(
         id = "menu",
+        if (!is.null(group_id)) h4(group_id, align = "center"),
+        if (!is.null(timezone)) h5(timezone, align = "center"),
         "login" %>% menuItem("Login", tabName = ., icon = icon("log-in", lib = "glyphicon"), selected = TRUE),
         "data" %>% menuItem("Data", tabName = ., icon = icon("line-chart")),
         "logs" %>% menuItem("Logs", tabName = ., icon = icon("database")),

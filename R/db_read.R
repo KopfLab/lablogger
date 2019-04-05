@@ -41,7 +41,7 @@ ll_get_device_ids <- function(device_names, group_id = default(group_id), quiet 
   devices <- ll_get_devices(group_id = group_id, filter = !!quo(device_name %in% !!device_names_filter), quiet = quiet)
   device_name_to_id_map <- setNames(devices$device_id, devices$device_name)
   if (any(missing <- !device_names %in% names(device_name_to_id_map))) {
-    glue("the folowing device_name(s) do not exist for group '{group_id}' and can therefore not be mapped to id(s): {collapse(device_names[missing], sep = ', ')}") %>%
+    glue("the folowing device_name(s) do not exist for group '{group_id}' and can therefore not be mapped to id(s): {glue::glue_collapse(device_names[missing], sep = ', ')}") %>%
       stop(call. = FALSE)
   }
   return(device_name_to_id_map[device_names])
@@ -291,7 +291,7 @@ ll_reset_exp_device_data_logs_cache <- function(exp_id, quiet = default(quiet)) 
 
   # info
   if (!quiet) {
-    glue("Info: resetting local data logs cache for experiment(s) '{collapse(exp_id, sep = ', ')}'... ") %>%
+    glue("Info: resetting local data logs cache for experiment(s) '{glue::glue_collapse(exp_id, sep = ', ')}'... ") %>%
       message(appendLF = FALSE)
   }
 
@@ -330,7 +330,7 @@ ll_get_exp_device_data_logs <- function(exp_id, group_id = default(group_id), ..
 
     if (!quiet) {
       glue("Info: reading data logs from local cache for experiment(s) ",
-           "'{collapse(filter(cache_paths, exists)$exp_id, sep = ', ')}'... ") %>%
+           "'{glue::glue_collapse(filter(cache_paths, exists)$exp_id, sep = ', ')}'... ") %>%
         message(appendLF = FALSE)
     }
 
@@ -366,7 +366,7 @@ ll_get_exp_device_data_logs <- function(exp_id, group_id = default(group_id), ..
   # write cache
   if (cache && nrow(db_logs) > 0) {
     if (!quiet) {
-      glue("Info: updating local data logs cache for experiment(s) '{collapse(exp_id, sep = ', ')}'... ") %>%
+      glue("Info: updating local data logs cache for experiment(s) '{glue::glue_collapse(exp_id, sep = ', ')}'... ") %>%
         message(appendLF = FALSE)
     }
 
@@ -418,7 +418,7 @@ ll_snyc_device_names_from_cloud <- function(in_use_only = TRUE, con = default(co
   sql <-
     glue(
       "update devices as tbl set device_name = map.device_name
-      from (values {collapse(devices$values, ',\n')}) as map(device_particle_id, device_name)
+      from (values {glue::glue_collapse(devices$values, ',\n')}) as map(device_particle_id, device_name)
       where map.device_particle_id = tbl.device_particle_id")
 
   if (!quiet) cat(glue("\nInfo: updating device names in DB... "))
