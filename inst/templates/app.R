@@ -1,0 +1,6 @@
+source('credentials.R')
+message('INFO: Connection to database... ', appendLF = FALSE)
+pool <- pool::dbPool(drv = RPostgreSQL::PostgreSQL(), host = db_host, dbname = db_name, user = db_user, password = db_pwd)
+message('successful.')
+shiny::onStop(function() { pool::poolClose(pool) })
+lablogger::ll_run_gui(group_id = group_id, access_token = access_token, pool = pool, app_pwd = app_pwd, timezone = timezone, launch = FALSE)

@@ -299,7 +299,7 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
     filename_func = reactive({
       exps <- get_data_logs()$exp_id %>% unique()
       glue("{format(now(), '%Y_%m_%d')}-",
-           "{collapse(exps, sep = '_')}",
+           "{glue::glue_collapse(exps, sep = '_')}",
            ".pdf")
     }))
 

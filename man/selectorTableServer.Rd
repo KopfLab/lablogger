@@ -21,3 +21,4 @@ This generates an rhandson table for selecting items to include in downstream op
 Other selector table module functions: \code{\link{selectorTableButtons}},
   \code{\link{selectorTableUI}}
 }
+\concept{selector table module functions}

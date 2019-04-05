@@ -2,9 +2,9 @@
 % Please edit documentation in R/app_ui.R
 \name{app_ui}
 \alias{app_ui}
-\title{Chemostat Control Center UI}
+\title{Lab Logger UI}
 \usage{
-app_ui(title = "Lab Logger")
+app_ui(title = "Lab Logger", group_id = NULL, timezone = NULL)
 }
 \description{
 Generates the user interface part of the isoviewer app

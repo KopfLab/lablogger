@@ -37,11 +37,13 @@ ll_summarize_data_logs <- function(data_logs, exclude_outliers = FALSE, slope_de
       n = n(),
       mean = mean(data_value, na.rm = TRUE),
       sd = sd(data_value, na.rm = TRUE),
+      fit = list(lm(data_value ~ duration))
       # not that informative
       #cor_obj = list(cor.test(data_value, duration)),
       #time_cor = map_dbl(cor_obj, ~.x$estimate),
-      fit = list(lm(data_value ~ duration)),
-      est = map(fit, tidy),
+    ) %>%
+    mutate(
+      est = map(fit, broom::tidy),
       !!drift_col := map_dbl(est, ~filter(.x, term == "duration")$estimate),
       !!drift_se_col := map_dbl(est, ~filter(.x, term == "duration")$std.error),
       drift_R2 = map_dbl(fit, ~glance(.x)$r.squared)

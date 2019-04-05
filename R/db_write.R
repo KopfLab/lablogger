@@ -69,7 +69,7 @@ ll_add_experiment_devices <- function(exp_id, device_names, data_idxs, device_id
 
   if (!quiet) {
     device_info <- { if(!missing(device_names)) device_names else device_ids } %>%
-      str_c(" #", data_idxs) %>% collapse(sep = ", ")
+      str_c(" #", data_idxs) %>% glue::glue_collapse(sep = ", ")
     glue("\nInfo: linking device data ({device_info}) to experiment '{exp_id}'... ") %>%
     message(appendLF = FALSE)
   }

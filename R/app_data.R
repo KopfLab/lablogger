@@ -29,7 +29,7 @@ experimentsDataServer <- function(input, output, session, group_id, access_token
 
   select_experiments <- function(exp_ids) {
     if (!identical(values$selected_exp_ids, exp_ids)) {
-      module_message(ns, "debug", glue("selecting exp ids '{if(!is.null(exp_ids)) collapse(exp_ids, sep = ', ') else 'none'}'"))
+      module_message(ns, "debug", glue("selecting exp ids '{if(!is.null(exp_ids)) glue::glue_collapse(exp_ids, sep = ', ') else 'none'}'"))
       values$selected_exp_ids <- exp_ids
     }
   }
@@ -63,7 +63,7 @@ experimentsDataServer <- function(input, output, session, group_id, access_token
 
   select_loaded_experiment_devices <- function(device_ids) {
     if (!identical(values$selected_loaded_exp_device_ids, device_ids)) {
-      module_message(ns, "debug", glue("selecting experiment device ids '{if(!is.null(device_ids)) collapse(device_ids, sep = ', ') else 'none'}'"))
+      module_message(ns, "debug", glue("selecting experiment device ids '{if(!is.null(device_ids)) glue::glue_collapse(device_ids, sep = ', ') else 'none'}'"))
       values$selected_loaded_exp_device_ids <- device_ids
     }
   }
@@ -130,7 +130,7 @@ devicesDataServer <- function(input, output, session, group_id, access_token, po
 
   select_devices <- function(device_ids) {
     if (!identical(values$selected_device_ids, device_ids)) {
-      module_message(ns, "debug", glue("selecting device ids '{if(!is.null(device_ids)) collapse(device_ids, sep = ', ') else 'none'}'"))
+      module_message(ns, "debug", glue("selecting device ids '{if(!is.null(device_ids)) glue::glue_collapse(device_ids, sep = ', ') else 'none'}'"))
       values$selected_device_ids <- device_ids
     }
   }
