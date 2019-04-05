@@ -11,6 +11,10 @@ ll_get_exp_device_data_logs(exp_id, group_id = default(group_id), ...,
 \item{exp_id}{experiment ID(s)}
 
 \item{...}{forwarded to ll_get_device_state_logs}
+
+\item{cache}{whether to cache the data logs}
+
+\item{reac_cache}{whether to read the cache}
 }
 \description{
 Also supports efficient caching of the retrieved data.

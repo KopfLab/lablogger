@@ -5,10 +5,7 @@
 \title{Chemostat Control Center Server}
 \usage{
 app_server(group_id, access_token, pool, app_pwd, timezone,
-  start_screen = "data")
-}
-\arguments{
-\item{pool}{ideally database connection pool, see \link[pool]{dbPool} but can also be a single db connection (not recommended)}
+  start_screen = "experiments")
 }
 \description{
 Generates the server part of the isoviewer app

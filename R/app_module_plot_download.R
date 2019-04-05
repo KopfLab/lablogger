@@ -1,5 +1,4 @@
 #' Plot Download Server
-#' @inheritParams fileInfoServer
 #' @param plot_func reactive function generating the plot
 #' @param filename_func reactive function returning the default plot name
 plotDownloadServer <- function(input, output, session, plot_func, filename_func) {
@@ -35,7 +34,6 @@ plotDownloadServer <- function(input, output, session, plot_func, filename_func)
 
 
 #' Plot Download Link
-#' @inheritParams isofilesLoadUI
 #' @param label Label for the download link
 plotDownloadLink <- function(id, label = "Save") {
   ns <- NS(id)

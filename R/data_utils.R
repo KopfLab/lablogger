@@ -150,3 +150,10 @@ ll_calculate_duration <- function(df, units) {
   df %>%
     mutate(duration = as.duration(datetime - min(datetime)) %>% as.numeric(units))
 }
+
+# data export ====
+
+#' Export data
+ll_export_data_logs <- function(data_logs, path, type = c("rds", "csv", "excel")) {
+  # FIXME: implement
+}

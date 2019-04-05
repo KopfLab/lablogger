@@ -110,7 +110,6 @@ selectorTableServer <- function(input, output, session, id_column, col_headers, 
 
 
 #' Selector table UI
-#' @inheritParams isofilesLoadUI
 #' @family selector table module functions
 selectorTableUI <- function(id, height = "200px") {
   ns <- NS(id)
@@ -119,7 +118,6 @@ selectorTableUI <- function(id, height = "200px") {
 }
 
 #' Selector table buttons
-#' @inheritParams isofilesLoadUI
 #' @family selector table module functions
 selectorTableButtons <- function(id) {
   ns <- NS(id)
