@@ -8,7 +8,9 @@ experimentsDataServer <- function(input, output, session, group_id, access_token
     refresh_experiments = NULL,
     selected_exp_ids = c(), # multi selection experiments
     loaded_exp_id = NULL, # single selection experiments
-    loaded_exp_device_links = NULL # device links of single selection experiment
+    loaded_exp_device_links = NULL, # device links of single selection experiment
+    loaded_exp_devices = NULL, # experiment devices,
+    selected_loaded_exp_device_ids = c()
   )
 
   # experiments
@@ -38,13 +40,31 @@ experimentsDataServer <- function(input, output, session, group_id, access_token
     if (!identical(values$loaded_exp_id, exp_id)) {
       module_message(ns, "debug", glue("loading exp id '{exp_id}'"))
       values$loaded_exp_id <- exp_id
+      load_experiment_device_links()
+    }
+  }
 
-      filter_quo <- quo(exp_id == !!values$loaded_exp_id)
-      values$loaded_exp_device_links <-
-        withProgress(
-          message = 'Loading experiment', detail = "Querying database for experiment devices...", value = 0.5,
-          ll_get_experiment_device_links(group_id = group_id, con = pool, select = c(device_id, device_name, particle_id),filter = active && !!filter_quo)
-        ) %>% unique()
+  load_experiment_device_links <- function(...) {
+    # ... = init: for compatibility with other reload functions but is not used here
+    module_message(ns, "debug", glue("(re)loading exp device links for exp '{values$loaded_exp_id}'"))
+    filter_quo <- quo(exp_id == !!values$loaded_exp_id)
+    values$loaded_exp_device_links <-
+      withProgress(
+        message = 'Fetching experiment data', detail = "Querying database for experiment device links...", value = 0.5,
+        ll_get_experiment_device_links(group_id = group_id, con = pool, select = c(device_id, device_name, device_type_desc, particle_id, data_idx, active),filter = !!filter_quo)
+      ) %>% unique()
+
+    values$loaded_exp_devices <-
+      values$loaded_exp_device_links %>%
+      filter(active) %>%
+      select(device_id, device_name, particle_id, device_type_desc) %>%
+      unique()
+  }
+
+  select_loaded_experiment_devices <- function(device_ids) {
+    if (!identical(values$selected_loaded_exp_device_ids, device_ids)) {
+      module_message(ns, "debug", glue("selecting experiment device ids '{if(!is.null(device_ids)) collapse(device_ids, sep = ', ') else 'none'}'"))
+      values$selected_loaded_exp_device_ids <- device_ids
     }
   }
 
@@ -70,6 +90,11 @@ experimentsDataServer <- function(input, output, session, group_id, access_token
     get_selected_experiments = reactive(values$selected_exp_ids),
     load_experiment = load_experiment,
     get_loaded_experiment = reactive(values$loaded_exp_id),
+    load_experiment_device_links = load_experiment_device_links,
+    get_loaded_experiment_device_links = reactive(values$loaded_exp_device_links),
+    get_loaded_experiment_devices = reactive(values$loaded_exp_devices),
+    select_loaded_experiment_devices = select_loaded_experiment_devices,
+    get_selected_loaded_experiment_devices = reactive(values$selected_loaded_exp_device_ids),
     is_loaded_experiment_recording = reactive(filter(get_experiments(), exp_id == !!values$loaded_exp_id)$recording),
     start_experiment = start_experiment,
     stop_experiment = stop_experiment
@@ -118,7 +143,7 @@ devicesDataServer <- function(input, output, session, group_id, access_token, po
         ll_get_experiment_device_links(
           group_id = group_id, con = pool,
           select = c(exp_device_data_id, exp_id, recording, device_name, data_group, data_idx, active),
-          filter = device_id %in% c(!!!values$selected_device_ids))
+          filter = device_id %in% !!values$selected_device_ids)
       )
     } else {
       data_frame()
@@ -190,7 +215,6 @@ datalogsDataServer <- function(input, output, session, experiments, devices, gro
   )
 }
 
-# FIXME: experiments not currently used, use to make selected_experiment specific device cloud requests!
 cloudInfoDataServer <- function(input, output, session, experiments, devices, group_id, access_token, pool, timezone) {
 
   # namespace
@@ -205,14 +229,22 @@ cloudInfoDataServer <- function(input, output, session, experiments, devices, gr
   )
 
   # cloud state
-  get_devices_cloud_state <- eventReactive(values$refresh_cloud_state, {
+  get_cloud_state <- function(devices, device_ids) {
     module_message(ns, "debug", "fetching cloud state")
     withProgress(
       message = 'Fetching device state', detail = "Querying device cloud...", value = 0.5,
-      devices$get_devices() %>%
-        filter(device_id %in% devices$get_selected_devices()) %>%
+      devices %>%
+        filter(device_id %in% !!device_ids) %>%
         ll_get_devices_cloud_state(access_token = access_token, convert_to_TZ = timezone, spread = TRUE)
     )
+  }
+
+  get_devices_cloud_state <- eventReactive(values$refresh_cloud_state, {
+    get_cloud_state(devices$get_devices(), devices$get_selected_devices())
+  })
+
+  get_exp_devices_cloud_state <- eventReactive(values$refresh_cloud_state, {
+    get_cloud_state(experiments$get_loaded_experiment_devices(), experiments$get_selected_loaded_experiment_devices())
   })
 
   refresh_cloud_state <- function() {
@@ -220,31 +252,50 @@ cloudInfoDataServer <- function(input, output, session, experiments, devices, gr
   }
 
   # cloud data for devices
-  get_devices_cloud_data <- eventReactive(values$refresh_cloud_data, {
+  get_cloud_data <- function(devices, device_ids, links, linked, unlinked) {
     module_message(ns, "debug", "fetching cloud data")
     # data from cloud
     data <- withProgress(
       message = 'Fetching device data', detail = "Querying device cloud...", value = 0.5,
-      devices$get_devices() %>%
-        filter(device_id %in% devices$get_selected_devices()) %>%
+      devices %>%
+        filter(device_id %in% !!device_ids) %>%
         ll_get_devices_cloud_data(access_token = access_token, convert_to_TZ = timezone)
+
     )
 
     # safety check
     if (nrow(data) == 0) return(data)
 
     # device links from data base
-    links <- devices$get_devices_experiments_links()
     ll_summarize_cloud_data_experiment_links(
       cloud_data = data, experiment_device_links = links,
-      linked = TRUE, unlinked = TRUE)
+      linked = linked, unlinked = unlinked)
+  }
+
+  get_devices_cloud_data <- eventReactive(values$refresh_cloud_data, {
+    get_cloud_data(devices$get_devices(), devices$get_selected_devices(), devices$get_devices_experiments_links(), TRUE, TRUE) %>%
+      arrange(device_name, idx)
   })
 
   # cloud data for experiment
-  get_exp_cloud_data <- eventReactive(values$refresh_cloud_data, {
-    # FIXME
-    # fetch cloud data as well and merge with experiment device links but then
-    # only select the ones that are part of the exp (by back merge)
+  get_exp_devices_cloud_data <- eventReactive(values$refresh_cloud_data, {
+
+    exp_links <- experiments$get_loaded_experiment_device_links() %>% filter(active)
+    device_ids <- experiments$get_loaded_experiment_devices()$device_id
+    all_links <- withProgress(
+      message = 'Fetching device data', detail = "Querying database for experiment device links...", value = 0.5,
+      ll_get_experiment_device_links(
+        group_id = group_id, con = pool,
+        select = c(exp_device_data_id, exp_id, recording, device_name, data_group, data_idx, active),
+        filter = device_id %in% !!device_ids)
+    )
+
+    considered_links <- all_links %>% semi_join(exp_links, by = c("device_name", "data_idx"))
+
+    # fetch actual cloud data
+    get_cloud_data(experiments$get_loaded_experiment_devices(),
+                   device_ids, considered_links, TRUE, FALSE) %>%
+      arrange(recording_exp_ids, device_name, idx)
   })
 
   refresh_cloud_data <- function() {
@@ -252,14 +303,22 @@ cloudInfoDataServer <- function(input, output, session, experiments, devices, gr
   }
 
   # cloud info
-  get_devices_cloud_info <- eventReactive(values$refresh_cloud_info, {
+  get_cloud_info <- function(devices, device_ids) {
     module_message(ns, "debug", "fetching cloud info")
     withProgress(
       message = 'Fetching device info', detail = "Querying device cloud...", value = 0.5,
-      devices$get_devices() %>%
-        filter(device_id %in% devices$get_selected_devices()) %>%
+      devices %>%
+        filter(device_id %in% !!device_ids) %>%
         ll_get_devices_cloud_info(access_token = access_token, convert_to_TZ = timezone)
     )
+  }
+
+  get_devices_cloud_info <- eventReactive(values$refresh_cloud_info, {
+    get_cloud_info(devices$get_devices(), devices$get_selected_devices())
+  })
+
+  get_exp_devices_cloud_info <- eventReactive(values$refresh_cloud_info, {
+    get_cloud_info(experiments$get_loaded_experiment_devices(), experiments$get_selected_loaded_experiment_devices())
   })
 
   refresh_cloud_info <- function() {
@@ -270,12 +329,15 @@ cloudInfoDataServer <- function(input, output, session, experiments, devices, gr
   list(
     # devices cloud state
     get_devices_cloud_state = get_devices_cloud_state,
+    get_exp_devices_cloud_state = get_exp_devices_cloud_state,
     refresh_cloud_state = refresh_cloud_state,
     # devices cloud data
     get_devices_cloud_data = get_devices_cloud_data,
+    get_exp_devices_cloud_data = get_exp_devices_cloud_data,
     refresh_cloud_data = refresh_cloud_data,
     # devices cloud info
     get_devices_cloud_info = get_devices_cloud_info,
+    get_exp_devices_cloud_info = get_exp_devices_cloud_info,
     refresh_cloud_info = refresh_cloud_info
   )
 

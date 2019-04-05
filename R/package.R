@@ -6,7 +6,7 @@
 #' @importFrom jsonlite fromJSON toJSON
 #' @importFrom glue glue collapse
 #' @importFrom tibble deframe
-#' @importFrom dplyr select rename filter as_data_frame %>% tbl collect mutate data_frame everything starts_with ends_with left_join full_join arrange group_by ungroup do summarize bind_rows between desc case_when
+#' @importFrom dplyr select rename filter as_data_frame %>% tbl collect mutate data_frame everything starts_with ends_with left_join full_join semi_join arrange group_by ungroup do summarize bind_rows between desc case_when
 #' @importFrom tidyr gather nest unnest spread
 #' @importFrom broom tidy glance
 #' @importFrom ggplot2 ggplot aes geom_point geom_line geom_ribbon theme_bw theme_void facet_grid scale_x_datetime labs annotate %+% ggsave theme element_text

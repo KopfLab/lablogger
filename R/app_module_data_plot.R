@@ -35,6 +35,7 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
   # plot buttons ====
   observeEvent(is_experiment_selected(), {
     toggleState("fetch_data", condition = is_experiment_selected())
+    toggleState("reset_cache", condition = is_experiment_selected())
   })
 
   observeEvent(values$valid_plot, {
@@ -43,6 +44,7 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
     toggleState("zoom_move_right", condition = values$valid_plot)
     toggleState("zoom_back", condition = values$valid_plot)
     toggleState("plot_download-download_dialog", condition = values$valid_plot)
+    toggleState("data_download", condition = values$valid_plot)
   })
 
   observe({
@@ -96,8 +98,8 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
         df <- df %>% select(data_group) %>% unique() %>% arrange(data_group) %>%
           mutate(data_group = ifelse(is.na(data_group), NO_DATA_GROUP, data_group))
         groups_selector$set_table(df)
-        # selet all by default
-        groups_selector$set_selected(df$data_group)
+        # select all by default if plot doesn't exist yet
+        if (!values$valid_plot) groups_selector$set_selected(df$data_group)
       } else {
         groups_selector$set_table(data_frame(data_group = character(0)))
       }
@@ -185,6 +187,17 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
     toggle("options_box", condition = TRUE)
     toggle("summary_box", condition = TRUE)
     #refresh_data_plot() # NOTE consider not triggering this here
+  })
+
+  # reset cache ====
+
+  observeEvent(input$reset_cache, {
+    values$valid_fetch <- FALSE
+
+    withProgress(
+      message = 'Resetting data logs cache', detail = "Accessing file system...", value = 0.5,
+      ll_reset_exp_device_data_logs_cache(get_experiments())
+    )
   })
 
   # generate data plot ====
@@ -305,7 +318,11 @@ dataPlotUI <- function(id, plot_height = 650) {
               fluidRow(
                 column(width = 4,
                        tooltipInput(actionButton, ns("fetch_data"), "Fetch Data", icon = icon("cloud-download"),
-                                    tooltip = "Fetch the most recent data from the data base.")) %>% disabled(),
+                                    tooltip = "Fetch the most recent data from the data base.") %>% disabled(),
+                       spaces(1),
+                       tooltipInput(actionButton, ns("reset_cache"), "Reset Cache", icon = icon("unlink"),
+                                    tooltip = "Reset local cache (only use if experiment configuration changed).") %>% disabled()
+                ),
                 column(width = 4, align = "center",
                        tooltipInput(actionButton, ns("zoom_all"), "", icon = icon("resize-full", lib = "glyphicon"),
                                     tooltip = "Show all data") %>% disabled(),
@@ -326,6 +343,10 @@ dataPlotUI <- function(id, plot_height = 650) {
                        tooltipInput(actionButton, ns("plot_refresh"), "Re-plot", icon = icon("refresh"),
                                     tooltip = "Refresh the plot with the selected filters and plot options.") %>% disabled(),
                        spaces(1),
+                       # FIXME
+                       # tooltipInput(actionButton, ns("data_download"), "Data", icon = icon("download"),
+                       #              tooltip = "Download the plotted data.") %>% disabled(),
+                       # spaces(1),
                        plotDownloadLink(ns("plot_download"), label = "Save") %>% disabled()
                 )
               )

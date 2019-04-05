@@ -3,9 +3,12 @@
 \name{ll_info_messages}
 \alias{ll_info_messages}
 \alias{ll_turn_info_messages_on}
+\alias{ll_turn_info_messages_off}
 \title{Turn information messages on/off}
 \usage{
 ll_turn_info_messages_on(data = NULL)
+
+ll_turn_info_messages_off(data = NULL)
 }
 \arguments{
 \item{data}{a data frame - returned invisibly as is if provided (e.g. in the middle of a pipeline)}

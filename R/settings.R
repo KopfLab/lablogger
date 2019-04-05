@@ -69,7 +69,7 @@ ll_turn_info_messages_on <- function(data = NULL) {
   if (!missing(data)) return(invisible(data))
 }
 
-#' @rdname iso_info_messages
+#' @rdname ll_info_messages
 #' @export
 ll_turn_info_messages_off <- function(data = NULL) {
   set_default("quiet", TRUE)

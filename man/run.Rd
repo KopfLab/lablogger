@@ -12,7 +12,7 @@ run(group_id, access_token, pool, app_pwd = NULL,
 
 \item{access_token}{access token for particle account}
 
-\item{pool}{the database pool}
+\item{pool}{ideally database connection pool, see \link[pool]{dbPool} but can also be a single db connection (not recommended)}
 
 \item{...}{passed on to the \code{\link[shiny]{runApp}} call (only if \code{launch = TRUE}), can include server-specific parameters such as host or port}
 

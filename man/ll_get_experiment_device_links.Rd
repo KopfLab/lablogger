@@ -16,5 +16,5 @@ ll_get_experiment_device_links(group_id = default(group_id), filter = NULL,
 experiments_devices
 }
 \description{
-Returns experiment-device links (only for active/in-use devices) joined with experiment and devices tables so filter conditions can be applied on the devices as well.
+Returns experiment-device links (only for active/in-use devices) joined with experiment, devices and device types tables so filter conditions can be applied on any of these as well.
 }

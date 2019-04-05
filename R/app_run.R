@@ -4,7 +4,7 @@
 #'
 #' @param group_id which group to run for
 #' @param access_token access token for particle account
-#' @param pool the database pool
+#' @param pool ideally database connection pool, see \link[pool]{dbPool} but can also be a single db connection (not recommended)
 #' @param password which password to require for login. If NULL, login will be automatic. (NOTE: maybe manage by data base at some point?)
 #' @param ... passed on to the \code{\link[shiny]{runApp}} call (only if \code{launch = TRUE}), can include server-specific parameters such as host or port
 #' @param launch whether to launch the app (TRUE) or return a shiny app object (FALSE) that then can be launched via \code{\link[shiny]{runApp}}

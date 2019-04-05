@@ -1,4 +1,5 @@
 
+#' Device Info Server
 #' @param refresh_experiment_device_links to refresh the database queried list of links between experiments and devices (either from the device or experiment perspective)
 deviceInfoServer <- function(input, output, session, get_cloud_state, refresh_cloud_state, get_cloud_data, refresh_cloud_data, refresh_experiment_device_links, get_cloud_info, refresh_cloud_info) {
 
@@ -55,7 +56,6 @@ deviceInfoServer <- function(input, output, session, get_cloud_state, refresh_cl
     data <- get_cloud_data()
     validate(need(nrow(data) > 0, "No live data available."))
     data <- data %>%
-      arrange(device_name, idx) %>%
       mutate(datetime = format(datetime)) %>%
       select(Name = device_name, `Last data update` = datetime,
              `Exp IDs (recording)` = recording_exp_ids, `Exp IDs (not recording)` = non_recording_exp_ids,
@@ -86,9 +86,36 @@ deviceInfoServer <- function(input, output, session, get_cloud_state, refresh_cl
 
 }
 
+deviceDataUI <- function(id, width = 12, selected_options = c("r_exps", "serial"), include_fetch_all = TRUE) {
 
+  ns <- NS(id)
 
-deviceInfoUI <- function(id, width = 12) {
+  tagList(
+    # live data
+    default_box(
+      title = "Live Device Data", width = width,
+      style = paste0("min-height: 130px;"),
+      checkboxGroupInput(ns("data_table_options"), NULL,
+                         c("Experiment Links (recording)" = "r_exps",
+                           "Experiment Links (not recording)" = "nr_exps",
+                           "Raw Serial Data" = "serial"),
+                         selected = selected_options,
+                         inline = TRUE),
+
+      tableOutput(ns("data_table")) %>% withSpinner(type = 5, proxy.height = "130px"),
+      footer = div(
+        tooltipInput(actionButton, ns("fetch_data"), "Fetch Data", icon = icon("cloud-download"),
+                     tooltip = "Fetch the most recent live data and experiment links from the cloud."),
+        spaces(1),
+        if (include_fetch_all)
+          tooltipInput(actionButton, ns("fetch_data_all"), "Fetch All", icon = icon("cloud-download"),
+                       tooltip = "Fetch all device information from the cloud and database.")
+      )
+    )
+  )
+}
+
+deviceInfoUI <- function(id, width = 12, include_fetch_all = TRUE) {
 
   ns <- NS(id)
 
@@ -96,49 +123,32 @@ deviceInfoUI <- function(id, width = 12) {
 
     # live state
     default_box(
-      title = "Live State", width = width,
-      tableOutput(ns("state_table")),
+      style = paste0("min-height: 130px;"),
+      title = "Live Device State", width = width,
+      tableOutput(ns("state_table")) %>% withSpinner(type = 5, proxy.height = "130px"),
       footer =
         div(
           tooltipInput(actionButton, ns("fetch_state"), "Fetch State", icon = icon("cloud-download"),
                             tooltip = "Fetch the most recent state information from the cloud."),
           spaces(1),
-          tooltipInput(actionButton, ns("fetch_state_all"), "Fetch All", icon = icon("cloud-download"),
-                       tooltip = "Fetch all device information from the cloud and database.")
+          if (include_fetch_all)
+            tooltipInput(actionButton, ns("fetch_state_all"), "Fetch All", icon = icon("cloud-download"),
+                         tooltip = "Fetch all device information from the cloud and database.")
         )
-    ),
-
-    # live data
-    default_box(
-      title = "Live Data", width = width,
-
-      checkboxGroupInput(ns("data_table_options"), NULL,
-                         c("Experiment Links (recording)" = "r_exps",
-                           "Experiment Links (not recording)" = "nr_exps",
-                           "Raw Serial Data" = "serial"),
-                         selected = c("r_exps", "serial"),
-                         inline = TRUE),
-
-      tableOutput(ns("data_table")),
-      footer = div(
-        tooltipInput(actionButton, ns("fetch_data"), "Fetch Data", icon = icon("cloud-download"),
-                     tooltip = "Fetch the most recent live data and experiment links from the cloud."),
-        spaces(1),
-        tooltipInput(actionButton, ns("fetch_data_all"), "Fetch All", icon = icon("cloud-download"),
-                     tooltip = "Fetch all device information from the cloud and database.")
-      )
     ),
 
     # live info
     default_box(
-      title = "Live Info", width = width,
-      tableOutput(ns("info_table")),
+      title = "Live Device Info", width = width,
+      style = paste0("min-height: 130px;"),
+      tableOutput(ns("info_table")) %>% withSpinner(type = 5, proxy.height = "130px"),
       footer = div(
         tooltipInput(actionButton, ns("fetch_info"), "Fetch Info", icon = icon("cloud-download"),
                      tooltip = "Fetch the most recent device information from the cloud."),
         spaces(1),
-        tooltipInput(actionButton, ns("fetch_info_all"), "Fetch All", icon = icon("cloud-download"),
-                     tooltip = "Fetch all device information from the cloud and database.")
+        if (include_fetch_all)
+          tooltipInput(actionButton, ns("fetch_info_all"), "Fetch All", icon = icon("cloud-download"),
+                       tooltip = "Fetch all device information from the cloud and database.")
       )
     )
 
