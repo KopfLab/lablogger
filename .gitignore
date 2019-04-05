@@ -29,6 +29,9 @@ vignettes/*.pdf
 /*_cache/
 /cache/
 
+# gem lock file for app development
+Gemfile.lock
+
 # Temporary files created by R markdown
 *.utf8.md
 *.knit.md
