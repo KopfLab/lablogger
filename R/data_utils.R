@@ -116,6 +116,13 @@ unpack_lists_data_frame <- function(lists_df, column = lists, unnest_single_valu
     select(-..nr..)
 }
 
+# remove list columns from a data frame
+remove_list_columns <- function(df) {
+  if (missing(df)) stop("no data frame supplied", call. = FALSE)
+  list_cols <- df %>% purrr:::map_lgl(rlang::is_list)
+  df[!list_cols]
+}
+
 # data simplification ====
 
 spread_state_columns <- function(df) {
@@ -149,11 +156,4 @@ ll_calculate_duration <- function(df, units) {
   stopifnot(!missing(units))
   df %>%
     mutate(duration = as.duration(datetime - min(datetime)) %>% as.numeric(units))
-}
-
-# data export ====
-
-#' Export data
-ll_export_data_logs <- function(data_logs, path, type = c("rds", "csv", "excel")) {
-  # FIXME: implement
 }
