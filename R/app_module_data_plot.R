@@ -44,7 +44,7 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
     toggleState("zoom_move_right", condition = values$valid_plot)
     toggleState("zoom_back", condition = values$valid_plot)
     toggleState("plot_download-download_dialog", condition = values$valid_plot)
-    toggleState("data_download", condition = values$valid_plot)
+    toggleState("data_download-download_dialog", condition = values$valid_plot)
   })
 
   observe({
@@ -56,15 +56,21 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
   })
 
   # plot messages ====
-  output$data_plot_message <- renderText({
-    validate(
-      need(is_experiment_selected(), "Please select an experiment.") %then%
-        need(values$valid_fetch, "Please 'Fetch Data' to query the database.") %then%
-          need(traces_selector$get_selected(), "Please select at least one data trace.") %then%
-            need(groups_selector$get_selected(), "Please select at least one data group.") %then%
-              need(values$valid_plot, "Please press any 're-plot' button to render the plot.")
-    )
-    NULL
+  output$data_plot_message <- renderUI({
+    # cannot use validate here because it doesn't allow HTML messages
+    msg <-
+      if (!is_experiment_selected()) "Please select one or multiple experiments."
+      else if (is.null(values$valid_fetch) || !values$valid_fetch)
+        "Please press the fetch data button (<i class='fa fa-cloud-download'></i>) to query the database."
+      else if (is.null(traces_selector$get_selected()))
+        "Please select at least one data trace."
+      else if (is.null(groups_selector$get_selected()))
+        "Please select at least one data group."
+      else if (is.null(values$valid_plot) || !values$valid_plot)
+        "Please press any re-plot button (<i class='fa fa-refresh'></i>) to render the plot."
+      else
+        NULL
+    return(HTML(msg))
   })
 
   # traces ====
@@ -286,6 +292,7 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
   # table output ====
 
   output$summary_table <- renderTable({
+    req(!is.null(input$digits) && is.numeric(input$digits))
     summary <- generate_data_summary()
     module_message(ns, "debug", "rendering plot data summary table")
     if (nrow(summary) > 0) summary
@@ -303,6 +310,20 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
            ".pdf")
     }))
 
+  # data download ====
+  data_handler <- callModule(
+    dataDownloadServer, "data_download",
+    data_func = get_plot_data_logs,
+    filename_func = reactive({
+      logs <- get_data_logs()
+      exps <- logs$exp_id %>% unique()
+      traces <- logs$data_key %>% unique()
+      glue("{format(now(), '%Y_%m_%d')}-",
+           "{paste(exps, sep = '_')}-",
+           "{paste(traces, sep = '_')}",
+           ".zip")
+    }))
+
 }
 
 
@@ -317,10 +338,10 @@ dataPlotUI <- function(id, plot_height = 650) {
           div(id = ns("data_plot_actions"),
               fluidRow(
                 column(width = 4,
-                       tooltipInput(actionButton, ns("fetch_data"), "Fetch Data", icon = icon("cloud-download"),
+                       tooltipInput(actionButton, ns("fetch_data"), NULL, icon = icon("cloud-download"),
                                     tooltip = "Fetch the most recent data from the data base.") %>% disabled(),
                        spaces(1),
-                       tooltipInput(actionButton, ns("reset_cache"), "Reset Cache", icon = icon("unlink"),
+                       tooltipInput(actionButton, ns("reset_cache"), NULL, icon = icon("unlink"),
                                     tooltip = "Reset local cache (only use if experiment configuration changed).") %>% disabled()
                 ),
                 column(width = 4, align = "center",
@@ -340,18 +361,16 @@ dataPlotUI <- function(id, plot_height = 650) {
                                     tooltip = "Revert to previous view") %>% disabled()
                 ),
                 column(width = 4, align = "right",
-                       tooltipInput(actionButton, ns("plot_refresh"), "Re-plot", icon = icon("refresh"),
+                       tooltipInput(actionButton, ns("plot_refresh"), NULL, icon = icon("refresh"),
                                     tooltip = "Refresh the plot with the selected filters and plot options.") %>% disabled(),
                        spaces(1),
-                       # FIXME
-                       # tooltipInput(actionButton, ns("data_download"), "Data", icon = icon("download"),
-                       #              tooltip = "Download the plotted data.") %>% disabled(),
-                       # spaces(1),
-                       plotDownloadLink(ns("plot_download"), label = "Save") %>% disabled()
+                       plotDownloadLink(ns("plot_download"), label = NULL) %>% disabled(),
+                       spaces(1),
+                       dataDownloadLink(ns("data_download"), label = NULL) %>% disabled()
                 )
               )
           ),
-          div(id = ns("data_plot_messages"), h3(textOutput(ns("data_plot_message")))),
+          div(id = ns("data_plot_messages"), h3(htmlOutput(ns("data_plot_message")))),
           div(id = ns("data_plot_div"),
               plotOutput(ns("data_plot"), height = "100%",
                          dblclick = ns("data_plot_dblclick"),
