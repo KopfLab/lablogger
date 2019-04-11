@@ -9,7 +9,7 @@
 #' @param ... passed on to the \code{\link[shiny]{runApp}} call (only if \code{launch = TRUE}), can include server-specific parameters such as host or port
 #' @param launch whether to launch the app (TRUE) or return a shiny app object (FALSE) that then can be launched via \code{\link[shiny]{runApp}}
 #' (note: if \code{launch=FALSE}, \code{...} gets ignored)
-#' @inheritParams app_gui
+#' @inheritParams app_ui
 #' @export
 ll_run_gui <- function(group_id, access_token, pool, timezone = Sys.timezone(), app_pwd = NULL, app_title = group_id, app_color = "red", ..., launch = FALSE) {
 

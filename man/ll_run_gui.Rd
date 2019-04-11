@@ -4,8 +4,9 @@
 \alias{ll_run_gui}
 \title{Run the user interface}
 \usage{
-ll_run_gui(group_id, access_token, pool, app_pwd = NULL,
-  timezone = Sys.timezone(), ..., launch = TRUE)
+ll_run_gui(group_id, access_token, pool, timezone = Sys.timezone(),
+  app_pwd = NULL, app_title = group_id, app_color = "red", ...,
+  launch = FALSE)
 }
 \arguments{
 \item{group_id}{which group to run for}
@@ -13,6 +14,10 @@ ll_run_gui(group_id, access_token, pool, app_pwd = NULL,
 \item{access_token}{access token for particle account}
 
 \item{pool}{ideally database connection pool, see \link[pool]{dbPool} but can also be a single db connection (not recommended)}
+
+\item{app_title}{the title of the application}
+
+\item{app_color}{the dashboard color, see \link[shinydashboard]{dashboardPage} skin for available options}
 
 \item{...}{passed on to the \code{\link[shiny]{runApp}} call (only if \code{launch = TRUE}), can include server-specific parameters such as host or port}
 
