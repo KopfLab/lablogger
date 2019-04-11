@@ -4,7 +4,12 @@
 \alias{app_ui}
 \title{Lab Logger UI}
 \usage{
-app_ui(title = "Lab Logger", group_id = NULL, timezone = NULL)
+app_ui(app_title = "Lab Logger", app_color = "red", timezone = NULL)
+}
+\arguments{
+\item{app_title}{the title of the application}
+
+\item{app_color}{the dashboard color, see \link[shinydashboard]{dashboardPage} skin for available options}
 }
 \description{
 Generates the user interface part of the isoviewer app
