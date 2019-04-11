@@ -10,7 +10,7 @@
 #' @param launch whether to launch the app (TRUE) or return a shiny app object (FALSE) that then can be launched via \code{\link[shiny]{runApp}}
 #' (note: if \code{launch=FALSE}, \code{...} gets ignored)
 #' @export
-ll_run_gui <- function(group_id, access_token, pool, app_pwd = NULL, timezone = Sys.getenv("TZ"), ..., launch = TRUE) {
+ll_run_gui <- function(group_id, access_token, pool, app_pwd = NULL, timezone = Sys.timezone(), ..., launch = TRUE) {
 
   glue("\n\n***************************************************************",
        "\nINFO: Launching lab logger GUI for group '{group_id}' in timezone {timezone}...",

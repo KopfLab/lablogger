@@ -7,7 +7,7 @@
 ll_get_device_state_logs(group_id = default(group_id), filter = NULL,
   select = c(device_id, device_name, device_state_log_id, log_datetime,
   log_type, log_message, starts_with("state"), notes), max_rows = NULL,
-  convert_to_TZ = Sys.getenv("TZ"), con = default(con),
+  convert_to_TZ = Sys.timezone(), con = default(con),
   quiet = default(quiet))
 }
 \arguments{

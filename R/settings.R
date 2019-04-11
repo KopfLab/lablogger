@@ -1,15 +1,15 @@
 # retrieve package settings, internal function, not exported
 default <- function(name, allow_null = FALSE) {
   name <- enquo(name) %>% quos_to_text(variable = "setting")
-  value <- getOption(str_c("c3.", name))
-  if (!allow_null && is.null(value)) stop("c3 setting '", name, "' does not exist, make sure to set the default first", call. = FALSE)
+  value <- getOption(str_c("ll.", name))
+  if (!allow_null && is.null(value)) stop("ll setting '", name, "' does not exist, make sure to set the default first", call. = FALSE)
   return(value)
 }
 
 # set package setting, internal function, not exported
 set_default <- function(name, value, overwrite = TRUE) {
-  if (overwrite || !str_c("c3.", name) %in% names(options()))
-    options(list(value) %>% setNames(str_c("c3.", name)))
+  if (overwrite || !str_c("ll.", name) %in% names(options()))
+    options(list(value) %>% setNames(str_c("ll.", name)))
   return(invisible(value))
 }
 

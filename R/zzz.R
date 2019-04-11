@@ -1,12 +1,11 @@
 initialize_options <- function() {
   # set default package options (always resets options to force deliberate change of settings)
   default_options <- list(
-    c3.quiet = FALSE,
-    c3.tz = Sys.getenv("TZ"),
-    c3.access_token = "",
-    c3.con = NULL,
-    c3.request_timeout = 3,
-    c3.debug = FALSE
+    ll.quiet = FALSE,
+    ll.access_token = "",
+    ll.con = NULL,
+    ll.request_timeout = 3,
+    ll.debug = FALSE
   )
   options(default_options)
 }

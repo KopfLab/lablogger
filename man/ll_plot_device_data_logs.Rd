@@ -9,10 +9,18 @@ ll_plot_device_data_logs(device_data_logs, filter = NULL,
   duration_units = NULL, date_breaks = NULL, quiet = default(quiet))
 }
 \arguments{
+\item{device_data_logs}{data logs}
+
 \item{duration_units}{specify a time unit (e.g. "mins") to indicate whether x axis should be displayed as a duration since the first data point within each experiment, if NULL x axis is displayed as regular date time.}
 
 \item{date_breaks}{formate the datetime breaks if not plotting duration (i.e. is ignored if duration_units is provided)}
 }
 \description{
-Plot device data logs
+This function helps to visualize data logs retrieved with \code{\link{ll_get_device_data_logs}} or read in from downloaded data logs.
 }
+\seealso{
+Other data logs functions: \code{\link{ll_get_device_data_logs}},
+  \code{\link{ll_read_device_data_logs_from_file}},
+  \code{\link{ll_write_device_data_logs_to_file}}
+}
+\concept{data logs functions}

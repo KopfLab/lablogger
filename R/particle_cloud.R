@@ -57,7 +57,7 @@ make_particle_cloud_request <- function(endpoint, nr = NULL, total = NULL, timeo
 #' @param access_token the access token for the accout
 #' @return nested data frame (converted from JSON)
 # @ note: consider making a function to udpate particle ids in the DB from here (overkill? since state/data logs cause update too)
-ll_get_devices_cloud_info <- function(devices = ll_get_devices(group_id = group_id, con = con), group_id = default(group_id), con = default(con), access_token = default(access_token), convert_to_TZ = Sys.getenv("TZ"), quiet = default(quiet)) {
+ll_get_devices_cloud_info <- function(devices = ll_get_devices(group_id = group_id, con = con), group_id = default(group_id), con = default(con), access_token = default(access_token), convert_to_TZ = Sys.timezone(), quiet = default(quiet)) {
 
   # safety checks
   if (!is.data.frame(devices) | !all(c("particle_id", "device_name") %in% names(devices)))
@@ -103,7 +103,7 @@ get_devices_cloud_variable <- function(devices, variable, access_token = default
   devices %>%
     mutate(
       lists = map2(
-        particle_id, row_number(),
+        particle_id, dplyr::row_number(),
         ~make_particle_cloud_request(
           endpoint = sprintf("devices/%s/%s", .x, ..device_variable..),
           nr = .y,
@@ -117,9 +117,9 @@ get_devices_cloud_variable <- function(devices, variable, access_token = default
 }
 
 # helper function to unpack cloud variable result
-unpack_cloud_variable_result <- function(var_data, data_column, renames = c(), convert_to_TZ = Sys.getenv("TZ"), spread_function = NULL) {
+unpack_cloud_variable_result <- function(var_data, data_column, renames = c(), convert_to_TZ = Sys.timezone(), spread_function = NULL) {
 
-  var_data <- mutate(var_data, ..rowid.. = row_number())
+  var_data <- mutate(var_data, ..rowid.. = dplyr::row_number())
   data_column_quo <- enquo(data_column)
 
   # unpack state data
@@ -174,7 +174,7 @@ ll_get_devices_cloud_state <-
            group_id = default(group_id),
            con = default(con),
            access_token = default(access_token),
-           convert_to_TZ = Sys.getenv("TZ"),
+           convert_to_TZ = Sys.timezone(),
            spread = FALSE,
            quiet = default(quiet)) {
 
@@ -208,7 +208,7 @@ ll_get_devices_cloud_data <-
            group_id = default(group_id),
            con = default(con),
            access_token = default(access_token),
-           convert_to_TZ = Sys.getenv("TZ"),
+           convert_to_TZ = Sys.timezone(),
            spread = FALSE,
            quiet = default(quiet)) {
 

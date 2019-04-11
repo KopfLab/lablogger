@@ -6,9 +6,8 @@
 \usage{
 ll_get_devices_cloud_data(devices = ll_get_devices(group_id = group_id,
   con = con), group_id = default(group_id), con = default(con),
-  access_token = default(access_token),
-  convert_to_TZ = Sys.getenv("TZ"), spread = FALSE,
-  quiet = default(quiet))
+  access_token = default(access_token), convert_to_TZ = Sys.timezone(),
+  spread = FALSE, quiet = default(quiet))
 }
 \arguments{
 \item{access_token}{the access token for the accout}

@@ -1,7 +1,7 @@
 Package: lablogger
 Type: Package
 Title: Lab Logger
-Version: 0.3.3
+Version: 0.3.4.0
 Author: Sebastian Kopf
 Maintainer: Sebastian Kopf <sebastian.kopf@colorado.edu>
 Roxygen: list(wrap = FALSE)
@@ -17,6 +17,8 @@ Imports:
     jsonlite,
     glue,
     readr,
+    readxl,
+    openxlsx,
     tidyr,
     tibble,
     dplyr,
@@ -28,6 +30,7 @@ Imports:
     RPostgreSQL,
     purrr,
     stringr,
+    zip,
     ggplot2,
     shiny,
     shinyjs,

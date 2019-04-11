@@ -14,8 +14,12 @@ prepare_data_for_plotting <- function(device_data_logs) {
 
 #' Plot device data logs
 #'
+#' This function helps to visualize data logs retrieved with \code{\link{ll_get_device_data_logs}} or read in from downloaded data logs.
+#'
+#' @param device_data_logs data logs
 #' @param duration_units specify a time unit (e.g. "mins") to indicate whether x axis should be displayed as a duration since the first data point within each experiment, if NULL x axis is displayed as regular date time.
 #' @param date_breaks formate the datetime breaks if not plotting duration (i.e. is ignored if duration_units is provided)
+#' @family data logs functions
 #' @export
 ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error_range = FALSE, exclude_outliers = FALSE, duration_units = NULL, date_breaks = NULL, quiet = default(quiet)) {
 

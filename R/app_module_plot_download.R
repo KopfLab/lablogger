@@ -35,8 +35,8 @@ plotDownloadServer <- function(input, output, session, plot_func, filename_func)
 
 #' Plot Download Link
 #' @param label Label for the download link
-plotDownloadLink <- function(id, label = "Save") {
+plotDownloadLink <- function(id, label = "Save", tooltip = "Save the plot as a PDF") {
   ns <- NS(id)
-  tooltipInput(actionButton, ns("download_dialog"), label, icon = icon("download"),
-               tooltip = "Download the plot as a PDF")
+  tooltipInput(actionButton, ns("download_dialog"), label, icon = icon("file-pdf"),
+               tooltip = tooltip)
 }
