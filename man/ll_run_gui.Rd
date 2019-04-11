@@ -5,7 +5,7 @@
 \title{Run the user interface}
 \usage{
 ll_run_gui(group_id, access_token, pool, app_pwd = NULL,
-  timezone = Sys.getenv("TZ"), ..., launch = TRUE)
+  timezone = Sys.timezone(), ..., launch = TRUE)
 }
 \arguments{
 \item{group_id}{which group to run for}

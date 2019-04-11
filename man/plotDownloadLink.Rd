@@ -4,7 +4,8 @@
 \alias{plotDownloadLink}
 \title{Plot Download Link}
 \usage{
-plotDownloadLink(id, label = "Save")
+plotDownloadLink(id, label = "Save",
+  tooltip = "Save the plot as a PDF")
 }
 \arguments{
 \item{label}{Label for the download link}

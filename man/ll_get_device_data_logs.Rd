@@ -7,21 +7,27 @@
 ll_get_device_data_logs(group_id = default(group_id), filter = NULL,
   select = c(exp_id, device_id, device_name, device_data_log_id,
   datetime, data_idx, starts_with("data_key"), starts_with("data_")),
-  max_rows = NULL, convert_to_TZ = Sys.getenv("TZ"),
+  max_rows = NULL, convert_to_TZ = Sys.timezone(),
   con = default(con), quiet = default(quiet))
 }
 \arguments{
 \item{filter}{what filter conditions to apply, if any (forwarded to \link[dplyr]{filter})}
 
-\item{select}{what columns to select (forwarded to \link[select]{select}), by default a selection of the most commonly used columns}
+\item{select}{what columns to select (forwarded to \link[dplyr]{select}), by default a selection of the most commonly used columns}
 
 \item{max_rows}{if provided, only selects the indicated number of rows (more efficient this way than part of the filter)}
 
-\item{convert_to_TZ}{if provided, converts the log_datetime to the provided timezone (by default the local one stored in \code{Sys.getenv("TZ")}). If NULL, will keep it as UTC.}
+\item{convert_to_TZ}{converts the log_datetime to the provided timezone (by default the system's local timezone stored in \code{Sys.timezone()}).}
 }
 \value{
-device state logs
+device data logs
 }
 \description{
-Returns data logs joined with experiments, devices, and experiment_device_data (for prefix only) tables so filter conditions can be applied on these as well. Sorted by descending order (i.e. latest record first).
+Returns data logs from the database joined with experiments, devices, and experiment_device_data (for prefix only) tables so filter conditions can be applied on these as well. Sorted by descending order (i.e. latest record first).
 }
+\seealso{
+Other data logs functions: \code{\link{ll_plot_device_data_logs}},
+  \code{\link{ll_read_device_data_logs_from_file}},
+  \code{\link{ll_write_device_data_logs_to_file}}
+}
+\concept{data logs functions}
