@@ -104,7 +104,7 @@ CREATE TABLE experiments
   group_id character varying(20) NOT NULL references groups(group_id),
   exp_desc character varying(255) NULL,
   recording boolean NOT NULL DEFAULT false,
-  last_recording_change timestamp without time zone default NOW()
+  last_recording_change timestamp with time zone default NOW()
 );
 
 INSERT INTO experiments(exp_id, group_id, exp_desc, recording)
@@ -148,7 +148,7 @@ DROP TABLE IF EXISTS device_raw_logs CASCADE;
 
 CREATE TABLE device_raw_logs(
   device_raw_log_id SERIAL PRIMARY KEY,
-  created_datetime timestamp without time zone NOT NULL,
+  created_datetime timestamp with time zone NOT NULL,
   raw_data text NULL
 );
 
@@ -160,7 +160,7 @@ CREATE TABLE device_state_logs (
   device_state_log_id SERIAL PRIMARY KEY,
   device_raw_log_id integer NOT NULL references device_raw_logs(device_raw_log_id),
   device_id integer NOT NULL references devices(device_id),
-  log_datetime timestamp without time zone,
+  log_datetime timestamp with time zone,
   log_type character varying(50) NOT NULL,
   log_message character varying(255) NULL,
   state_key character varying(50) NULL,
@@ -178,7 +178,7 @@ CREATE TABLE device_data_logs (
   device_raw_log_id integer NOT NULL references device_raw_logs(device_raw_log_id),
   device_id integer NOT NULL references devices(device_id),
   exp_device_data_id integer NOT NULL references experiment_device_data(exp_device_data_id),
-  log_datetime timestamp without time zone,
+  log_datetime timestamp with time zone,
   log_time_offset real default 0.0,
   data_idx integer NOT NULL,
   data_key character varying(50) NOT NULL,

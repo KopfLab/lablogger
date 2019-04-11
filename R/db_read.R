@@ -53,7 +53,7 @@ ll_get_device_ids <- function(device_names, group_id = default(group_id), quiet 
 #' @param group_id experiments from which group to fetch
 #' @return experiments
 #' @export
-ll_get_experiments <- function(group_id = default(group_id), filter = NULL, convert_to_TZ = Sys.getenv("TZ"), con = default(con), quiet = default(quiet)) {
+ll_get_experiments <- function(group_id = default(group_id), filter = NULL, convert_to_TZ = Sys.timezone(), con = default(con), quiet = default(quiet)) {
 
   con <- validate_db_connection(enquo(con))
   filter_quo <- enquo(filter)
@@ -76,9 +76,6 @@ ll_get_experiments <- function(group_id = default(group_id), filter = NULL, conv
   if (!quiet) glue("found {nrow(df)}.") %>% message(appendLF = FALSE)
 
   if ("last_recording_change" %in% names(df)) {
-    # server stores everything in UTC
-    df <- mutate(df, last_recording_change = force_tz(last_recording_change, "UTC"))
-
     # local TZ conversion
     if (!is.null(convert_to_TZ)) {
       if (!quiet) glue("Converting last_recording_change to timezone '{convert_to_TZ}'.") %>%
@@ -152,7 +149,7 @@ ll_get_device_state_logs <- function(
   group_id = default(group_id), filter = NULL,
   select = c(device_id, device_name, device_state_log_id, log_datetime, log_type, log_message, starts_with("state"), notes),
   max_rows = NULL,
-  convert_to_TZ = Sys.getenv("TZ"),
+  convert_to_TZ = Sys.timezone(),
   con = default(con), quiet = default(quiet)) {
 
   con <- validate_db_connection(enquo(con))
@@ -185,16 +182,11 @@ ll_get_device_state_logs <- function(
 
   if (!quiet) glue("found {nrow(logs)} records. ") %>% message(appendLF = FALSE)
 
-  if ("log_datetime" %in% names(logs)) {
-    # server stores everything in UTC
-    logs <- mutate(logs, log_datetime = force_tz(log_datetime, "UTC"))
-
-    # local TZ conversion
-    if (!is.null(convert_to_TZ)) {
-      if (!quiet) glue("Converting to timezone '{convert_to_TZ}'.") %>%
-        message(appendLF = FALSE)
-      logs <- mutate(logs, log_datetime = with_tz(log_datetime, convert_to_TZ))
-    }
+  # local TZ conversion
+  if (!is.null(convert_to_TZ) && "log_datetime" %in% names(logs)) {
+    if (!quiet) glue("Converting to timezone '{convert_to_TZ}'.") %>%
+      message(appendLF = FALSE)
+    logs <- mutate(logs, log_datetime = with_tz(log_datetime, convert_to_TZ))
   }
   message("")
 
@@ -208,7 +200,7 @@ ll_get_device_state_logs <- function(
 #' @param filter what filter conditions to apply, if any (forwarded to \link[dplyr]{filter})
 #' @param select what columns to select (forwarded to \link[dplyr]{select}), by default a selection of the most commonly used columns
 #' @param max_rows if provided, only selects the indicated number of rows (more efficient this way than part of the filter)
-#' @param convert_to_TZ if provided, converts the log_datetime to the provided timezone (by default the local one stored in \code{Sys.getenv("TZ")}). If NULL, will keep it as UTC.
+#' @param convert_to_TZ converts the log_datetime to the provided timezone (by default the system's local timezone stored in \code{Sys.timezone()}).
 #' @return device data logs
 #' @family data logs functions
 #' @export
@@ -216,7 +208,7 @@ ll_get_device_data_logs <- function(
   group_id = default(group_id), filter = NULL,
   select = c(exp_id, device_id, device_name, device_data_log_id, datetime, data_idx, starts_with("data_key"), starts_with("data_")),
   max_rows = NULL,
-  convert_to_TZ = Sys.getenv("TZ"),
+  convert_to_TZ = Sys.timezone(),
   con = default(con), quiet = default(quiet)) {
 
   con <- validate_db_connection(enquo(con))
@@ -257,10 +249,9 @@ ll_get_device_data_logs <- function(
     return(logs)
   }
 
-  if ("log_datetime" %in% names(logs))
-    logs <- mutate(logs, log_datetime = force_tz(log_datetime, "UTC"))
+  # offset
   if ("datetime" %in% names(logs))
-    logs <- mutate(logs, datetime = force_tz(datetime - log_time_offset, "UTC"))
+    logs <- mutate(logs, datetime = datetime - log_time_offset)
 
   # local TZ conversion
   if (!is.null(convert_to_TZ) && any(c("log_datetime", "datetime") %in% names(logs))) {
