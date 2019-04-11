@@ -51,15 +51,13 @@ loginUI <- function(id, title) {
   ns <- NS(id)
 
   tagList(
-    column(width = 12,
-           h1(textOutput(ns("group"))),
-           h3(textOutput(ns("tz")))),
+    column(width = 12, h2("Welcome to the ", a("Lab Logger", href = "https://github.com/kopflab/lablogger", target="_blank"), "Platform of the ", title)),
     div(id = ns("login-panel"),
         column(width = 12,
                passwordInput(ns("password"), NULL, placeholder = "Please enter your password."), br(),
                selectInput(ns("auto_login_trigger"), NULL, choices = "1", selected = "1") %>% hidden(),
                actionButton(ns("login"), "Login")
         )),
-    div(id = ns("welcome-panel"), column(width = 12, h2("Welcome to ", title, ". You have been succesfully logged in."))) %>% hidden()
+    div(id = ns("welcome-panel"), column(width = 12, h3("You have been succesfully logged in."))) %>% hidden()
   )
 }

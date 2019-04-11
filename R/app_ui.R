@@ -1,21 +1,23 @@
 #' Lab Logger UI
 #'
-#' @description Generates the user interface part of the isoviewer app
-app_ui <- function(title = "Lab Logger", group_id = NULL, timezone = NULL) {
+#' Generates the user interface part of the isoviewer app
+#'
+#' @param app_title the title of the application
+#' @param app_color the dashboard color, see \link[shinydashboard]{dashboardPage} skin for available options
+app_ui <- function(app_title = "Lab Logger", app_color = "red", timezone = NULL) {
 
-  color <- "red" # see ?dashboardPage for options
   #box_default <- "#222d32" # darker
   box_default <- "#2c3b41" # ligther
 
   # set spinner color
-  options(spinner.color = color)
+  options(spinner.color = app_color)
 
   dashboardPage(
     # SKIN ----
-    skin = color,
+    skin = app_color,
 
     # HEADER ----
-    dashboardHeader(title = title, titleWidth = 150),
+    dashboardHeader(title = app_title, titleWidth = 150),
 
     # SIDEBAR ---
     dashboardSidebar(
@@ -23,7 +25,7 @@ app_ui <- function(title = "Lab Logger", group_id = NULL, timezone = NULL) {
       width = 150,
       sidebarMenu(
         id = "menu",
-        if (!is.null(group_id)) h4(group_id, align = "center"),
+        h5("Lab Logger", as.character(packageVersion("lablogger")), align = "center"),
         if (!is.null(timezone)) h5(timezone, align = "center"),
         "login" %>% menuItem("Login", tabName = ., icon = icon("log-in", lib = "glyphicon"), selected = TRUE),
         "data" %>% menuItem("Data", tabName = ., icon = icon("line-chart")),
@@ -65,7 +67,7 @@ app_ui <- function(title = "Lab Logger", group_id = NULL, timezone = NULL) {
       div(class = "row",
           tabItems(
             # login ====
-            tabItem("login", loginUI("login", title = title)),
+            tabItem("login", loginUI("login", title = app_title)),
 
             # all other tabs ====
             tabItem("data", div(id = "data-panel", column(width = 12, uiOutput("data") %>% withSpinner(type = 5, proxy.height = "450px")))),
