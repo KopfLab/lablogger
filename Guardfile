@@ -15,7 +15,7 @@ message('successful.'); \
 shiny::onStop(function() { pool::poolClose(pool) }); \
 devtools::load_all('.'); \
 lablogger:::turn_debug_on(); \
-lablogger::ll_run_gui(group_id = group_id, access_token = access_token, pool = pool, app_pwd = NULL, port = #{port})"] do
+lablogger::ll_run_gui(group_id = group_id, access_token = access_token, pool = pool, app_title = 'DEV', app_pwd = NULL, port = #{port}, launch = TRUE)"] do
   watch(%r{NAMESPACE})
   watch(%r{R/.+\.R$})
 end
