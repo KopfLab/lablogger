@@ -60,6 +60,6 @@ loginUI <- function(id, title) {
                selectInput(ns("auto_login_trigger"), NULL, choices = "1", selected = "1") %>% hidden(),
                actionButton(ns("login"), "Login")
         )),
-    div(id = ns("welcome-panel"), column(width = 12, h2("Welcome to ", title, ". You have been succesfully logged on."))) %>% hidden()
+    div(id = ns("welcome-panel"), column(width = 12, h2("Welcome to ", title, ". You have been succesfully logged in."))) %>% hidden()
   )
 }

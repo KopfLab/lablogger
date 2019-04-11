@@ -10,7 +10,7 @@ unpack_lists_data_frame <- function(lists_df, column = lists, unnest_single_valu
 
   # id rows
   col_quo <- enquo(column)
-  lists_df_original <- mutate(lists_df, ..nr.. = row_number())
+  lists_df_original <- mutate(lists_df, ..nr.. = dplyr::row_number())
 
   # convert lists into data frame format
   lists_df <-
@@ -29,7 +29,7 @@ unpack_lists_data_frame <- function(lists_df, column = lists, unnest_single_valu
   data_classes <-
     lists_df %>%
     filter(name != "NA") %>%
-    mutate(..order.. = row_number()) %>%
+    mutate(..order.. = dplyr::row_number()) %>%
     group_by(..order.., name) %>%
     summarize(
       data_class = unique(class)[1],

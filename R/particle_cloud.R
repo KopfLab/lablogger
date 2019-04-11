@@ -103,7 +103,7 @@ get_devices_cloud_variable <- function(devices, variable, access_token = default
   devices %>%
     mutate(
       lists = map2(
-        particle_id, row_number(),
+        particle_id, dplyr::row_number(),
         ~make_particle_cloud_request(
           endpoint = sprintf("devices/%s/%s", .x, ..device_variable..),
           nr = .y,
@@ -119,7 +119,7 @@ get_devices_cloud_variable <- function(devices, variable, access_token = default
 # helper function to unpack cloud variable result
 unpack_cloud_variable_result <- function(var_data, data_column, renames = c(), convert_to_TZ = Sys.getenv("TZ"), spread_function = NULL) {
 
-  var_data <- mutate(var_data, ..rowid.. = row_number())
+  var_data <- mutate(var_data, ..rowid.. = dplyr::row_number())
   data_column_quo <- enquo(data_column)
 
   # unpack state data

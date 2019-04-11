@@ -176,7 +176,7 @@ ll_get_device_state_logs <- function(
       else .
     } %>%
     {
-      if (!is.null(max_rows)) dplyr::filter(., row_number() <= max_rows)
+      if (!is.null(max_rows)) dplyr::filter(., dplyr::row_number() <= max_rows)
       else .
     } %>%
     dplyr::select(!!select_quo) %>%
@@ -203,13 +203,14 @@ ll_get_device_state_logs <- function(
 
 #' Retrieve data logs
 #'
-#' Returns data logs joined with experiments, devices, and experiment_device_data (for prefix only) tables so filter conditions can be applied on these as well. Sorted by descending order (i.e. latest record first).
+#' Returns data logs from the database joined with experiments, devices, and experiment_device_data (for prefix only) tables so filter conditions can be applied on these as well. Sorted by descending order (i.e. latest record first).
 #'
 #' @param filter what filter conditions to apply, if any (forwarded to \link[dplyr]{filter})
-#' @param select what columns to select (forwarded to \link[select]{select}), by default a selection of the most commonly used columns
+#' @param select what columns to select (forwarded to \link[dplyr]{select}), by default a selection of the most commonly used columns
 #' @param max_rows if provided, only selects the indicated number of rows (more efficient this way than part of the filter)
 #' @param convert_to_TZ if provided, converts the log_datetime to the provided timezone (by default the local one stored in \code{Sys.getenv("TZ")}). If NULL, will keep it as UTC.
-#' @return device state logs
+#' @return device data logs
+#' @family data logs functions
 #' @export
 ll_get_device_data_logs <- function(
   group_id = default(group_id), filter = NULL,
@@ -241,7 +242,7 @@ ll_get_device_data_logs <- function(
       else .
     } %>%
     {
-      if (!is.null(max_rows)) dplyr::filter(., row_number() <= max_rows)
+      if (!is.null(max_rows)) dplyr::filter(., dplyr::row_number() <= max_rows)
       else .
     } %>%
     # for time offset calculations
