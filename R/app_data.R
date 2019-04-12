@@ -50,7 +50,7 @@ experimentsDataServer <- function(input, output, session, group_id, access_token
     filter_quo <- quo(exp_id == !!values$loaded_exp_id)
     values$loaded_exp_device_links <-
       withProgress(
-        message = 'Fetching experiment data', detail = "Querying database for experiment device links...", value = 0.5,
+        message = 'Fetching experiment info', detail = "Querying database for experiment device links...", value = 0.5,
         ll_get_experiment_device_links(group_id = group_id, con = pool, select = c(device_id, device_name, device_type_desc, particle_id, data_idx, active),filter = !!filter_quo)
       ) %>% unique()
 
@@ -167,6 +167,7 @@ devicesDataServer <- function(input, output, session, group_id, access_token, po
   )
 }
 
+# FIXME: this should just be logsDataServer because it handles data and state logs
 datalogsDataServer <- function(input, output, session, experiments, devices, group_id, access_token, pool, timezone) {
 
   # namespace
@@ -174,8 +175,42 @@ datalogsDataServer <- function(input, output, session, experiments, devices, gro
 
   # reactive values
   values <- reactiveValues(
-    refresh_device_data_logs = NULL
+    refresh_device_state_logs = NULL,
+    refresh_experiment_device_state_logs = NULL,
+    refresh_experiments_data_logs = NULL,
+    refresh_experiment_data_logs = NULL
   )
+
+  # main getter function for device state logs
+  get_device_state_logs <- function(device_ids) {
+    if (length(device_ids) > 0) {
+      filter_quo <- quo(device_id %in% !!device_ids)
+      state_logs <- withProgress(
+        message = 'Fetching device state logs', detail = "Querying database...", value = 0.5,
+        ll_get_device_state_logs(
+          group_id = group_id,
+          filter = !!filter_quo,
+          con = pool,
+          convert_to_TZ = timezone
+        )
+      )
+      return(state_logs)
+    } else {
+      return(data_frame())
+    }
+  }
+
+  refresh_state_logs <- function() {
+    values$refresh_device_state_logs <-
+      if(is.null(values$refresh_device_state_logs)) 1
+    else values$refresh_device_state_logs + 1
+  }
+
+  refresh_experiment_state_logs <- function() {
+    values$refresh_experiment_device_state_logs <-
+      if(is.null(values$refresh_experiment_device_state_logs)) 1
+    else values$refresh_experiment_device_state_logs + 1
+  }
 
   # main getter function for device data logs
   get_device_data_logs <- function(exp_ids, device_ids = NULL) {
@@ -197,21 +232,47 @@ datalogsDataServer <- function(input, output, session, experiments, devices, gro
   }
 
   refresh_data_logs <- function() {
-    values$refresh_device_data_logs <- if(is.null(values$refresh_device_data_logs)) 1 else values$refresh_device_data_logs + 1
+    values$refresh_experiments_data_logs <-
+      if(is.null(values$refresh_experiments_data_logs)) 1
+      else values$refresh_experiments_data_logs + 1
+  }
+
+  refresh_experiment_data_logs <- function() {
+    values$refresh_experiment_data_logs <-
+      if(is.null(values$refresh_experiment_data_logs)) 1
+    else values$refresh_experiment_data_logs + 1
   }
 
   # datalogsDataServer functions =====
   list(
-    get_devices_experiments_data_logs = eventReactive(
-      values$refresh_device_data_logs,
+    # state logs
+    get_devices_state_logs = eventReactive(
+      values$refresh_device_state_logs,
+      get_device_state_logs(devices$get_selected_devices())
+    ),
+    refresh_state_logs = refresh_state_logs,
+    get_experiment_devices_state_logs = eventReactive(
+      values$refresh_experiment_device_state_logs,
+      get_device_state_logs(experiments$get_selected_loaded_experiment_devices())
+    ),
+    refresh_experiment_state_logs = refresh_experiment_state_logs,
+    # multi experiments data logs
+    get_devices_experiments_data_logs = eventReactive( # Q: is this function used anywhere?
+      values$refresh_experiments_data_logs,
       get_device_data_logs(experiments$get_selected_experiments(), devices$get_selected_devices())),
     get_experiments_data_logs = eventReactive(
-      values$refresh_device_data_logs,
+      values$refresh_experiments_data_logs,
       get_device_data_logs(experiments$get_selected_experiments())),
+    refresh_data_logs = refresh_data_logs,
+    # single experiment data logs
     get_experiment_data_logs = eventReactive(
-      experiments$get_loaded_experiment(),
+      {
+        # trigger either if new experiment is loaded or the refresh event happens
+        #experiments$get_loaded_experiment()
+        values$refresh_experiment_data_logs
+      },
       get_device_data_logs(experiments$get_loaded_experiment())),
-    refresh_data_logs = refresh_data_logs
+    refresh_experiment_data_logs = refresh_experiment_data_logs
   )
 }
 

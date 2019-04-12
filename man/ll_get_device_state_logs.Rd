@@ -17,7 +17,7 @@ ll_get_device_state_logs(group_id = default(group_id), filter = NULL,
 
 \item{max_rows}{if provided, only selects the indicated number of rows (more efficient this way than part of the filter)}
 
-\item{convert_to_TZ}{if provided, converts the log_datetime to the provided timezone (by default the local one stored in \code{Sys.getenv("TZ")}). If NULL, will keep it as UTC.}
+\item{convert_to_TZ}{if provided, converts the log_datetime to the provided timezone (by default the local one stored in \code{Sys.timezone()}). If NULL, will keep it as UTC.}
 }
 \value{
 device state logs

@@ -1,5 +1,5 @@
 
-experimentOverviewServer <- function(input, output, session, dm_experiments, dm_cloudinfo) {
+experimentOverviewServer <- function(input, output, session, dm_experiments, dm_cloudinfo, dm_datalogs, timezone) {
 
   # namespace
   ns <- session$ns
@@ -80,14 +80,16 @@ experimentOverviewServer <- function(input, output, session, dm_experiments, dm_
 
   # experiment devices ====
 
-  devices <- callModule(
-    deviceSelectorServer, "devices",
+  callModule(
+    deviceSelectorServer, "exp_devices",
     get_devices = dm_experiments$get_loaded_experiment_devices,
     get_selected_devices = dm_experiments$get_selected_loaded_experiment_devices,
     refresh_devices = dm_experiments$load_experiment_device_links,
     select_devices = dm_experiments$select_loaded_experiment_devices)
 
-  devices_info <- callModule(
+  # devices info ===
+
+  callModule(
     deviceInfoServer, "devices_info",
     get_cloud_state = dm_cloudinfo$get_exp_devices_cloud_state,
     refresh_cloud_state = dm_cloudinfo$refresh_cloud_state,
@@ -95,7 +97,19 @@ experimentOverviewServer <- function(input, output, session, dm_experiments, dm_
     refresh_cloud_data = dm_cloudinfo$refresh_cloud_data,
     refresh_experiment_device_links = dm_experiments$load_experiment_device_links,
     get_cloud_info = dm_cloudinfo$get_exp_devices_cloud_info,
-    refresh_cloud_info = dm_cloudinfo$refresh_cloud_info
+    refresh_cloud_info = dm_cloudinfo$refresh_cloud_info,
+    get_devices = dm_experiments$get_selected_loaded_experiment_devices,
+    get_state_logs = dm_datalogs$get_experiment_devices_state_logs,
+    refresh_state_logs = dm_datalogs$refresh_experiment_state_logs
+  )
+
+  # experiment data ====
+  callModule(
+    dataPlotServer, "exp_data_plot", timezone = timezone,
+    get_experiments = dm_experiments$get_loaded_experiment,
+    get_data_logs = dm_datalogs$get_experiment_data_logs,
+    refresh_data_logs = dm_datalogs$refresh_experiment_data_logs,
+    reset_plot = eventReactive(dm_experiments$get_loaded_experiment(), runif(1))
   )
 
 }
@@ -119,7 +133,7 @@ experimentOverviewUI <- function(id, width = 12) {
 
     div(id = ns("tabs"),
     tabsetPanel(
-      type = "tabs",
+      type = "tabs", # selected = "data",
       tabPanel(
         "Configuration",
         br(),
@@ -135,15 +149,15 @@ experimentOverviewUI <- function(id, width = 12) {
         deviceDataUI(ns("devices_info"), selected_options = "r_exps", include_fetch_all = FALSE)
       ),
       tabPanel(
+        value = "data",
+        "Data", br(),
+        dataPlotUI(ns("exp_data_plot"))
+      ),
+      tabPanel(
         "Devices", br(),
-        deviceSelectorUI(ns("devices"), width = 12, selector_height = 100),
-        deviceInfoUI(ns("devices_info"), include_fetch_all = FALSE)
-      ),
-      tabPanel(
-        "Data", br()
-      ),
-      tabPanel(
-        "Logs", br()
+        deviceSelectorUI(ns("exp_devices"), width = 12, selector_height = 100),
+        deviceLogsUI(ns("devices_info"), include_fetch_all = TRUE),
+        deviceInfoUI(ns("devices_info"), include_fetch_all = TRUE)
       )
     )) %>% hidden()
 

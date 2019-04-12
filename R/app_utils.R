@@ -5,6 +5,7 @@
 module_message <- function(ns, type = c("info", "debug"), ...) {
   if (type == "debug" && !default(debug)) return()
   prefix <- if(type == "info") "INFO: " else if (type == "debug") "DEBUG: " else stop("don't know message type", type)
+  prefix <- paste(as.character(Sys.time()), prefix)
   cat(file=stderr(), prefix, ..., " (NS: ", ns(NULL),")\n", sep = "")
 }
 

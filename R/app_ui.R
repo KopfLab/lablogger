@@ -29,9 +29,8 @@ app_ui <- function(app_title = "Lab Logger", app_color = "red", timezone = NULL)
         if (!is.null(timezone)) h5(timezone, align = "center"),
         "login" %>% menuItem("Login", tabName = ., icon = icon("log-in", lib = "glyphicon"), selected = TRUE),
         "data" %>% menuItem("Data", tabName = ., icon = icon("line-chart")),
-        "logs" %>% menuItem("Logs", tabName = ., icon = icon("database")),
-        "experiments" %>% menuItem("Experiments", tabName = ., icon = icon("flask")),
         "devices" %>% menuItem("Devices", tabName = ., icon = icon("cogs")),
+        "experiments" %>% menuItem("Experiments", tabName = ., icon = icon("flask")),
         "live" %>% menuItem("Webcams", tabName = ., icon = icon("camera"))
       ),
 
@@ -71,9 +70,8 @@ app_ui <- function(app_title = "Lab Logger", app_color = "red", timezone = NULL)
 
             # all other tabs ====
             tabItem("data", div(id = "data-panel", column(width = 12, uiOutput("data") %>% withSpinner(type = 5, proxy.height = "450px")))),
-            tabItem("logs", div(id = "log-panel", column(width = 12, uiOutput("logs")))),
-            tabItem("experiments", div(id = "experiments-panel", column(width = 12, uiOutput("experiments")))),
             tabItem("devices", div(id = "devices-panel", column(width = 12, uiOutput("devices")))),
+            tabItem("experiments", div(id = "experiments-panel", column(width = 12, uiOutput("experiments")))),
             tabItem("live", div(id = "live-panel", column(width = 12, uiOutput("live"))))
             ## old live
             # h2(

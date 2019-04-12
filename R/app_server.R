@@ -29,7 +29,7 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
     })
 
     # DATA SCREEN ====
-    data_exps <- callModule(experimentSelectorServer, "data_exps", dm_experiments)
+    callModule(experimentSelectorServer, "data_exps", dm_experiments)
     data_plot <- callModule(
       dataPlotServer, "data_plot", timezone = timezone,
       get_experiments = dm_experiments$get_selected_experiments,
@@ -48,32 +48,11 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
       })
     })
 
-    # LOGS SCREEN ====
-    #state_logs_devices <- callModule(deviceSelectorServer, "state_logs_devices", data_manager)
-    #data_logs_devices <- callModule(deviceSelectorServer, "data_logs_devices", data_manager)
-    #data_logs_exps <- callModule(experimentSelectorServer, "data_logs_exps", dm_experiments)
-    output$logs <- renderUI({
-      if (!login_manager$is_logged_in()) return(NULL)
-      message("INFO: Generating 'logs' screen")
-      tagList(h3("Coming soon..."))
-      # tagList(
-      #   tabsetPanel(
-      #     type = "tabs",
-      #     tabPanel(
-      #       "State Logs", br(),
-      #       deviceSelectorUI("state_logs_devices", width = 12)
-      #     ),
-      #     tabPanel(
-      #       "Data Logs", br(),
-      #       deviceSelectorUI("data_logs_devices", width = 6),
-      #       experimentSelectorUI("data_logs_exps", width = 6)
-      #     )
-      #   )
-      # )
-    })
-
     # EXPERIMENTS SCREEN ====
-    experiments <- callModule(experimentOverviewServer, "experiments", dm_experiments, dm_cloudinfo)
+
+    experiments <- callModule(experimentOverviewServer, "experiments",
+                              dm_experiments, dm_cloudinfo, dm_datalogs,
+                              timezone = timezone)
     output$experiments <- renderUI({
       if (!login_manager$is_logged_in()) return(NULL)
       message("INFO: Generating 'experiments' screen")
@@ -81,13 +60,15 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
     })
 
     # DEVICES SCREEN ====
-    devices <- callModule(
+
+    callModule(
       deviceSelectorServer, "devices",
       get_devices = dm_devices$get_devices,
       get_selected_devices = dm_devices$get_selected_devices,
       refresh_devices = dm_devices$refresh_devices,
-      select_devices = dm_devices$select_devices)
-    devices_info <- callModule(
+      select_devices = dm_devices$select_devices
+    )
+    callModule(
       deviceInfoServer, "devices_info",
       get_cloud_state = dm_cloudinfo$get_devices_cloud_state,
       refresh_cloud_state = dm_cloudinfo$refresh_cloud_state,
@@ -95,14 +76,19 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
       refresh_cloud_data = dm_cloudinfo$refresh_cloud_data,
       refresh_experiment_device_links = dm_devices$refresh_devices_experiments_links,
       get_cloud_info = dm_cloudinfo$get_devices_cloud_info,
-      refresh_cloud_info = dm_cloudinfo$refresh_cloud_info
+      refresh_cloud_info = dm_cloudinfo$refresh_cloud_info,
+      get_devices = dm_devices$get_selected_devices,
+      get_state_logs = dm_datalogs$get_devices_state_logs,
+      refresh_state_logs = dm_datalogs$refresh_state_logs
     )
+
     output$devices <- renderUI({
       if (!login_manager$is_logged_in()) return(NULL)
       message("INFO: Generating 'devices' screen")
       tagList(
         deviceSelectorUI("devices", width = 12, selector_height = 200),
         deviceDataUI("devices_info"),
+        deviceLogsUI("devices_info"),
         deviceInfoUI("devices_info")
       )
     })
