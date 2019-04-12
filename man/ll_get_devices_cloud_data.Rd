@@ -12,7 +12,7 @@ ll_get_devices_cloud_data(devices = ll_get_devices(group_id = group_id,
 \arguments{
 \item{access_token}{the access token for the accout}
 
-\item{convert_to_TZ}{if provided, converts the log_datetime to the provided timezone (by default the local one stored in \code{Sys.getenv("TZ")}). If NULL, will keep it as UTC.}
+\item{convert_to_TZ}{if provided, converts the log_datetime to the provided timezone (by default the local one stored in \code{Sys.timezone()}). If NULL, will keep it as UTC.}
 
 \item{spread}{whether to convert the state data into wide format (note that this combines key and index, as well as, value and units columns!)}
 }
