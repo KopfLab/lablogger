@@ -62,7 +62,7 @@ ll_get_experiments <- function(group_id = default(group_id), filter = NULL, conv
   if (!quiet) {
     glue("Info: retrieving experiments for group '{group_id_value}'",
          "{if(!quo_is_null(filter_quo)) str_c(\" with filter '\", quo_text(filter_quo), \"'\") else ''}",
-         "...") %>% message(appendLF = FALSE)
+         "... ") %>% message(appendLF = FALSE)
   }
   df <- tbl(con, "experiments") %>%
     dplyr::filter(group_id == group_id_value) %>%
@@ -142,7 +142,7 @@ ll_get_experiment_device_links <- function(
 #' @param filter what filter conditions to apply, if any (forwarded to \link[dplyr]{filter})
 #' @param select what columns to select (forwarded to \link[select]{select}), by default a selection of the most commonly used columns
 #' @param max_rows if provided, only selects the indicated number of rows (more efficient this way than part of the filter)
-#' @param convert_to_TZ if provided, converts the log_datetime to the provided timezone (by default the local one stored in \code{Sys.getenv("TZ")}). If NULL, will keep it as UTC.
+#' @param convert_to_TZ if provided, converts the log_datetime to the provided timezone (by default the local one stored in \code{Sys.timezone()}). If NULL, will keep it as UTC.
 #' @return device state logs
 #' @export
 ll_get_device_state_logs <- function(
