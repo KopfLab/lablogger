@@ -21,7 +21,7 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
 
   # reset =====
   observeEvent(reset_plot(), {
-    module_message(ns, "debug", "resetting data plot - exp selected: ", is_experiment_selected())
+    module_message(ns, "debug", "resetting data plot - exp selected? ", is_experiment_selected())
     values$valid_fetch <- FALSE
     values$valid_plot <- FALSE
     values$zoom_stack <- list(list(zoom = NULL, x_min = NULL, x_max = NULL))
@@ -29,7 +29,11 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
     toggle("traces_box", condition = FALSE)
     toggle("groups_box", condition = FALSE)
     toggle("options_box", condition = FALSE)
-    toggle("summary_box", condition = FALSE)
+  })
+
+  observeEvent(values$valid_plot, {
+    toggle("summary_box", condition = values$valid_plot)
+    toggle("data_box", condition = values$valid_plot)
   })
 
   # plot buttons ====
@@ -191,8 +195,11 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
     toggle("traces_box", condition = TRUE)
     toggle("groups_box", condition = TRUE)
     toggle("options_box", condition = TRUE)
-    toggle("summary_box", condition = TRUE)
-    #refresh_data_plot() # NOTE consider not triggering this here
+
+    # refresh existing plot
+    if (values$valid_plot) {
+      refresh_data_plot()
+    }
   })
 
   # reset cache ====
@@ -275,7 +282,7 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
     return(p)
   })
 
-  # generate data summary =====
+  # generate data table & summary =====
 
   generate_data_summary <- eventReactive(values$refresh_data_plot, {
     logs <- get_plot_data_logs()
@@ -285,11 +292,18 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
     return(logs)
   })
 
+  generate_data_table <- eventReactive(values$refresh_data_plot, {
+    logs <- get_plot_data_logs() %>%
+      select(datetime, exp_id, device_name, data_group, data_key, data_units, data_value, data_sd, data_n) %>%
+      mutate(datetime = format(datetime, "%Y-%m-%d %H:%M:%S"))
+    return(logs)
+  })
+
   # data plot output ====
 
   output$data_plot <- renderPlot(generate_data_plot(), height = eventReactive(values$refresh_data_plot, input$plot_height))
 
-  # table output ====
+  # summary table output ====
 
   output$summary_table <- renderTable({
     req(!is.null(input$digits) && is.numeric(input$digits))
@@ -298,6 +312,16 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
     if (nrow(summary) > 0) summary
     else data_frame(` ` = "No data.")
   }, striped = TRUE, spacing = 'xs', width = '100%', align = NULL, digits = reactive(input$digits))
+
+  # data table output =====
+
+  output$data_table <- DT::renderDataTable({
+    DT::datatable(
+      generate_data_table(),
+      options = list(orderClasses = TRUE, order = list(1, "desc")),
+      filter = "bottom"
+    )
+  })
 
   # plot download ====
   download_handler <- callModule(
@@ -455,6 +479,15 @@ dataPlotUI <- function(id, plot_height = 650) {
           title = "Summary of Plotted Data", width = 12,
           tooltipInput(numericInput, ns("digits"), label = NULL, value = 2, step = 1, tooltip = "Enter number of digits to display."),
           tableOutput(ns("summary_table"))
+        )
+    ) %>% hidden(),
+
+    # data box ----
+
+    div(id = ns("data_box"),
+        default_box(
+          title = "All Plotted Data", width = 12,
+          DT::dataTableOutput(ns("data_table"))
         )
     ) %>% hidden()
 
