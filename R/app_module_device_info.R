@@ -81,7 +81,7 @@ deviceInfoServer <- function(input, output, session, get_cloud_state, refresh_cl
     module_message(ns, "debug", "rendering cloud info table")
     info %>% arrange(device_name) %>%
       mutate(last_heard = format(last_heard)) %>%
-      select(Name = device_name, `Last restart` = last_heard, Connected = connected, Status = status, Firmware = system_firmware_version)
+      select(Name = device_name, `Last heard from` = last_heard, Connected = connected, Status = status, Firmware = system_firmware_version)
   }, striped = TRUE, spacing = 'xs', width = '100%', align = NULL)
 
 }
