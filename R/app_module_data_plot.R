@@ -319,8 +319,8 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
       exps <- logs$exp_id %>% unique()
       traces <- logs$data_key %>% unique()
       glue("{format(now(), '%Y_%m_%d')}-",
-           "{paste(exps, sep = '_')}-",
-           "{paste(traces, sep = '_')}",
+           "{paste(exps, collapse = '_')}-",
+           "{paste(traces, collapse = '_')}",
            ".zip")
     }))
 
