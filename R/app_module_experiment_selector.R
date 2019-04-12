@@ -1,4 +1,6 @@
 # FIXME: replace data_manager with get_experiments, refresh_experiments, etc. functions
+# this is the multiple experiment selector
+# single experiment selector is implemented directly in app_module_experiment_overview
 experimentSelectorServer <- function(input, output, session, data_manager) {
 
   # namespace
