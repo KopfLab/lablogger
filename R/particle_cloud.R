@@ -59,6 +59,7 @@ make_particle_cloud_request <- function(endpoint, nr = NULL, total = NULL, timeo
 #' @param access_token the access token for the accout
 #' @return nested data frame (converted from JSON)
 # @ note: consider making a function to udpate particle ids in the DB from here (overkill? since state/data logs cause update too)
+#' @export
 ll_get_devices_cloud_info <- function(devices = ll_get_devices(group_id = group_id, con = con), include_unregistered = FALSE, group_id = default(group_id), con = default(con), access_token = default(access_token), convert_to_TZ = Sys.timezone(), quiet = default(quiet)) {
 
   # safety checks
