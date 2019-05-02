@@ -315,6 +315,10 @@ cloudInfoDataServer <- function(input, output, session, experiments, devices, gr
   # cloud data for devices
   get_cloud_data <- function(devices, device_ids, links, linked, unlinked) {
     module_message(ns, "debug", "fetching cloud data")
+
+    # double check that links are provided
+    if (nrow(links) == 0) return(tibble())
+
     # data from cloud
     data <- withProgress(
       message = 'Fetching device data', detail = "Querying device cloud...", value = 0.5,
@@ -351,7 +355,11 @@ cloudInfoDataServer <- function(input, output, session, experiments, devices, gr
         filter = device_id %in% !!device_ids)
     )
 
-    considered_links <- all_links %>% semi_join(exp_links, by = c("device_name", "data_idx"))
+    # figure out considered links
+    if (nrow(exp_links) == 0 || nrow(all_links) == 0)
+      considered_links <- tibble()
+    else
+      considered_links <- all_links %>% semi_join(exp_links, by = c("device_name", "data_idx"))
 
     # fetch actual cloud data
     get_cloud_data(experiments$get_loaded_experiment_devices(),
@@ -364,15 +372,23 @@ cloudInfoDataServer <- function(input, output, session, experiments, devices, gr
   }
 
   # cloud info
-  get_cloud_info <- function(devices, device_ids) {
+  get_cloud_info <- function(devices, device_ids = NULL) {
     module_message(ns, "debug", "fetching cloud info")
-    withProgress(
-      message = 'Fetching device info', detail = "Querying device cloud...", value = 0.5,
-      devices %>%
-        filter(device_id %in% !!device_ids) %>%
-        ll_get_devices_cloud_info(access_token = access_token, convert_to_TZ = timezone)
-    )
+    cloud_info <-
+      withProgress(
+        message = 'Fetching device info', detail = "Querying device cloud...", value = 0.5,
+        devices %>%
+          {
+            if (!is.null(device_ids)) filter(., device_id %in% !!device_ids)
+            else .
+          } %>%
+          ll_get_devices_cloud_info(access_token = access_token, convert_to_TZ = timezone, include_unregistered = TRUE)
+      )
   }
+
+  get_all_devices_cloud_info <- eventReactive(values$refresh_cloud_info, {
+    get_cloud_info(devices$get_devices())
+  })
 
   get_devices_cloud_info <- eventReactive(values$refresh_cloud_info, {
     get_cloud_info(devices$get_devices(), devices$get_selected_devices())
@@ -397,6 +413,7 @@ cloudInfoDataServer <- function(input, output, session, experiments, devices, gr
     get_exp_devices_cloud_data = get_exp_devices_cloud_data,
     refresh_cloud_data = refresh_cloud_data,
     # devices cloud info
+    get_all_devices_cloud_info = get_all_devices_cloud_info,
     get_devices_cloud_info = get_devices_cloud_info,
     get_exp_devices_cloud_info = get_exp_devices_cloud_info,
     refresh_cloud_info = refresh_cloud_info
