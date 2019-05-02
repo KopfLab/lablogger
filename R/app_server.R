@@ -50,10 +50,14 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
 
     # EXPERIMENTS SCREEN ====
 
-    experiments <- callModule(
+    callModule(
       experimentManagerServer, "experiments",
-      dm_experiments, dm_cloudinfo, dm_datalogs,
-      timezone = timezone)
+      dm_experiments = dm_experiments,
+      dm_cloudinfo = dm_cloudinfo,
+      dm_datalogs = dm_datalogs,
+      timezone = timezone
+    )
+
     output$experiments <- renderUI({
       if (!login_manager$is_logged_in()) return(NULL)
       message("INFO: Generating 'experiments' screen")
@@ -63,38 +67,16 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
     # DEVICES SCREEN ====
 
     callModule(
-      deviceSelectorServer, "devices",
-      get_devices = dm_devices$get_devices,
-      get_selected_devices = dm_devices$get_selected_devices,
-      refresh_devices = dm_devices$refresh_devices,
-      select_devices = dm_devices$select_devices
-    )
-    callModule(
-      deviceInfoServer, "devices_info",
-      get_cloud_state = dm_cloudinfo$get_devices_cloud_state,
-      refresh_cloud_state = dm_cloudinfo$refresh_cloud_state,
-      get_cloud_data = dm_cloudinfo$get_devices_cloud_data,
-      refresh_cloud_data = dm_cloudinfo$refresh_cloud_data,
-      refresh_experiment_device_links = dm_devices$refresh_devices_experiments_links,
-      get_cloud_info = dm_cloudinfo$get_devices_cloud_info,
-      refresh_cloud_info = dm_cloudinfo$refresh_cloud_info,
-      get_devices = dm_devices$get_selected_devices,
-      get_state_logs = dm_datalogs$get_devices_state_logs,
-      refresh_state_logs = dm_datalogs$refresh_state_logs
+      deviceManagerServer, "devices",
+      dm_devices = dm_devices,
+      dm_cloudinfo = dm_cloudinfo,
+      dm_datalogs = dm_datalogs
     )
 
     output$devices <- renderUI({
       if (!login_manager$is_logged_in()) return(NULL)
       message("INFO: Generating 'devices' screen")
-      tagList(
-        deviceSelectorUI("devices", width = 12, selector_height = 200,
-
-
-                         ),
-        deviceDataUI("devices_info"),
-        deviceLogsUI("devices_info"),
-        deviceInfoUI("devices_info")
-      )
+      deviceManagerUI("devices")
     })
 
     # WEBCAMS SCREEN ====
