@@ -53,11 +53,13 @@ make_particle_cloud_request <- function(endpoint, nr = NULL, total = NULL, timeo
 #'
 #' Get information from the particle cloud about devices.
 #'
+#' @param devices data frame with devices for which to get cloud info, by default all devices associated with the group
+#' @param include_unregistered whether to provide cloud info for devices that are not registered in the database (no by default)
 #' @param particle_id the ID(s) of the particle device(s)
 #' @param access_token the access token for the accout
 #' @return nested data frame (converted from JSON)
 # @ note: consider making a function to udpate particle ids in the DB from here (overkill? since state/data logs cause update too)
-ll_get_devices_cloud_info <- function(devices = ll_get_devices(group_id = group_id, con = con), group_id = default(group_id), con = default(con), access_token = default(access_token), convert_to_TZ = Sys.timezone(), quiet = default(quiet)) {
+ll_get_devices_cloud_info <- function(devices = ll_get_devices(group_id = group_id, con = con), include_unregistered = FALSE, group_id = default(group_id), con = default(con), access_token = default(access_token), convert_to_TZ = Sys.timezone(), quiet = default(quiet)) {
 
   # safety checks
   if (!is.data.frame(devices) | !all(c("particle_id", "device_name") %in% names(devices)))
@@ -70,15 +72,37 @@ ll_get_devices_cloud_info <- function(devices = ll_get_devices(group_id = group_
     quiet = quiet
   )
 
-  if (nrow(info) > 0) {
-    devices <- devices %>% left_join(info, by = c("device_name" = "name"))
-    problematic_particle_ids <- filter(devices, particle_id != id)
-    if (nrow(problematic_particle_ids) > 0) {
-      problematic_particle_ids %>% mutate(problem = str_c(device_name, " (db: ", particle_id, ", cloud: ", id, ")"))
-      glue("some devices' particle ids are not yet updated in the database (will happen at the next successful data/state log)") %>%
+  if (is.data.frame(info) && nrow(info) > 0) {
+    if (include_unregistered)
+      devices <- devices %>% full_join(info, by = c("device_name" = "name"))
+    else
+      devices <- devices %>% left_join(info, by = c("device_name" = "name"))
+
+    # check for missing particle IDs
+    probs <- filter(devices, !is.na(device_id), !is.na(id), is.na(particle_id) | particle_id != id)
+    if (nrow(probs) > 0) {
+     glue::glue(
+       "some registered devices ({paste(probs$device_name, collapse = ', ')}) ",
+       "particle ids are not yet updated in the database and will be updated now...") %>%
+        warning(immediate. = TRUE, call. = FALSE)
+      # NOTE: this will NOT automatically update the devices in the data manager which
+      # requires a "Refresh", but particle_id updates should happen rarely enough that we're
+      # just not going to worry about it, even if this means that this update may run
+      # multiple times (unnecessarily) until devices are refreshed
+      devices <- update_device_particle_id(devices, con = con, quiet = quiet)
+    }
+
+    # check for registered devices not listed in the cloud
+    probs <- filter(devices, !is.na(device_id), is.na(id))
+    if (nrow(probs) > 0) {
+      glue::glue(
+        "some registered devices ({paste(probs$device_name, collapse = ', ')}) ",
+        "do not seem to exist in the cloud") %>%
         warning(immediate. = TRUE, call. = FALSE)
     }
-    devices <- devices %>% select(-id)
+
+    devices <- devices %>% select(-id) %>%
+      mutate(registered = !is.na(device_id))
 
     # time zone
     devices <- devices %>% mutate(last_heard = ymd_hms(last_heard)) %>%
@@ -86,8 +110,9 @@ ll_get_devices_cloud_info <- function(devices = ll_get_devices(group_id = group_
       if (!is.null(convert_to_TZ)) mutate(., last_heard = with_tz(last_heard, convert_to_TZ))
       else .
     }
-  } else
+  } else {
     warning("no information retrieved from cloud", immediate. = TRUE, call. = FALSE)
+  }
 
   return(devices)
 }
