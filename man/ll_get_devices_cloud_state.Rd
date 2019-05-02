@@ -10,6 +10,8 @@ ll_get_devices_cloud_state(devices = ll_get_devices(group_id = group_id,
   spread = FALSE, quiet = default(quiet))
 }
 \arguments{
+\item{devices}{data frame with devices for which to get cloud info, by default all devices associated with the group}
+
 \item{access_token}{the access token for the accout}
 
 \item{convert_to_TZ}{if provided, converts the log_datetime to the provided timezone (by default the local one stored in \code{Sys.timezone()}). If NULL, will keep it as UTC.}
