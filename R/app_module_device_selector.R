@@ -12,6 +12,7 @@ deviceSelectorServer <- function(input, output, session, get_devices, get_select
     req(df <- get_devices())
     isolate({
       if (nrow(df) > 0) {
+        module_message(ns, "debug", "setting device selection table")
         df <- select(df, device_id, device_name, device_type_desc)
         selector$set_table(df)
         # selet all by default
@@ -34,7 +35,7 @@ deviceSelectorServer <- function(input, output, session, get_devices, get_select
 
 }
 
-deviceSelectorUI <- function(id, width = 12, selector_height = 150) {
+deviceSelectorUI <- function(id, width = 12, selector_height = 150, add_footer = tagList()) {
   ns <- NS(id)
   default_box(
     title = "Devices", width = width,
@@ -42,7 +43,8 @@ deviceSelectorUI <- function(id, width = 12, selector_height = 150) {
     footer = div(
       tooltipInput(actionButton, ns("device_refresh"), label = "Refresh", icon = icon("refresh"), tooltip = "Refresh devices."),
       spaces(1),
-      selectorTableButtons(ns("selector"))
+      selectorTableButtons(ns("selector")),
+      add_footer
     )
   )
 }
