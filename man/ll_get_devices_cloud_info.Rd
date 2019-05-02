@@ -5,11 +5,16 @@
 \title{Get general device information}
 \usage{
 ll_get_devices_cloud_info(devices = ll_get_devices(group_id = group_id,
-  con = con), group_id = default(group_id), con = default(con),
+  con = con), include_unregistered = FALSE,
+  group_id = default(group_id), con = default(con),
   access_token = default(access_token), convert_to_TZ = Sys.timezone(),
   quiet = default(quiet))
 }
 \arguments{
+\item{devices}{data frame with devices for which to get cloud info, by default all devices associated with the group}
+
+\item{include_unregistered}{whether to provide cloud info for devices that are not registered in the database (no by default)}
+
 \item{access_token}{the access token for the accout}
 
 \item{particle_id}{the ID(s) of the particle device(s)}

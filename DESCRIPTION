@@ -1,7 +1,7 @@
 Package: lablogger
 Type: Package
 Title: Lab Logger
-Version: 0.3.5.1
+Version: 0.3.5.2
 Author: Sebastian Kopf
 Maintainer: Sebastian Kopf <sebastian.kopf@colorado.edu>
 Roxygen: list(wrap = FALSE)

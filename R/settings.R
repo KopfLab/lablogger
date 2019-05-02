@@ -29,7 +29,7 @@ ll_set_db_con <- function(con) {
 #' @param token the particle acocunt access token, keep secret!!
 #' @export
 ll_set_access_token <- function(token) {
-  set_default("access_token", access_token)
+  set_default("access_token", token)
 }
 
 #' Set default group ID

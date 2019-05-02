@@ -31,6 +31,37 @@ ll_add_device <- function(device_name, desc = NA, device_type_id = "undefined", 
   return(invisible(data));
 }
 
+# update device particle IDs
+# @return the devices with updated particle id and a new column (updated_particle_id)
+update_device_particle_id <- function(devices, con, quiet) {
+
+  # safety checks
+  con <- validate_db_connection(enquo(con))
+  stopifnot(all(c("device_id", "particle_id", "id") %in% names(devices)))
+
+  devices <- mutate(devices, updated_particle_id = !is.na(device_id) & !is.na(id) & (is.na(particle_id) | particle_id != id))
+  if (!quiet) {
+    glue::glue("Info: updating particle ID for {sum(devices$updated_particle_id)} devices... ") %>%
+      message(appendLF = FALSE)
+  }
+  sql <-
+    glue::glue("UPDATE devices AS t SET particle_id = new.particle_id ",
+               "FROM ( VALUES {df_to_sql(select(filter(devices, updated_particle_id), device_id, id))} ) ",
+               "AS new (device_id, particle_id) ",
+               "WHERE new.device_id = t.device_id")
+  result <- run_sql(sql, con)
+  if (!quiet) {
+    glue::glue(
+      "{result} records updated.\n",
+      " - {paste(with(filter(devices, updated_particle_id), paste(device_id, ':', particle_id, 'to', id)), collapse = '\n - ')}") %>%
+      message()
+  }
+
+  # return updated devices
+  devices %>%
+    mutate(particle_id = ifelse(updated_particle_id, id, particle_id))
+}
+
 # experiments ====
 
 #' Add new experiment

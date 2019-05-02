@@ -28,7 +28,7 @@ selectorTableServer <- function(input, output, session, id_column, col_headers, 
   # render table
   output$selection_table = renderRHandsontable({
 
-    req(values$table) # if the table changes
+    validate(need(values$table, "No entries.")) # if the table changes
     values$update_selected # if the selection changes
     module_message(ns, "debug", "rendering selection table")
 

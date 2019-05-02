@@ -111,7 +111,10 @@ deviceInfoServer <- function(input, output, session, get_cloud_state, refresh_cl
     info <- get_cloud_info()
     validate(need(nrow(info) > 0, "No device information available."))
     module_message(ns, "debug", "rendering cloud info table")
-    info %>% arrange(device_name) %>%
+    info %>%
+      # only show db-registered devices' cloud info
+      filter(registered) %>%
+      arrange(device_name) %>%
       mutate(last_heard = format(last_heard)) %>%
       select(Name = device_name, `Last heard from` = last_heard, Connected = connected, Status = status, Firmware = system_firmware_version)
   }, striped = TRUE, spacing = 'xs', width = '100%', align = NULL)
