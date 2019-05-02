@@ -1,6 +1,7 @@
 # Data base setup
 
 -- Database: chemostat-db1
+-- Note: all timestamps must be WITH timezone, otherwise R has trouble
 
 -- DROP DATABASE "chemostat-db1";
 
