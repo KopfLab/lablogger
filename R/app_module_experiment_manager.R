@@ -106,6 +106,7 @@ experimentManagerServer <- function(input, output, session, dm_experiments, dm_c
   )
 
   # experiment data ====
+
   callModule(
     dataPlotServer, "exp_data_plot", timezone = timezone,
     get_experiments = dm_experiments$get_loaded_experiment,
