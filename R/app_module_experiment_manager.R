@@ -1,12 +1,14 @@
 
-experimentOverviewServer <- function(input, output, session, dm_experiments, dm_cloudinfo, dm_datalogs, timezone) {
+experimentManagerServer <- function(input, output, session, dm_experiments, dm_cloudinfo, dm_datalogs, timezone) {
 
   # namespace
   ns <- session$ns
 
   # select experiment ====
   get_experiments_for_dropdown <- reactive({
-    exps <- dm_experiments$get_experiments() %>% mutate(label = sprintf("%s: %s", exp_id, exp_desc))
+    exps <- dm_experiments$get_experiments()
+    if (nrow(exps) == 0) return ("Choose an experiment" = "")
+    exps <- exps %>% mutate(label = sprintf("%s: %s", exp_id, exp_desc))
     c("Choose an experiment" = "",
       list(
         `Recording` = exps %>% filter(recording) %>% select(label, exp_id) %>% deframe(),
@@ -114,7 +116,7 @@ experimentOverviewServer <- function(input, output, session, dm_experiments, dm_
 
 }
 
-experimentOverviewUI <- function(id, width = 12) {
+experimentManagerUI <- function(id, width = 12) {
 
   ns <- NS(id)
 

@@ -50,13 +50,14 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
 
     # EXPERIMENTS SCREEN ====
 
-    experiments <- callModule(experimentOverviewServer, "experiments",
-                              dm_experiments, dm_cloudinfo, dm_datalogs,
-                              timezone = timezone)
+    experiments <- callModule(
+      experimentManagerServer, "experiments",
+      dm_experiments, dm_cloudinfo, dm_datalogs,
+      timezone = timezone)
     output$experiments <- renderUI({
       if (!login_manager$is_logged_in()) return(NULL)
       message("INFO: Generating 'experiments' screen")
-      experimentOverviewUI("experiments")
+      experimentManagerUI("experiments")
     })
 
     # DEVICES SCREEN ====
@@ -86,7 +87,10 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
       if (!login_manager$is_logged_in()) return(NULL)
       message("INFO: Generating 'devices' screen")
       tagList(
-        deviceSelectorUI("devices", width = 12, selector_height = 200),
+        deviceSelectorUI("devices", width = 12, selector_height = 200,
+
+
+                         ),
         deviceDataUI("devices_info"),
         deviceLogsUI("devices_info"),
         deviceInfoUI("devices_info")
