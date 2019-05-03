@@ -11,8 +11,9 @@ experimentManagerServer <- function(input, output, session, dm_experiments, dm_c
     exps <- exps %>% mutate(label = sprintf("%s: %s", exp_id, exp_desc))
     c("Choose an experiment" = "",
       list(
-        `Recording` = exps %>% filter(recording) %>% select(label, exp_id) %>% deframe(),
-        `Not recording` = exps %>% filter(!recording) %>% select(label, exp_id) %>% deframe()
+        `Recording` = exps %>% filter(!archived, recording) %>% select(label, exp_id) %>% deframe(),
+        `Not recording` = exps %>% filter(!archived, !recording) %>% select(label, exp_id) %>% deframe(),
+        `Archived` = exps %>% filter(archived) %>% select(label, exp_id) %>% deframe()
       ))
   })
 
@@ -39,19 +40,30 @@ experimentManagerServer <- function(input, output, session, dm_experiments, dm_c
   load_experiment <- function(exp_id) {
     dm_experiments$load_experiment(exp_id)
 
-    # recording
-    recording <- dm_experiments$is_loaded_experiment_recording()
-    toggle("start_recording", condition = !recording)
-    toggle("stop_recording", condition = recording)
+    # archived
+    if (dm_experiments$is_loaded_experiment_archived()) {
 
-    # devices - select all by default
-    dm_experiments$select_loaded_experiment_devices(dm_experiments$get_loaded_experiment_devices()$device_id)
+      # archived exp - FIXME: allow access to data here?
+      hide("tabs")
+      show("archived_msg")
 
-    # cloud data - fetch right away? (alternatively implement a reset for the device data/state/info tables)
-    dm_cloudinfo$refresh_cloud_data()
+    } else {
 
-    # show tabs
-    show("tabs")
+      # recording
+      recording <- dm_experiments$is_loaded_experiment_recording()
+      toggle("start_recording", condition = !recording)
+      toggle("stop_recording", condition = recording)
+
+      # devices - select all by default
+      dm_experiments$select_loaded_experiment_devices(dm_experiments$get_loaded_experiment_devices()$device_id)
+
+      # cloud data - fetch right away? (alternatively implement a reset for the device data/state/info tables)
+      dm_cloudinfo$refresh_cloud_data()
+
+      # show tabs
+      hide("archived_msg")
+      show("tabs")
+    }
   }
 
   # start/stop recording ====
@@ -134,10 +146,15 @@ experimentManagerUI <- function(id, width = 12) {
       )
     ),
 
+    div(id = ns("archived_msg"),
+        h2("Sorry, this experiment is archived and can not be reconfigured. Please use the 'Data' menu on the left to view the data.")
+        ) %>% hidden(),
+
     div(id = ns("tabs"),
     tabsetPanel(
       type = "tabs", # selected = "data",
       tabPanel(
+        value = "configuration",
         "Configuration",
         br(),
         spaces(3),
@@ -157,6 +174,7 @@ experimentManagerUI <- function(id, width = 12) {
         dataPlotUI(ns("exp_data_plot"))
       ),
       tabPanel(
+        value = "devices",
         "Devices", br(),
         deviceSelectorUI(ns("exp_devices"), width = 12, selector_height = 100),
         deviceLogsUI(ns("devices_info"), include_fetch_all = TRUE),

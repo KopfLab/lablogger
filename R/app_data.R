@@ -40,7 +40,13 @@ experimentsDataServer <- function(input, output, session, group_id, access_token
     if (!identical(values$loaded_exp_id, exp_id)) {
       module_message(ns, "debug", glue("loading exp id '{exp_id}'"))
       values$loaded_exp_id <- exp_id
-      load_experiment_device_links()
+      if (is_loaded_experiment_archived()) {
+        # archived
+        module_message(ns, "debug", glue("this experiment ('{values$loaded_exp_id}') is archived"))
+      } else {
+        # load experiment device links
+        load_experiment_device_links()
+      }
     }
   }
 
@@ -67,6 +73,10 @@ experimentsDataServer <- function(input, output, session, group_id, access_token
       values$selected_loaded_exp_device_ids <- device_ids
     }
   }
+
+  is_loaded_experiment_archived <- reactive({
+    filter(get_experiments(), exp_id == !!values$loaded_exp_id)$archived
+  })
 
   start_experiment <- function() {
     withProgress(
@@ -96,6 +106,7 @@ experimentsDataServer <- function(input, output, session, group_id, access_token
     select_loaded_experiment_devices = select_loaded_experiment_devices,
     get_selected_loaded_experiment_devices = reactive(values$selected_loaded_exp_device_ids),
     is_loaded_experiment_recording = reactive(filter(get_experiments(), exp_id == !!values$loaded_exp_id)$recording),
+    is_loaded_experiment_archived = is_loaded_experiment_archived,
     start_experiment = start_experiment,
     stop_experiment = stop_experiment
   )
@@ -316,20 +327,13 @@ cloudInfoDataServer <- function(input, output, session, experiments, devices, gr
   get_cloud_data <- function(devices, device_ids, links, linked, unlinked) {
     module_message(ns, "debug", "fetching cloud data")
 
-    # double check that links are provided
-    if (nrow(links) == 0) return(tibble())
-
     # data from cloud
     data <- withProgress(
       message = 'Fetching device data', detail = "Querying device cloud...", value = 0.5,
       devices %>%
         filter(device_id %in% !!device_ids) %>%
         ll_get_devices_cloud_data(access_token = access_token, convert_to_TZ = timezone)
-
     )
-
-    # safety check
-    if (nrow(data) == 0) return(data)
 
     # device links from data base
     ll_summarize_cloud_data_experiment_links(

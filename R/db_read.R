@@ -195,7 +195,7 @@ ll_get_device_state_logs <- function(
 
 #' Retrieve data logs
 #'
-#' Returns data logs from the database joined with experiments, devices, and experiment_device_data (for prefix only) tables so filter conditions can be applied on these as well. Sorted by descending order (i.e. latest record first).
+#' Returns data logs from the database joined with experiments, devices, and experiment_device_data (for prefix only) tables so filter conditions can be applied on these as well. Sorted by descending order (i.e. latest record first). Note that the group_id filter restricts the selected experiments, device data may theoretically come from devices not (or no longer) associated with the same group although this is rarely the case.
 #'
 #' @param filter what filter conditions to apply, if any (forwarded to \link[dplyr]{filter})
 #' @param select what columns to select (forwarded to \link[dplyr]{select}), by default a selection of the most commonly used columns
@@ -217,16 +217,17 @@ ll_get_device_data_logs <- function(
   group_id_value <- group_id
 
   if (!quiet) {
-    glue("Info: retrieving device data logs for devices in group '{group_id_value}'",
+    glue("Info: retrieving device data logs associated with experiments in group '{group_id_value}'",
          "{if(!quo_is_null(filter_quo)) str_c(\" with filter '\", quo_text(filter_quo), \"'\") else ''}",
          "{if(!is.null(max_rows)) str_c(\", limited to \", max_rows, \" rows max\") else ''}... ") %>%
       message(appendLF = FALSE)
   }
 
-  logs <- tbl(con, "device_data_logs") %>%
-    left_join(tbl(con, "devices"), by = "device_id") %>%
+  logs <-
+    tbl(con, "device_data_logs") %>%
+    left_join(dplyr::select(tbl(con, "devices"), -group_id), by = "device_id") %>%
     left_join(dplyr::select(tbl(con, "experiment_device_data"), exp_device_data_id, exp_id, data_group), by = "exp_device_data_id") %>%
-    left_join(tbl(con, "experiments"), by = c("exp_id", "group_id")) %>%
+    left_join(tbl(con, "experiments"), by = "exp_id") %>%
     arrange(desc(device_data_log_id)) %>%
     dplyr::filter(group_id == group_id_value) %>%
     {
