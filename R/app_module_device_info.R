@@ -88,8 +88,9 @@ deviceInfoServer <- function(input, output, session, get_cloud_state, refresh_cl
   output$data_table <- renderTable({
     data <- get_cloud_data()
     validate(need(nrow(data) > 0, "No live data available."))
+    print(data)
     data <- data %>%
-      mutate(datetime = format(datetime)) %>%
+      mutate(datetime = ifelse(!is.na(datetime), format(datetime), error)) %>%
       select(Name = device_name, `Live data posted at` = datetime,
              `Exp IDs (recording)` = recording_exp_ids, `Exp IDs (not recording)` = non_recording_exp_ids,
              idx, key, value, units,
