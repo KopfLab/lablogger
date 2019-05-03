@@ -105,7 +105,8 @@ CREATE TABLE experiments
   group_id character varying(20) NOT NULL references groups(group_id),
   exp_desc character varying(255) NULL,
   recording boolean NOT NULL DEFAULT false,
-  last_recording_change timestamp with time zone default NOW()
+  last_recording_change timestamp with time zone default NOW(),
+  archived boolean NOT NULL DEFAULT false
 );
 
 INSERT INTO experiments(exp_id, group_id, exp_desc, recording)
