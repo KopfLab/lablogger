@@ -60,11 +60,17 @@ experimentsDataServer <- function(input, output, session, group_id, access_token
         ll_get_experiment_device_links(group_id = group_id, con = pool, select = c(device_id, device_name, device_type_desc, particle_id, data_idx, active),filter = !!filter_quo)
       ) %>% unique()
 
-    values$loaded_exp_devices <-
-      values$loaded_exp_device_links %>%
-      filter(active) %>%
-      select(device_id, device_name, particle_id, device_type_desc) %>%
-      unique()
+    if (nrow(values$loaded_exp_device_links > 0)) {
+      values$loaded_exp_devices <-
+        values$loaded_exp_device_links %>%
+        filter(active) %>%
+        select(device_id, device_name, particle_id, device_type_desc) %>%
+        unique()
+    } else {
+      values$loaded_exp_devices <-
+        tibble(device_id = character(0), device_name = character(0),
+               particle_id = character(0), device_type_desc = character(0))
+    }
   }
 
   select_loaded_experiment_devices <- function(device_ids) {

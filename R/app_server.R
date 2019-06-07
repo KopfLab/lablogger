@@ -1,7 +1,7 @@
 #' Chemostat Control Center Server
 #'
 #' Generates the server part of the isoviewer app
-app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_screen = "data") {
+app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_screen = "experiments") {
   shinyServer(function(input, output, session) {
 
     message("\n\nINFO: Loading GUI instance ...")
