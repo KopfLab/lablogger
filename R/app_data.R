@@ -68,7 +68,7 @@ experimentsDataServer <- function(input, output, session, group_id, access_token
         unique()
     } else {
       values$loaded_exp_devices <-
-        tibble(device_id = character(0), device_name = character(0),
+        tibble(device_id = integer(0), device_name = character(0),
                particle_id = character(0), device_type_desc = character(0))
     }
   }

@@ -254,6 +254,8 @@ ll_get_devices_cloud_data <-
         convert_to_TZ = convert_to_TZ,
         spread_function = if (spread) spread_data_columns else NULL
       ) %>%
+      # add  missing error
+      { if (!"error" %in% names(.)) mutate(., error = NA_character_) else . } %>%
       # add missing datetime
       { if (!"datetime" %in% names(.)) mutate(., datetime = NA_real_) else . } %>%
       # rename raw data
