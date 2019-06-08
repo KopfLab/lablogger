@@ -55,7 +55,8 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
       dm_experiments = dm_experiments,
       dm_cloudinfo = dm_cloudinfo,
       dm_datalogs = dm_datalogs,
-      timezone = timezone
+      timezone = timezone,
+      access_token = access_token
     )
 
     output$experiments <- renderUI({
@@ -70,7 +71,8 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
       deviceManagerServer, "devices",
       dm_devices = dm_devices,
       dm_cloudinfo = dm_cloudinfo,
-      dm_datalogs = dm_datalogs
+      dm_datalogs = dm_datalogs,
+      access_token = access_token
     )
 
     output$devices <- renderUI({

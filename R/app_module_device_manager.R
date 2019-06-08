@@ -1,4 +1,4 @@
-deviceManagerServer <- function(input, output, session, dm_devices, dm_cloudinfo, dm_datalogs) {
+deviceManagerServer <- function(input, output, session, dm_devices, dm_cloudinfo, dm_datalogs, access_token) {
 
   # namespace
   ns <- session$ns
@@ -29,7 +29,8 @@ deviceManagerServer <- function(input, output, session, dm_devices, dm_cloudinfo
     get_devices = dm_devices$get_devices,
     get_selected_devices = dm_devices$get_selected_devices,
     refresh_devices = dm_devices$refresh_devices,
-    select_devices = dm_devices$select_devices
+    select_devices = dm_devices$select_devices,
+    access_token = access_token
   )
 
   # devices info ===

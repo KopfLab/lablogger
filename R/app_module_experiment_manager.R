@@ -1,5 +1,5 @@
 
-experimentManagerServer <- function(input, output, session, dm_experiments, dm_cloudinfo, dm_datalogs, timezone) {
+experimentManagerServer <- function(input, output, session, dm_experiments, dm_cloudinfo, dm_datalogs, timezone, access_token) {
 
   # namespace
   ns <- session$ns
@@ -99,14 +99,16 @@ experimentManagerServer <- function(input, output, session, dm_experiments, dm_c
     get_devices = dm_experiments$get_loaded_experiment_devices,
     get_selected_devices = dm_experiments$get_selected_loaded_experiment_devices,
     refresh_devices = dm_experiments$load_experiment_device_links,
-    select_devices = dm_experiments$select_loaded_experiment_devices)
+    select_devices = dm_experiments$select_loaded_experiment_devices,
+    access_token = access_token)
 
   callModule(
     deviceSelectorServer, "exp_devices2",
     get_devices = dm_experiments$get_loaded_experiment_devices,
     get_selected_devices = dm_experiments$get_selected_loaded_experiment_devices,
     refresh_devices = dm_experiments$load_experiment_device_links,
-    select_devices = dm_experiments$select_loaded_experiment_devices)
+    select_devices = dm_experiments$select_loaded_experiment_devices,
+    access_token = access_token)
 
   # devices info ===
 
