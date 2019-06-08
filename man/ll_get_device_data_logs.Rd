@@ -23,7 +23,7 @@ ll_get_device_data_logs(group_id = default(group_id), filter = NULL,
 device data logs
 }
 \description{
-Returns data logs from the database joined with experiments, devices, and experiment_device_data (for prefix only) tables so filter conditions can be applied on these as well. Sorted by descending order (i.e. latest record first).
+Returns data logs from the database joined with experiments, devices, and experiment_device_data (for prefix only) tables so filter conditions can be applied on these as well. Sorted by descending order (i.e. latest record first). Note that the group_id filter restricts the selected experiments, device data may theoretically come from devices not (or no longer) associated with the same group although this is rarely the case.
 }
 \seealso{
 Other data logs functions: \code{\link{ll_plot_device_data_logs}},

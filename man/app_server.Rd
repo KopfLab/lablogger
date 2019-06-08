@@ -5,7 +5,7 @@
 \title{Chemostat Control Center Server}
 \usage{
 app_server(group_id, access_token, pool, app_pwd, timezone,
-  start_screen = "data")
+  start_screen = "experiments")
 }
 \description{
 Generates the server part of the isoviewer app

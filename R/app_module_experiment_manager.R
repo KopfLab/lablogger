@@ -1,5 +1,5 @@
 
-experimentManagerServer <- function(input, output, session, dm_experiments, dm_cloudinfo, dm_datalogs, timezone) {
+experimentManagerServer <- function(input, output, session, dm_experiments, dm_cloudinfo, dm_datalogs, timezone, access_token) {
 
   # namespace
   ns <- session$ns
@@ -95,11 +95,20 @@ experimentManagerServer <- function(input, output, session, dm_experiments, dm_c
   # experiment devices ====
 
   callModule(
-    deviceSelectorServer, "exp_devices",
+    deviceSelectorServer, "exp_devices1",
     get_devices = dm_experiments$get_loaded_experiment_devices,
     get_selected_devices = dm_experiments$get_selected_loaded_experiment_devices,
     refresh_devices = dm_experiments$load_experiment_device_links,
-    select_devices = dm_experiments$select_loaded_experiment_devices)
+    select_devices = dm_experiments$select_loaded_experiment_devices,
+    access_token = access_token)
+
+  callModule(
+    deviceSelectorServer, "exp_devices2",
+    get_devices = dm_experiments$get_loaded_experiment_devices,
+    get_selected_devices = dm_experiments$get_selected_loaded_experiment_devices,
+    refresh_devices = dm_experiments$load_experiment_device_links,
+    select_devices = dm_experiments$select_loaded_experiment_devices,
+    access_token = access_token)
 
   # devices info ===
 
@@ -154,6 +163,11 @@ experimentManagerUI <- function(id, width = 12) {
     tabsetPanel(
       type = "tabs", # selected = "data",
       tabPanel(
+        value = "data",
+        "Data", br(),
+        dataPlotUI(ns("exp_data_plot"))
+      ),
+      tabPanel(
         value = "configuration",
         "Configuration",
         br(),
@@ -169,16 +183,17 @@ experimentManagerUI <- function(id, width = 12) {
         deviceDataUI(ns("devices_info"), selected_options = "r_exps", include_fetch_all = FALSE)
       ),
       tabPanel(
-        value = "data",
-        "Data", br(),
-        dataPlotUI(ns("exp_data_plot"))
+        value = "device_info",
+        "Device Info", br(),
+        deviceSelectorUI(ns("exp_devices1"), width = 12, selector_height = 150),
+        deviceStateUI(ns("devices_info"), include_fetch_all = FALSE),
+        deviceInfoUI(ns("devices_info"), include_fetch_all = FALSE)
       ),
       tabPanel(
-        value = "devices",
-        "Devices", br(),
-        deviceSelectorUI(ns("exp_devices"), width = 12, selector_height = 100),
-        deviceLogsUI(ns("devices_info"), include_fetch_all = TRUE),
-        deviceInfoUI(ns("devices_info"), include_fetch_all = TRUE)
+        value = "device_logs",
+        "Device Logs", br(),
+        deviceSelectorUI(ns("exp_devices2"), width = 12, selector_height = 150),
+        deviceLogsUI(ns("devices_info"), include_fetch_all = FALSE)
       )
     )) %>% hidden()
 

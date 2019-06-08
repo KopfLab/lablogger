@@ -113,7 +113,7 @@ ll_get_experiment_device_links <- function(
 
   exp_devices <- tbl(con, "experiment_device_data") %>%
     left_join(tbl(con, "devices"), by = "device_id") %>%
-    left_join(tbl(con, "device_types", by = "device_type_id")) %>%
+    left_join(tbl(con, "device_types"), by = "device_type_id") %>%
     left_join(tbl(con, "experiments"), by = c("exp_id", "group_id")) %>%
     dplyr::filter(group_id == group_id_value, in_use) %>%
     {
