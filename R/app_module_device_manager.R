@@ -66,8 +66,21 @@ deviceManagerUI <- function(id, width = 12) {
                      tooltip = "Deactivate the selected device(s). Inactive devices do not record any data but are otherwise fully functional and can be reactivated using -Add device-. NOT IMPLEMENTED YET.")
       )
     ),
-    deviceDataUI(ns("devices_info")),
-    deviceLogsUI(ns("devices_info")),
-    deviceInfoUI(ns("devices_info"))
+    tabsetPanel(
+      type = "tabs", # selected = "data",
+      tabPanel(
+        value = "live",
+        "Live Info", br(),
+        # fetch all is a bit confusing...
+        deviceDataUI(ns("devices_info"), selected_options = c("r_exps"), include_fetch_all = FALSE),
+        deviceStateUI(ns("devices_info"), include_fetch_all = FALSE),
+        deviceInfoUI(ns("devices_info"), include_fetch_all = FALSE)
+      ),
+      tabPanel(
+        value = "logs",
+        "Logs", br(),
+        deviceLogsUI(ns("devices_info"), include_fetch_all = FALSE)
+      )
+    )
   )
 }

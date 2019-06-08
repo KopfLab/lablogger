@@ -153,22 +153,6 @@ deviceInfoUI <- function(id, width = 12, include_fetch_all = TRUE) {
 
   tagList(
 
-    # live state
-    default_box(
-      style = paste0("min-height: 130px;"),
-      title = "Live Device State", width = width,
-      tableOutput(ns("state_table")) %>% withSpinner(type = 5, proxy.height = "130px"),
-      footer =
-        div(
-          tooltipInput(actionButton, ns("fetch_state"), "Fetch State", icon = icon("cloud-download"),
-                            tooltip = "Fetch the most recent state information from the cloud."),
-          spaces(1),
-          if (include_fetch_all)
-            tooltipInput(actionButton, ns("fetch_state_all"), "Fetch All", icon = icon("cloud-download"),
-                         tooltip = "Fetch all device information from the cloud and database.")
-        )
-    ),
-
     # live info
     default_box(
       title = "Live Device Info", width = width,
@@ -186,6 +170,29 @@ deviceInfoUI <- function(id, width = 12, include_fetch_all = TRUE) {
 
   )
 
+}
+
+deviceStateUI <- function(id, width = 12, include_fetch_all = TRUE) {
+  ns <- NS(id)
+
+  tagList(
+
+    # live state
+    default_box(
+      style = paste0("min-height: 130px;"),
+      title = "Live Device State", width = width,
+      tableOutput(ns("state_table")) %>% withSpinner(type = 5, proxy.height = "130px"),
+      footer =
+        div(
+          tooltipInput(actionButton, ns("fetch_state"), "Fetch State", icon = icon("cloud-download"),
+                       tooltip = "Fetch the most recent state information from the cloud."),
+          spaces(1),
+          if (include_fetch_all)
+            tooltipInput(actionButton, ns("fetch_state_all"), "Fetch All", icon = icon("cloud-download"),
+                         tooltip = "Fetch all device information from the cloud and database.")
+        )
+    )
+  )
 }
 
 deviceDataUI <- function(id, width = 12, selected_options = c("r_exps", "serial"), include_fetch_all = TRUE) {
