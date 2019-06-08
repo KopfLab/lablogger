@@ -1,23 +1,34 @@
-# functions to interact with the particle cloud --------
+# functions to interact with the particle cloud variables --------
 
 # helper function to make a particle cloud request
+# @param endpoint the url endpoint for the request, typically devices/<device_id>/variable or devices/<device_id>/function
+# @param arg request argument --> required for function calls! even if just \code{character(0)}
 # @param timeout how long to wait for curl request
 # @param nr which request this is (purely for info messages)
 # @param total total number of requests (purely for info messages)
-# @note consider implementing an asynchronious version with curl_fetch_multi (if possible to intet4q53 well into shiny app.)
-make_particle_cloud_request <- function(endpoint, nr = NULL, total = NULL, timeout = default(request_timeout), access_token = default(access_token), quiet = default(quiet)) {
+# @note consider implementing an asynchronious version with curl_fetch_multi (if possible to integrate well into shiny app.)
+make_particle_cloud_request <- function(endpoint, arg = NULL, nr = NULL, total = NULL, timeout = default(request_timeout), access_token = default(access_token), quiet = default(quiet)) {
 
   # safety checks
   if (nchar(access_token) == 0) stop("missing access token", call. = FALSE)
 
   # request
   handle <- new_handle(timeout = timeout)
-  request <- sprintf("https://api.particle.io/v1/%s?access_token=%s", endpoint, access_token)
+  if (is.null(arg)) {
+    request <- sprintf("https://api.particle.io/v1/%s?access_token=%s", endpoint, access_token)
+  } else if (is.character(arg) && length(arg) <= 1) {
+    request <- sprintf("https://api.particle.io/v1/%s", endpoint)
+    post <- sprintf("access_token=%s&arg=%s", access_token, utils::URLencode(arg))
+  } else {
+    stop("something amiss with arg: ", arg, call. = FALSE)
+  }
 
   if (!quiet) {
     glue("\nInfo: making cloud request ",
-         "{if(!is.null(nr) && !is.null(total)) str_c(nr, '/', total, ' ') else ''}",
-         "('{endpoint}')... ") %>%
+         if(!is.null(nr) && !is.null(total)) "{nr}/{total} " else "",
+         "('{endpoint}'",
+         if(!is.null(arg)) " with arg '{arg}'" else "",
+         ")... ") %>%
       message(appendLF = FALSE)
   }
 
@@ -25,6 +36,11 @@ make_particle_cloud_request <- function(endpoint, nr = NULL, total = NULL, timeo
   result <-
     tryCatch(
       handle %>%
+        {
+          # POST?
+          if (!is.null(arg)) handle_setopt(., copypostfields = post)
+          else  .
+        } %>%
         # make request
         curl_fetch_memory(request, handle = .) %>%
         { rawToChar(.$content) } %>%
@@ -355,4 +371,90 @@ ll_summarize_cloud_data_experiment_links <- function(
     ) %>%
     select(-..exp_data..) %>%
     select(particle_id, device_name, datetime, error, everything())
+}
+
+# functions to interact with particle cloud commands =====
+
+# helper function for cloud function calls
+call_devices_cloud_function <- function(devices, func = "device", arg = "", access_token = default(access_token), quiet = default(quiet)) {
+  # safety checks
+  if (!is.data.frame(devices) | !all(c("particle_id", "device_name") %in% names(devices)))
+    stop("devices needs to be supplied as a data frame with columns (at the least) 'particle_id' and 'device_name'", call. = FALSE)
+
+  # request state
+  devices %>%
+    mutate(
+      lists = map2(
+        particle_id, dplyr::row_number(),
+        ~make_particle_cloud_request(
+          endpoint = sprintf("devices/%s/%s", .x, !!func),
+          arg = !!arg,
+          nr = .y,
+          total = nrow(devices),
+          access_token = access_token,
+          quiet = quiet
+        )
+      )
+    ) %>%
+    unpack_lists_data_frame(unnest_single_values = TRUE, unpack_sub_lists = TRUE, nest_into_data_frame = FALSE)
+}
+
+#' Send device commands to the cloud
+#'
+#' Send commands to one or more devices.
+#'
+#' @param devices data frame with devices for which to issue commands
+#' @param command to send
+#' @param message message to add to command
+#' @param access_token the access token for the accout
+#' @return nested data frame (converted from JSON)
+# @ note: consider making a function to udpate particle ids in the DB from here (overkill? since state/data logs cause update too)
+#' @export
+ll_send_devices_command <- function(devices, command, message = "", access_token = default(access_token), quiet = default(quiet)) {
+
+  if (nchar(message) > 0) command <- paste(command, message)
+
+  # return codes
+  return_codes <- get_device_command_return_values()
+
+  # call cloud function
+  devices %>%
+    # add command
+    mutate(
+      command = !!command,
+    ) %>%
+    call_devices_cloud_function(
+      func = "device", arg = command,
+      access_token = access_token, quiet = quiet
+    ) %>%
+    # add  missing error
+    { if (!"error" %in% names(.)) mutate(., error = NA_character_) else . } %>%
+    # add  missing return value
+    { if (!"return_value" %in% names(.)) mutate(., return_value = NA_integer_) else . } %>%
+    # add return message
+    mutate(
+      return_message = case_when(
+        is.na(return_value) ~ error,
+        as.character(return_value) %in% names(return_codes) ~ return_codes[as.character(return_value)],
+        return_value < 0 ~ "Unknown error",
+        return_value > 0 ~ "Unknown warning",
+        TRUE ~ "Undefined behaviour",
+      ) %>% {
+        ifelse(!is.na(return_value), str_c(., " (code ", return_value, ")"), .)
+      }
+    )
+}
+
+# helper function for device return values
+get_device_command_return_values <- function() {
+  # details at https://github.com/KopfLab/labware_photon/blob/master/DeviceCommands.h
+  c(
+     `0` = "Success",
+    `-1` = "Undefined error",
+    `-2` = "Device locked",
+    `-3` = "Invalid command",
+    `-4` = "Invalid command value",
+    `-5` = "Invalid command units",
+     `1` = "State already as requested"
+  )
 }
