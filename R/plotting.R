@@ -4,9 +4,9 @@ prepare_data_for_plotting <- function(device_data_logs) {
   device_data_logs %>%
   # grouping and trace with units
   mutate(
-    group = str_c(device_name, data_key, data_group),
+    group = paste(device_name, data_key, data_group, sep = "_"),
     data_trace =
-      ifelse(!is.na(data_units) & nchar(data_units) > 0, str_c(data_key, " [", data_units, "]"), data_key),
+      ifelse(!is.na(data_units) & nchar(data_units) > 0, sprintf("%s [%s]", data_key, data_units), data_key),
     group_trace =
       ifelse(!is.na(data_group), str_c(data_group, " ", data_trace), data_trace)
   )
@@ -19,9 +19,10 @@ prepare_data_for_plotting <- function(device_data_logs) {
 #' @param device_data_logs data logs
 #' @param duration_units specify a time unit (e.g. "mins") to indicate whether x axis should be displayed as a duration since the first data point within each experiment, if NULL x axis is displayed as regular date time.
 #' @param date_breaks formate the datetime breaks if not plotting duration (i.e. is ignored if duration_units is provided)
+#' @param include_device_name whether to include the device name in the data trace label
 #' @family data logs functions
 #' @export
-ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error_range = FALSE, exclude_outliers = FALSE, duration_units = NULL, date_breaks = NULL, quiet = default(quiet)) {
+ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error_range = FALSE, exclude_outliers = FALSE, duration_units = NULL, date_breaks = NULL, include_device_name = FALSE, quiet = default(quiet)) {
 
   filter_quo <- enquo(filter)
 
@@ -57,9 +58,13 @@ ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error
   }
 
   # plot
-  p <- plot_df %>%
-    ggplot() +
-    aes(y = data_value, color = data_trace, group = group)
+  p <- ggplot(plot_df)
+
+  if (include_device_name) {
+    p <- p + aes(y = data_value, color = sprintf("%s: %s", device_name, data_trace), group = group)
+  } else {
+    p <- p + aes(y = data_value, color = data_trace, group = group)
+  }
 
   # error range
   if (show_error_range) {
@@ -75,7 +80,7 @@ ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error
     geom_line() +
     facet_grid(data_trace ~ exp_id, scales = "free") +
     theme_bw() +
-    labs(x = NULL, y = NULL)
+    labs(x = NULL, y = NULL, color = NULL)
 
   # data groups
   if (any(!is.na(plot_df$data_group))) {
