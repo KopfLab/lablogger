@@ -263,7 +263,7 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
       } else {
         date_breaks <- NULL
       }
-      p <- ll_plot_device_data_logs(logs, date_breaks = date_breaks, show_error_range = input$show_errors, exclude_outliers = !input$show_outliers)
+      p <- ll_plot_device_data_logs(logs, date_breaks = date_breaks, show_error_range = input$show_errors, exclude_outliers = !input$show_outliers, include_device_name = input$show_device_names)
 
       # legend position
       if (input$legend_position == "bottom") {
@@ -465,6 +465,11 @@ dataPlotUI <- function(id, plot_height = 650) {
           fluidRow(
             h4("Font Size:") %>% column(width = 4),
             numericInput(ns("font_size"), NULL, value = 18, min = 6, step = 1) %>%
+              column(width = 8)
+          ),
+          fluidRow(
+            h4("Device Names:") %>% column(width = 4),
+            checkboxInput(ns("show_device_names"), NULL, value = FALSE) %>%
               column(width = 8)
           ),
           footer = tooltipInput(actionButton, ns("options_refresh"), label = "Re-plot",
