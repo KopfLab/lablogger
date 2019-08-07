@@ -54,12 +54,22 @@ run_sql <- function(sql, con) {
 }
 
 # run insert sql
-run_insert_sql <- function(df, table, con, quiet) {
+run_insert_sql <- function(df, table, con, on_conflict_constraint = NULL, on_conflict_do = "nothing", quiet) {
   result <-
     df %>%
     df_to_insert_sql(table) %>%
+    {
+      if (!is.null(on_conflict_constraint))
+        paste(., "ON CONFLICT ON CONSTRAINT", on_conflict_constraint, "DO", on_conflict_do)
+      else .
+    } %>%
     run_sql(con)
 
-  if (!quiet) glue("{result} new record(s) created.") %>% message()
+  if (!quiet) {
+    glue::glue(
+      "{result} record(s) created",
+      if(!is.null(on_conflict_constraint)) " or updated" else "", ".") %>%
+      message()
+  }
   return(result)
 }
