@@ -1,7 +1,7 @@
 #' @keywords internal
 "_PACKAGE"
 
-#' @importFrom rlang quo quos enquo !! !!! is_quosure quo_expr quo_text quo_is_null quo_is_symbol quo_is_lang lang_head sym syms eval_tidy parse_expr
+#' @importFrom rlang quo quos enquo !! !!! is_quosure quo_squash quo_text quo_is_null quo_is_symbol quo_is_call lang_head sym syms eval_tidy parse_expr
 #' @importFrom curl new_handle curl_fetch_memory handle_setopt
 #' @importFrom jsonlite fromJSON toJSON
 #' @importFrom glue glue collapse
