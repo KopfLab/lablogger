@@ -329,7 +329,7 @@ ll_summarize_cloud_data_experiment_links <- function(
   if (nrow(experiment_device_links) == 0) {
     experiment_device_links <- tibble(
       exp_id = character(), recording = logical(), device_name = character(),
-      data_idx = integer(), data_group = character(), active = logical())
+      data_idx = integer(), active = logical())
   }
 
   if (nrow(cloud_data) == 0) {
@@ -355,19 +355,12 @@ ll_summarize_cloud_data_experiment_links <- function(
     {
       bind_rows(., filter(cloud_data, !is.na(error), !device_name %in% .$device_name))
     } %>%
-    mutate(
-      exp_id_data_group = case_when(
-        !is.na(exp_id) & !is.na(data_group) ~ str_c(exp_id, " (", data_group, ")"),
-        !is.na(exp_id) ~ exp_id,
-        TRUE ~ NA_character_
-      )
-    ) %>%
     filter(linked & !is.na(exp_id) | unlinked & is.na(exp_id)) %>%
-    select(-exp_id, -data_group) %>%
-    nest(exp_id_data_group, recording, .key = ..exp_data..) %>%
+    select(-exp_id) %>%
+    nest(exp_id, recording, .key = ..exp_data..) %>%
     mutate(
-      recording_exp_ids = map_chr(..exp_data.., ~filter(.x, recording)$exp_id_data_group %>% { if(length(.) > 0) glue::glue_collapse(., sep = ", ") else NA_character_ }),
-      non_recording_exp_ids = map_chr(..exp_data.., ~filter(.x, !recording)$exp_id_data_group %>% { if(length(.) > 0) glue::glue_collapse(., sep = ", ") else NA_character_ })
+      recording_exp_ids = map_chr(..exp_data.., ~filter(.x, recording)$exp_id %>% { if(length(.) > 0) glue::glue_collapse(., sep = ", ") else NA_character_ }),
+      non_recording_exp_ids = map_chr(..exp_data.., ~filter(.x, !recording)$exp_id %>% { if(length(.) > 0) glue::glue_collapse(., sep = ", ") else NA_character_ })
     ) %>%
     select(-..exp_data..) %>%
     select(particle_id, device_name, datetime, error, everything())

@@ -159,7 +159,7 @@ devicesDataServer <- function(input, output, session, group_id, access_token, po
         message = 'Fetching device experiment links', detail = "Querying database...", value = 0.5,
         ll_get_experiment_device_links(
           group_id = group_id, con = pool,
-          select = c(exp_device_data_id, exp_id, recording, device_name, data_group, data_idx, active),
+          select = c(exp_device_data_id, exp_id, recording, device_name, data_idx, active),
           filter = device_id %in% !!values$selected_device_ids)
       )
     } else {
@@ -361,7 +361,7 @@ cloudInfoDataServer <- function(input, output, session, experiments, devices, gr
       message = 'Fetching device data', detail = "Querying database for experiment device links...", value = 0.5,
       ll_get_experiment_device_links(
         group_id = group_id, con = pool,
-        select = c(exp_device_data_id, exp_id, recording, device_name, data_group, data_idx, active),
+        select = c(exp_device_data_id, exp_id, recording, device_name, data_idx, active),
         filter = device_id %in% !!device_ids)
     )
 

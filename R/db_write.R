@@ -83,7 +83,6 @@ ll_add_experiment <- function(exp_id, exp_desc = NA, group_id = default(group_id
   return(invisible(data));
 }
 
-# TODO: deprecate data_group and move this functionality into ll_assign_experiment_device_link_groups
 # TODO: rename to ll_add_experiment_device_links
 #' Link device to experiment
 #'
@@ -99,8 +98,7 @@ ll_add_experiment_devices <- function(
   device_names,
   data_idxs,
   device_ids = ll_get_device_ids(device_names, quiet = quiet),
-  data_group = NA,
-  experiment_devices = tibble(exp_id, device_id = device_ids, data_idx = data_idxs, data_group),
+  experiment_devices = tibble(exp_id, device_id = device_ids, data_idx = data_idxs),
   group_id = default(group_id),
   con = default(con),
   quiet = default(quiet)) {
@@ -164,12 +162,6 @@ ll_remove_experiment_device_links <- function(exp_id, exp_device_data_ids, con =
   }
 
   return(invisible(NULL))
-}
-
-# FIXME: implement me
-# this should replacte the data_group option of the ll_add_experiment_devices
-ll_assign_experiment_device_link_groups  <- function() {
-
 }
 
 # helper function to start/stop experiment recording

@@ -9,7 +9,7 @@ identify_data_outliers <- function(device_data_logs) {
   }
 
   device_data_logs %>%
-    group_by(exp_id, device_name, data_key, data_group) %>%
+    group_by(exp_id, device_name, data_key) %>%
     mutate(
       outlier = identify_outliers(data_value)
     ) %>%
@@ -32,7 +32,7 @@ ll_summarize_data_logs <- function(data_logs, exclude_outliers = FALSE, slope_de
       if(exclude_outliers) filter(identify_data_outliers(.), !outlier)
       else .
     } %>%
-    group_by(exp_id, device_name, data_group, data_key, data_units) %>%
+    group_by(exp_id, device_name, data_key, data_units) %>%
     summarize(
       n = n(),
       mean = mean(data_value, na.rm = TRUE),
@@ -51,6 +51,6 @@ ll_summarize_data_logs <- function(data_logs, exclude_outliers = FALSE, slope_de
       #!!drift_pval_col := map_dbl(est, ~filter(.x, term == "duration")$p.value)
     ) %>%
     ungroup() %>%
-    arrange(exp_id, data_key, device_name, data_group) %>%
+    arrange(exp_id, data_key, device_name) %>%
     select(-fit, -est, -device_name)
 }
