@@ -4,11 +4,9 @@ prepare_data_for_plotting <- function(device_data_logs) {
   device_data_logs %>%
   # grouping and trace with units
   mutate(
-    group = paste(device_name, data_key, data_group, sep = "_"),
+    group = paste(exp_id, device_name, data_key, sep = "_"),
     data_trace =
-      ifelse(!is.na(data_units) & nchar(data_units) > 0, sprintf("%s [%s]", data_key, data_units), data_key),
-    group_trace =
-      ifelse(!is.na(data_group), str_c(data_group, " ", data_trace), data_trace)
+      ifelse(!is.na(data_units) & nchar(data_units) > 0, sprintf("%s [%s]", data_key, data_units), data_key)
   )
 }
 
@@ -17,14 +15,22 @@ prepare_data_for_plotting <- function(device_data_logs) {
 #' This function helps to visualize data logs retrieved with \code{\link{ll_get_device_data_logs}} or read in from downloaded data logs.
 #'
 #' @param device_data_logs data logs
-#' @param duration_units specify a time unit (e.g. "mins") to indicate whether x axis should be displayed as a duration since the first data point within each experiment, if NULL x axis is displayed as regular date time.
+#' @param duration_breaks specify a duration unit or interval (e.g. "hours" or "20 mins") to indicate whether x axis should be displayed as a duration since the first data point within each experiment. If interval is specified, this will be used for axis intervals, if just time unit the axis will have regular auto-ticks. If duration_breaks = NULL (the default), the x axis is displayed as regular date time (set date_breaks instead).
 #' @param date_breaks formate the datetime breaks if not plotting duration (i.e. is ignored if duration_units is provided)
 #' @param include_device_name whether to include the device name in the data trace label
+#' @param overlay_experiments whether to overlay the experiments instead of paneling (default is panels). This usually makes most sense if x axis is a duration (set via duration units)
 #' @family data logs functions
 #' @export
-ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error_range = FALSE, exclude_outliers = FALSE, duration_units = NULL, date_breaks = NULL, include_device_name = FALSE, quiet = default(quiet)) {
+ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error_range = FALSE, exclude_outliers = FALSE, duration_breaks = NULL, date_breaks = NULL, include_device_name = FALSE, overlay_experiments = FALSE, quiet = default(quiet)) {
 
-  filter_quo <- enquo(filter)
+  filter_quo <- rlang::enquo(filter)
+
+  # duration
+  if(!is.null(duration_breaks)) {
+    duration_matches <- stringr::str_match(duration_breaks, "(\\d+\\.?\\d*)?\\s?([a-zA-Z]+)")
+    duration_interval <- as.numeric(duration_matches[1,2])
+    duration_units <- duration_matches[1,3]
+  }
 
   # plot df
   plot_df <- device_data_logs %>%
@@ -32,7 +38,7 @@ ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error
     dplyr::filter(!is.na(data_value)) %>%
     # duration
     {
-      if (!is.null(duration_units))
+      if (!is.null(duration_breaks))
         group_by(., exp_id) %>% ll_calculate_duration(duration_units) %>% ungroup()
       else .
     } %>%
@@ -58,48 +64,58 @@ ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error
   }
 
   # plot
-  p <- ggplot(plot_df)
+  p <- ggplot(plot_df) + aes(y = data_value)
 
   if (include_device_name) {
-    p <- p + aes(y = data_value, color = sprintf("%s: %s", device_name, data_trace), group = group)
+    p <- p %+% aes(color = sprintf("%s: %s", device_name, data_trace), group = group)
   } else {
-    p <- p + aes(y = data_value, color = data_trace, group = group)
+    p <- p %+% aes(color = data_trace, group = group)
   }
 
   # error range
   if (show_error_range) {
-    p <- p %+% aes(fill = data_trace) +
+    if (include_device_name) {
+      p <- p + aes(fill = sprintf("%s: %s", device_name, data_trace))
+    } else {
+      p <- p + aes(fill = data_trace)
+    }
+    p <- p +
       geom_ribbon(
-        data = function (df) filter(df, !is.na(data_sd)),
+        data = function (df) dplyr::filter(df, !is.na(data_sd)),
         mapping = aes(ymin = data_value - data_sd, ymax = data_value + data_sd, color = NULL),
         alpha = 0.3
       )
   }
 
-  p <- p +
-    geom_line() +
-    facet_grid(data_trace ~ exp_id, scales = "free") +
-    theme_bw() +
-    labs(x = NULL, y = NULL, color = NULL)
+  p <- p + geom_line() + theme_bw()
 
-  # data groups
-  if (any(!is.na(plot_df$data_group))) {
-    p <- p %+% aes(linetype = data_group) %+% mutate(plot_df, data_group = ifelse(is.na(data_group), "NA", data_group))
+  # experiments overlay
+  if (overlay_experiments) {
+    # traces overlay
+    p <- p %+% aes(linetype = exp_id) +
+      facet_grid(data_trace ~ ., scales = "free")
+  } else {
+    # panel
+    p <- p +
+      facet_grid(data_trace ~ exp_id, scales = "free")
   }
 
   # duration plot aesthetics
-  if (!is.null(duration_units)) {
+  if (!is.null(duration_breaks)) {
     p <- p %+% aes(x = duration) +
       labs(x = str_c("Duration [", duration_units, "]"))
+    if (!is.na(duration_interval))
+      p <- p %+% ggplot2::scale_x_continuous(breaks = seq(0, max(plot_df$duration), by = duration_interval))
   } else {
     if (!is.null(date_breaks))
       p <- p %+% aes(x = datetime) + scale_x_datetime(date_breaks = date_breaks)
     else
       p <- p %+% aes(x = datetime) + scale_x_datetime()
     p <- p + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
-      labs(x = "")
+      labs(x = NULL)
   }
 
+  p <- p + labs(y = NULL, color = NULL, fill = NULL, linetype = NULL)
 
   return(p)
 }

@@ -6,14 +6,20 @@
 \usage{
 ll_plot_device_data_logs(device_data_logs, filter = NULL,
   show_error_range = FALSE, exclude_outliers = FALSE,
-  duration_units = NULL, date_breaks = NULL, quiet = default(quiet))
+  duration_breaks = NULL, date_breaks = NULL,
+  include_device_name = FALSE, overlay_experiments = FALSE,
+  quiet = default(quiet))
 }
 \arguments{
 \item{device_data_logs}{data logs}
 
-\item{duration_units}{specify a time unit (e.g. "mins") to indicate whether x axis should be displayed as a duration since the first data point within each experiment, if NULL x axis is displayed as regular date time.}
+\item{duration_breaks}{specify a duration interval (e.g. "20 mins") to indicate whether x axis should be displayed as a duration since the first data point within each experiment, if NULL x axis is displayed as regular date time (set date_breaks instead).}
 
 \item{date_breaks}{formate the datetime breaks if not plotting duration (i.e. is ignored if duration_units is provided)}
+
+\item{include_device_name}{whether to include the device name in the data trace label}
+
+\item{overlay_experiments}{whether to overlay the experiments instead of paneling (default is panels). This usually makes most sense if x axis is a duration (set via duration units)}
 }
 \description{
 This function helps to visualize data logs retrieved with \code{\link{ll_get_device_data_logs}} or read in from downloaded data logs.

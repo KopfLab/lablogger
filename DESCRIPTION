@@ -1,7 +1,7 @@
 Package: lablogger
 Type: Package
 Title: Lab Logger
-Version: 0.3.6.2
+Version: 0.3.6.3
 Author: Sebastian Kopf
 Maintainer: Sebastian Kopf <sebastian.kopf@colorado.edu>
 Roxygen: list(wrap = FALSE)
@@ -54,4 +54,4 @@ License: GPL (>= 2) | file LICENSE
 Encoding: UTF-8
 LazyData: true
 VignetteBuilder: knitr
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1
