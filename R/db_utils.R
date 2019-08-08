@@ -7,24 +7,28 @@ validate_db_connection <- function(con_quo) {
 }
 
 # convert data to sql compatible
-to_sql <- function(...) {
+to_sql <- function(..., named = FALSE) {
   values <- list(...)
   if (length(values) == 1 && is.list(values[1])) values <- values[[1]]
-  values %>%
-    map_chr(
-      ~
-        if (is.null(.x) || is.na(.x)) {
-          "NULL"
-        } else if (is.character(.x)) {
-          sprintf("'%s'", str_replace(.x, fixed("'"), "''"))
-        } else if (is.numeric(.x)) {
-          as.character(.x)
-        } else if (is.logical(.x)) {
-          if (.x) 'true' else 'false'
-        } else {
-          stop(glue("unsupported value type: {class(.x)[1]}"), call. = FALSE)
-        }) %>%
-    glue::glue_collapse(", ")
+  convert_class_to_sql <- function(.x) {
+    if (is.null(.x) || is.na(.x)) {
+      "NULL"
+    } else if (is.character(.x)) {
+      sprintf("'%s'", str_replace(.x, fixed("'"), "''"))
+    } else if (is.numeric(.x)) {
+      as.character(.x)
+    } else if (is.logical(.x)) {
+      if (.x) 'true' else 'false'
+    } else {
+      stop(glue("unsupported value type: {class(.x)[1]}"), call. = FALSE)
+    }
+  }
+  sql_values <- map_chr(values, convert_class_to_sql)
+  if (named) {
+    if (is.null(names(values)) || any(names(values) == "")) stop("must provide names for each value", call. = FALSE)
+    sql_values <- sprintf("%s=%s", names(values), sql_values)
+  }
+  glue::glue_collapse(sql_values, ", ")
 }
 
 # convert whole df to sql compatible list of values

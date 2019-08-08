@@ -73,14 +73,45 @@ update_device_particle_id <- function(devices, con, quiet) {
 #' @param particle_id optional, will be automatically filled in the first time the device logs to the database
 #' @param in_use whether device is in use (if not, cannot log any data)
 #' @export
-ll_add_experiment <- function(exp_id, exp_desc = NA, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
+ll_add_experiment <- function(exp_id, exp_desc = NA, exp_notes = NA, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
   con <- validate_db_connection(enquo(con))
   if (missing(exp_id)) stop("must supply an experiment id", call. = FALSE)
   if (!quiet) glue("\nInfo: add new experiment '{exp_id}' for group '{group_id}'... ") %>%
     message(appendLF = FALSE)
-  data <- data_frame(exp_id, exp_desc, group_id, recording = FALSE)
+  data <- data_frame(exp_id, exp_desc, exp_notes, group_id, recording = FALSE)
   run_insert_sql(data, "experiments", con, quiet = quiet)
   return(invisible(data));
+}
+
+#' Update experiment information
+#' @inheritParams ll_add_experiment
+#' @return whether the update was successful or not
+#' @export
+ll_update_experiment_info <- function(exp_id, exp_desc = NULL, exp_notes = NULL, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
+  con <- validate_db_connection(enquo(con))
+  if (missing(exp_id)) stop("must supply an experiment id", call. = FALSE)
+  if (length(exp_id) != 1) stop("must provide only one exp id", call. = FALSE)
+  if (!quiet) glue("\nInfo: updating info for experiment '{exp_id}'... ") %>%
+    message(appendLF = FALSE)
+
+  updates <- c(
+    exp_desc = if (!is.null(exp_desc)) exp_desc,
+    exp_notes = if (!is.null(exp_notes)) exp_notes
+  )
+  if(is.null(update) || length(update) == 0) stop("nothing to update", call. = FALSE)
+
+  sql <- glue::glue(
+    "UPDATE experiments SET {to_sql(updates, named = TRUE)} ",
+    "WHERE group_id = {to_sql(group_id)} AND exp_id = {to_sql(exp_id)}")
+  print(sql)
+  result <- run_sql(sql, con)
+
+  if (!quiet) {
+    if (result > 0) glue("{result} record updated.") %>% message()
+    else message("no records found, this experiment is not part of this group.")
+  }
+
+  return(result == 1)
 }
 
 # TODO: rename to ll_add_experiment_device_links

@@ -7,14 +7,13 @@ deviceManagerServer <- function(input, output, session, dm_devices, dm_cloudinfo
 
   observeEvent(input$device_add, {
     module_message(ns, "debug", "adding new devices is not implemented yet")
-    # FIXME implement
-    # generate modal dialog with radio button selection of the devices
-    # use
-    # make sure both devices and cloud info are up to date
-    dm_devices$refresh_devices()
-    dm_cloudinfo$refresh_cloud_info()
-    all_devices <- dm_cloudinfo$get_all_devices_cloud_info()
-    print(all_devices) # filter by !registered
+    # # FIXME implement
+    # # generate modal dialog with radio button selection of the device ypes
+    # # make sure both devices and cloud info are up to date
+    # dm_devices$refresh_devices()
+    # dm_cloudinfo$refresh_cloud_info()
+    # all_devices <- dm_cloudinfo$get_all_devices_cloud_info()
+    # print(all_devices) # filter by !registered
   })
 
   observeEvent(input$device_inuse, {

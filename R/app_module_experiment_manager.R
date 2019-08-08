@@ -54,6 +54,17 @@ experimentManagerServer <- function(input, output, session, dm_experiments, dm_c
       toggle("start_recording", condition = !recording)
       toggle("stop_recording", condition = recording)
 
+      # info
+      if (!is.na(dm_experiments$get_loaded_experiment_info()$exp_desc))
+        updateTextInput(session, "exp_desc", value = dm_experiments$get_loaded_experiment_info()$exp_desc)
+      else
+        updateTextInput(session, "exp_desc", value = "", placeholder = "Add a succint description for this experiment.")
+
+      if (!is.na(dm_experiments$get_loaded_experiment_info()$exp_notes))
+        updateTextInput(session, "exp_notes", value = dm_experiments$get_loaded_experiment_info()$exp_notes)
+      else
+        updateTextInput(session, "exp_notes", value = "", placeholder = "Keep notes about this experiment.")
+
       # devices - select all by default
       dm_experiments$select_loaded_experiment_devices(dm_experiments$get_loaded_experiment_devices()$device_id)
 
@@ -65,6 +76,29 @@ experimentManagerServer <- function(input, output, session, dm_experiments, dm_c
       show("tabs")
     }
   }
+
+  output$exp_ID <- renderText({
+    validate(need(dm_experiments$get_loaded_experiment(), "no experiment selected"))
+    dm_experiments$get_loaded_experiment()
+  })
+
+  # save exp info ====
+
+  observeEvent(input$save_info, {
+    success <- dm_experiments$updated_loaded_experiment_info(exp_desc = input$exp_desc, exp_notes = input$exp_notes)
+    if (success) {
+      showModal(modalDialog(
+        title = "Success",
+        h4(sprintf("Experiment '%s' was updated succesfully.", dm_experiments$get_loaded_experiment())),
+        footer = modalButton("Close"), fade = FALSE, easyClose = TRUE))
+    } else {
+      showModal(modalDialog(
+        title = "A problem occurred",
+        h4(sprintf("Something went wrong updating experiment '%s'.", dm_experiments$get_loaded_experiment())),
+        footer = modalButton("Close"), fade = FALSE, easyClose = TRUE))
+    }
+    dm_experiments$refresh_experiments()
+  })
 
   # start/stop recording ====
 
@@ -151,7 +185,12 @@ experimentManagerUI <- function(id, width = 12) {
         tooltipInput(actionButton, ns("experiment_refresh"), label = "Refresh", icon = icon("refresh"), tooltip = "Refresh experiments."),
         spaces(1),
         # FIXME
-        tooltipInput(actionButton, ns("experiment_new"), label = "New experiment", icon = icon("plus"), tooltip = "Add new experiment. NOT IMPLEMENTED YET")
+        tooltipInput(actionButton, ns("experiment_new"), label = "New experiment", icon = icon("plus"), tooltip = "Add new experiment. NOT IMPLEMENTED YET"),
+        spaces(1),
+        actionButton(ns("start_recording"), label = "Start Recording",
+                     icon = icon("play"), style="color: #fff; background-color: #007f1f; border-color: #2e6da4") %>% hidden(),
+        actionButton(ns("stop_recording"), label = "Stop Recording",
+                     icon = icon("stop"), style="color: #fff; background-color: #f22e10; border-color: #2e6da4") %>% hidden()
       )
     ),
 
@@ -167,16 +206,27 @@ experimentManagerUI <- function(id, width = 12) {
         "Data", br(),
         dataPlotUI(ns("exp_data_plot"))
       ),
+      # info =====
+      tabPanel(
+        value = "info",
+        "Info",
+        br(),
+        default_box(
+          title = "Experiment Information", width = 12,
+          h4("ID:", textOutput(ns("exp_ID"), inline = TRUE)),
+          h4("Description:"),
+          textAreaInput(ns("exp_desc"), NULL, cols = 50, rows = 5, resize = "none"),
+          h4("Notes:"),
+          textAreaInput(ns("exp_notes"), NULL, width = "100%", rows = 10, resize = "both"),
+          footer = actionButton(ns("save_info"), label = "Save", icon = icon("save"))
+        )
+      ),
+      # devices ====
       tabPanel(
         value = "configuration",
         "Configuration",
         br(),
         spaces(3),
-        tooltipInput(actionButton, ns("start_recording"), label = "Start Recording",
-                     icon = icon("play"), style="color: #fff; background-color: #007f1f; border-color: #2e6da4"),
-        tooltipInput(actionButton, ns("stop_recording"), label = "Stop Recording",
-                     icon = icon("stop"), style="color: #fff; background-color: #f22e10; border-color: #2e6da4"),
-        spaces(1),
         # FIXME
         tooltipInput(actionButton, ns("add_devices"), label = "Add device links", icon = icon("microchip"), tooltip = "Add additional device links. NOT IMPLEMENETED YET"),
         br(), br(),

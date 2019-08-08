@@ -80,6 +80,15 @@ experimentsDataServer <- function(input, output, session, group_id, access_token
     }
   }
 
+  get_loaded_experiment_info <- reactive({
+    filter(get_experiments(), exp_id == !!values$loaded_exp_id)
+  })
+
+  update_loaded_experiment_info <- function(exp_desc, exp_notes) {
+    ll_update_experiment_info(exp_id = values$loaded_exp_id, exp_desc = exp_desc,
+                              exp_notes = exp_notes, group_id = group_id, con = pool)
+  }
+
   is_loaded_experiment_archived <- reactive({
     filter(get_experiments(), exp_id == !!values$loaded_exp_id)$archived
   })
@@ -106,6 +115,8 @@ experimentsDataServer <- function(input, output, session, group_id, access_token
     get_selected_experiments = reactive(values$selected_exp_ids),
     load_experiment = load_experiment,
     get_loaded_experiment = reactive(values$loaded_exp_id),
+    get_loaded_experiment_info = get_loaded_experiment_info,
+    updated_loaded_experiment_info = update_loaded_experiment_info,
     load_experiment_device_links = load_experiment_device_links,
     get_loaded_experiment_device_links = reactive(values$loaded_exp_device_links),
     get_loaded_experiment_devices = reactive(values$loaded_exp_devices),
