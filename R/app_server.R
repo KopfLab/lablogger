@@ -6,13 +6,13 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
 
     message("\n\nINFO: Loading GUI instance ...")
 
-    # data managers
+    # DATA MANAGERS =====
     dm_experiments <- callModule(experimentsDataServer, "dm_experiments", group_id, access_token, pool, timezone)
     dm_devices <- callModule(devicesDataServer, "dm_devices", group_id, access_token, pool, timezone)
     dm_datalogs <- callModule(datalogsDataServer, "dm_datalogs", dm_experiments, dm_devices, group_id, access_token, pool, timezone)
     dm_cloudinfo <- callModule(cloudInfoDataServer, "dm_cloudinfo", dm_experiments, dm_devices, group_id, access_token, pool, timezone)
 
-    # login server
+    # LOGIN SCREEN =====
     login_manager <- callModule(loginServer, "login", app_pwd = app_pwd, group = group_id, timezone = timezone)
     observeEvent(input$menu, {
       if (!login_manager$is_logged_in()) {
@@ -88,6 +88,16 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
       tagList(h3("Coming soon..."))
     })
 
+    # HELP LINK ====
+    output$help <- renderUI({
+      print(input$menu)
+      link <- "https://github.com/KopfLab/lablogger/wiki"
+      links <- c(experiments = "Experiments", devices = "Devices", data = "All-Data")
+      if (input$menu %in% names(links)) link <- paste0(link, "/", links[input$menu])
+      a(tags$i(class="fa fa-question-circle"), "Help", href = link, target = "_blank") %>%
+        as.character() %>%
+        HTML()
+    })
 
 
 
