@@ -170,7 +170,7 @@ unpack_cloud_variable_result <- function(var_data, data_column, renames = c(), c
       var_data %>%
       select(..rowid.., result) %>%
       mutate(result = map(result, ~if(!is.na(.x)) {
-        tryCatch(fromJSON (.x), error = function(e) { warning("problems parsing JSON - ", e$message, immediate. = TRUE, call. = FALSE); list() })
+        tryCatch(fromJSON (fix_truncated_JSON(.x)), error = function(e) { warning("problems parsing JSON - ", e$message, immediate. = TRUE, call. = FALSE); list() })
       } else list())) %>%
       unpack_lists_data_frame(result)
 
@@ -202,6 +202,33 @@ unpack_cloud_variable_result <- function(var_data, data_column, renames = c(), c
   }
 
   return (select(var_data, -..rowid..))
+}
+
+# helper function for truncated JSON
+# closes unclosed \", ] and } as well as removes terminal ,
+# note
+fix_truncated_JSON <- function(json) {
+
+  # close quotes if it's an odd number of quotes
+  if (stringr::str_count(json, "\\\"") %% 2 > 0)
+    json <- paste0(json, "\"")
+  # make sure it doesn't end on a comma that doesn't have any follow-up
+  else if (stringr::str_sub(json, -1) == ",")
+    json <- stringr::str_sub(json, 1, -2)
+  # make sure doesn't end on a key without a value
+  else if (stringr::str_detect(json, ",?\"[^\"]+\":?$"))
+    json <- stringr::str_replace(json, ",?\"[^\"]+\":?$", "")
+
+  # close missing parentheses
+  open_brackets <- stringr::str_extract_all(json, "[\\{\\[]")[[1]]
+  close_brackets <- stringr::str_extract_all(json, "[\\}\\]]")[[1]]
+  if (length(open_brackets) > length(close_brackets)) {
+    missing_brackets <- open_brackets[1:(length(open_brackets) - length(close_brackets))]
+    matching_brackets <- c("{" = "}", "[" = "]")
+    json <- paste0(json, paste(matching_brackets[rev(missing_brackets)], collapse = ""))
+  }
+  test <<- json
+  return(json)
 }
 
 #' Get device state
@@ -356,7 +383,6 @@ ll_summarize_cloud_data_experiment_links <- function(
       bind_rows(., filter(cloud_data, !is.na(error), !device_name %in% .$device_name))
     } %>%
     filter(linked & !is.na(exp_id) | unlinked & is.na(exp_id)) %>%
-    select(-exp_id) %>%
     nest(exp_id, recording, .key = ..exp_data..) %>%
     mutate(
       recording_exp_ids = map_chr(..exp_data.., ~filter(.x, recording)$exp_id %>% { if(length(.) > 0) glue::glue_collapse(., sep = ", ") else NA_character_ }),
