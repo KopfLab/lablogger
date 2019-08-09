@@ -77,16 +77,20 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
   # traces ====
 
   # selector
-  traces_selector <- callModule(selectorTableServer, "traces_selector", id_column = "data_trace", col_headers = c("Trace"))
+  traces_selector <- callModule(
+    selectorTableServer, "traces_selector",
+    id_column = "data_trace", column_select = c(`# data points` = n),
+    dom = "tlp"
+    )
 
   # update data
   observe({
-    df <- get_data_logs() %>% prepare_data_for_plotting()
+    df <- get_data_logs() %>% prepare_data_for_plotting() %>% dplyr::count(data_trace)
     isolate({
       if (nrow(df) > 0) {
-        traces_selector$set_table(df %>% select(data_trace) %>% unique() %>% arrange(data_trace))
+        traces_selector$set_table(df %>% arrange(data_trace))
       } else {
-        traces_selector$set_table(data_frame(data_trace = character(0)))
+        traces_selector$set_table(data_frame(data_trace = character(0), n = integer(0)))
       }
     })
   })
@@ -417,7 +421,7 @@ dataPlotUI <- function(id, plot_height = 650) {
     div(id = ns("traces_box"),
       default_box(
         title = "Data Traces", width = 4,
-        selectorTableUI(ns("traces_selector"), height = 195),
+        selectorTableUI(ns("traces_selector")),
         footer = div(
           tooltipInput(actionButton, ns("traces_refresh"), label = "Re-plot", icon = icon("refresh"),
                        tooltip = "Refresh plot with new data trace selection."),

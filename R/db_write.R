@@ -103,7 +103,6 @@ ll_update_experiment_info <- function(exp_id, exp_desc = NULL, exp_notes = NULL,
   sql <- glue::glue(
     "UPDATE experiments SET {to_sql(updates, named = TRUE)} ",
     "WHERE group_id = {to_sql(group_id)} AND exp_id = {to_sql(exp_id)}")
-  print(sql)
   result <- run_sql(sql, con)
 
   if (!quiet) {

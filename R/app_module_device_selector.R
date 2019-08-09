@@ -9,7 +9,9 @@ deviceSelectorServer <- function(input, output, session, get_devices, get_select
   )
 
   # selector
-  selector <- callModule(selectorTableServer, "selector", id_column = "device_id", col_headers = c("ID", "Name", "Type"))
+  selector <- callModule(selectorTableServer, "selector",
+                         id_column = "device_id",
+                         column_select = c(Name = device_name, Type = device_type_desc))
 
   # update data
   observe({
@@ -42,11 +44,11 @@ deviceSelectorServer <- function(input, output, session, get_devices, get_select
 
 }
 
-deviceSelectorUI <- function(id, width = 12, selector_height = 150, add_footer = tagList()) {
+deviceSelectorUI <- function(id, width = 12, add_footer = tagList()) {
   ns <- NS(id)
   default_box(
     title = "Devices", width = width,
-    selectorTableUI(ns("selector"), height = selector_height),
+    selectorTableUI(ns("selector")),
     footer = div(
       tooltipInput(actionButton, ns("device_refresh"), label = "Refresh", icon = icon("refresh"), tooltip = "Refresh devices."),
       spaces(1),

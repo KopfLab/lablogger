@@ -68,7 +68,7 @@ deviceInfoServer <- function(input, output, session, get_cloud_state, refresh_cl
     DT::datatable(
       generate_state_logs_table(),
       options = list(orderClasses = TRUE, order = list(1, "desc"),
-                     lengthMenu = c(5, 10, 25, 50, 100), pageLength = 5),
+                     lengthMenu = c(5, 10, 25, 50, 100), pageLength = 10),
       filter = "bottom"
     )
   })
@@ -88,7 +88,6 @@ deviceInfoServer <- function(input, output, session, get_cloud_state, refresh_cl
   output$data_table <- renderTable({
     data <- get_cloud_data()
     validate(need(nrow(data) > 0, "No live data available."))
-    print(data)
     data <- data %>%
       mutate(datetime = ifelse(!is.na(datetime), format(datetime), error)) %>%
       select(Name = device_name, `Live data posted at` = datetime,
@@ -223,3 +222,11 @@ deviceDataUI <- function(id, width = 12, selected_options = c("r_exps", "serial"
     )
   )
 }
+
+deviceFetchAllUI <- function(id) {
+  ns <- NS(id)
+  tooltipInput(actionButton, ns("fetch_data_all"), "Fetch All (Data, State, Info, Logs)", icon = icon("cloud-download"),
+               tooltip = "Fetch all device information from the cloud and database.")
+}
+
+

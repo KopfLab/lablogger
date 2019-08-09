@@ -126,26 +126,42 @@ experimentManagerServer <- function(input, output, session, dm_experiments, dm_c
     toggle("stop_recording", condition = FALSE)
   })
 
-  # experiment devices ====
+  # experiment devices =====
+  # # NOTE: always show info for all experiment devices to simplify use of this screen
+  # callModule(
+  #   deviceSelectorServer, "exp_devices",
+  #   get_devices = dm_experiments$get_loaded_experiment_devices,
+  #   get_selected_devices = dm_experiments$get_selected_loaded_experiment_devices,
+  #   refresh_devices = dm_experiments$load_experiment_device_links,
+  #   select_devices = dm_experiments$select_loaded_experiment_devices,
+  #   access_token = access_token)
 
-  callModule(
-    deviceSelectorServer, "exp_devices1",
-    get_devices = dm_experiments$get_loaded_experiment_devices,
-    get_selected_devices = dm_experiments$get_selected_loaded_experiment_devices,
-    refresh_devices = dm_experiments$load_experiment_device_links,
-    select_devices = dm_experiments$select_loaded_experiment_devices,
-    access_token = access_token)
+  # device links
+  output$data_table <- renderTable({
+    data <- dm_cloudinfo$get_exp_devices_cloud_data()
+    validate(need(nrow(data) > 0, "No live data available."))
+    data <- data %>%
+      mutate(datetime = ifelse(!is.na(datetime), format(datetime), error)) %>%
+      select(Name = device_name, `Live data posted at` = datetime,
+             `Exp IDs (recording)` = recording_exp_ids, `Exp IDs (not recording)` = non_recording_exp_ids,
+             idx, key, value, units,
+             raw_serial, raw_serial_errors)
+    module_message(ns, "debug", "rendering cloud data table")
 
-  callModule(
-    deviceSelectorServer, "exp_devices2",
-    get_devices = dm_experiments$get_loaded_experiment_devices,
-    get_selected_devices = dm_experiments$get_selected_loaded_experiment_devices,
-    refresh_devices = dm_experiments$load_experiment_device_links,
-    select_devices = dm_experiments$select_loaded_experiment_devices,
-    access_token = access_token)
+    if (!"serial" %in% input$data_table_options)
+      data <- select(data, -raw_serial, -raw_serial_errors)
+    if (!"r_exps" %in% input$data_table_options)
+      data <- select(data, -`Exp IDs (recording)`)
+    if (!"nr_exps" %in% input$data_table_options)
+      data <- select(data, -`Exp IDs (not recording)`)
 
-  # devices info ===
+    return(data)
+  }, striped = TRUE, spacing = 'xs', width = '100%', align = NULL)
 
+  # device control =====
+  control <- callModule(deviceCommandsServer, "control", get_devices = dm_experiments$get_loaded_experiment_devices, access_token = access_token)
+
+  # devices info =====
   callModule(
     deviceInfoServer, "devices_info",
     get_cloud_state = dm_cloudinfo$get_exp_devices_cloud_state,
@@ -155,12 +171,12 @@ experimentManagerServer <- function(input, output, session, dm_experiments, dm_c
     refresh_experiment_device_links = dm_experiments$load_experiment_device_links,
     get_cloud_info = dm_cloudinfo$get_exp_devices_cloud_info,
     refresh_cloud_info = dm_cloudinfo$refresh_cloud_info,
-    get_devices = dm_experiments$get_selected_loaded_experiment_devices,
+    get_devices = dm_experiments$get_loaded_experiment_devices, #dm_experiments$get_selected_loaded_experiment_devices,
     get_state_logs = dm_datalogs$get_experiment_devices_state_logs,
     refresh_state_logs = dm_datalogs$refresh_experiment_state_logs
   )
 
-  # experiment data ====
+  # experiment data ======
 
   callModule(
     dataPlotServer, "exp_data_plot", timezone = timezone,
@@ -179,6 +195,7 @@ experimentManagerUI <- function(id, width = 12) {
   tagList(
 
     default_box(
+      # selection ====
       title = "Experiments", width = width,
       uiOutput(ns("experiment")),
       footer = div(
@@ -186,6 +203,8 @@ experimentManagerUI <- function(id, width = 12) {
         spaces(1),
         # FIXME
         tooltipInput(actionButton, ns("experiment_new"), label = "New experiment", icon = icon("plus"), tooltip = "Add new experiment. NOT IMPLEMENTED YET"),
+        spaces(1),
+        deviceControlButton(ns("control"), label = "Control Devices"),
         spaces(1),
         actionButton(ns("start_recording"), label = "Start Recording",
                      icon = icon("play"), style="color: #fff; background-color: #007f1f; border-color: #2e6da4") %>% hidden(),
@@ -200,7 +219,8 @@ experimentManagerUI <- function(id, width = 12) {
 
     div(id = ns("tabs"),
     tabsetPanel(
-      type = "tabs", # selected = "data",
+      type = "tabs", selected = "devices",
+      # data ===
       tabPanel(
         value = "data",
         "Data", br(),
@@ -223,30 +243,49 @@ experimentManagerUI <- function(id, width = 12) {
       ),
       # devices ====
       tabPanel(
-        value = "configuration",
-        "Configuration",
+        value = "devices",
+        "Devices",
         br(),
         spaces(3),
-        # FIXME
-        tooltipInput(actionButton, ns("add_devices"), label = "Add device links", icon = icon("microchip"), tooltip = "Add additional device links. NOT IMPLEMENETED YET"),
+        tooltipInput(actionButton, ns("add_devices"), label = "Configure Device Links", icon = icon("microchip"), tooltip = "Add additional device links. NOT IMPLEMENETED YET"),
+        spaces(1),
+        deviceFetchAllUI(ns("devices_info")),
         br(), br(),
-        deviceDataUI(ns("devices_info"), selected_options = "r_exps", include_fetch_all = FALSE)
-      ),
-      tabPanel(
-        value = "device_info",
-        "Device Info", br(),
-        deviceSelectorUI(ns("exp_devices1"), width = 12, selector_height = 150),
+        #deviceDataUI(ns("devices_info"), selected_options = "r_exps", include_fetch_all = FALSE),
+        deviceLinksUI(ns(NULL), selected_options = "r_exps"),
         deviceStateUI(ns("devices_info"), include_fetch_all = FALSE),
-        deviceInfoUI(ns("devices_info"), include_fetch_all = FALSE)
-      ),
-      tabPanel(
-        value = "device_logs",
-        "Device Logs", br(),
-        deviceSelectorUI(ns("exp_devices2"), width = 12, selector_height = 150),
+        deviceInfoUI(ns("devices_info"), include_fetch_all = FALSE),
         deviceLogsUI(ns("devices_info"), include_fetch_all = FALSE)
       )
     )) %>% hidden()
 
   )
 
+}
+
+# note this is an adapted version of the app_module_device_info.R deviceDataUI function
+# easier to adapt than to make the other function serve both purposes
+deviceLinksUI <- function(id, width = 12, selected_options = c("r_exps", "serial")) {
+
+  ns <- NS(id)
+
+  tagList(
+    # live data
+    default_box(
+      title = "Device Links & Live Data", width = width,
+      style = paste0("min-height: 130px;"),
+      checkboxGroupInput(ns("data_table_options"), NULL,
+                         c("Experiment Links (recording)" = "r_exps",
+                           "Experiment Links (not recording)" = "nr_exps",
+                           "Raw Serial Data" = "serial"),
+                         selected = selected_options,
+                         inline = TRUE),
+
+      tableOutput(ns("data_table")) %>% withSpinner(type = 5, proxy.height = "130px"),
+      footer = div(
+        tooltipInput(actionButton, ns("fetch_data"), "Fetch Data", icon = icon("cloud-download"),
+                     tooltip = "Fetch the most recent live data and experiment links from the cloud.")
+      )
+    )
+  )
 }

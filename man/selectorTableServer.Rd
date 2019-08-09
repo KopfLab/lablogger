@@ -4,15 +4,20 @@
 \alias{selectorTableServer}
 \title{Selector table server}
 \usage{
-selectorTableServer(input, output, session, id_column, col_headers,
-  hot_mods = NULL)
+selectorTableServer(input, output, session, id_column,
+  column_select = everything(), page_lengths = c(5, 10, 20),
+  initial_page_length = page_lengths[1], dom = "fltip")
 }
 \arguments{
-\item{id_column}{name of the id column that should be used for reporting selection}
+\item{id_column}{name of the ID column - make a rownumber or concatenated column if there is no unique identificer column otherwise}
 
-\item{col_headers}{name of the column headers}
+\item{column_select}{dplyr select statement to choose displayed columns and headers}
 
-\item{hot_mods}{hands on table modifiers}
+\item{page_lengths}{page length options, first one will be selected}
+
+\item{initial_page_length}{initially selected page length, first entry of the page_lengths by default}
+
+\item{dom}{the available table control elements and their order}
 }
 \description{
 This generates an rhandson table for selecting items to include in downstream operations.

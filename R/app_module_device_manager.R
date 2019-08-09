@@ -57,7 +57,7 @@ deviceManagerUI <- function(id, width = 12) {
   ns <- NS(id)
 
   tagList(
-    deviceSelectorUI(ns("devices"), width = width, selector_height = 200,
+    deviceSelectorUI(ns("devices"), width = width,
       add_footer = tagList(
         spaces(1),
         tooltipInput(actionButton, ns("device_add"), label = "Add device", icon = icon("plus-circle"), tooltip = "Register new device. NOT IMPLEMENETED YET"),

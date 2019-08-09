@@ -13,7 +13,7 @@ ll_plot_device_data_logs(device_data_logs, filter = NULL,
 \arguments{
 \item{device_data_logs}{data logs}
 
-\item{duration_breaks}{specify a duration interval (e.g. "20 mins") to indicate whether x axis should be displayed as a duration since the first data point within each experiment, if NULL x axis is displayed as regular date time (set date_breaks instead).}
+\item{duration_breaks}{specify a duration unit or interval (e.g. "hours" or "20 mins") to indicate whether x axis should be displayed as a duration since the first data point within each experiment. If interval is specified, this will be used for axis intervals, if just time unit the axis will have regular auto-ticks. If duration_breaks = NULL (the default), the x axis is displayed as regular date time (set date_breaks instead).}
 
 \item{date_breaks}{formate the datetime breaks if not plotting duration (i.e. is ignored if duration_units is provided)}
 

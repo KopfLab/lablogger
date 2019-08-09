@@ -23,7 +23,6 @@
 #' @importFrom shinyAce aceEditor
 #' @importFrom shinyBS bsTooltip
 #' @importFrom shinycssloaders withSpinner
-#' @importFrom rhandsontable rHandsontableOutput renderRHandsontable rhandsontable hot_table hot_col hot_to_r
 #' @importFrom stats setNames cor.test lm
 #' @importFrom utils packageVersion
 #' @importFrom methods is

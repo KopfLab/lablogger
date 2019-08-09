@@ -15,9 +15,12 @@ spaces <- function(n) {
 }
 
 # convenience function for adding input with tooltip with default parameters
-tooltipInput <- function(input, inputId, ..., tooltip = NULL) {
+tooltipInput <- function(input, inputId, ..., tooltip = NULL, hidden = FALSE, disabled = FALSE) {
+  input_tag <- do.call(input, args = c(list(inputId = inputId), list(...)))
+  if (hidden) input_tag <- shinyjs::hidden(input_tag)
+  if (disabled) input_tag <- shinyjs::disabled(input_tag)
   tagList(
-    do.call(input, args = c(list(inputId = inputId), list(...))),
+    input_tag,
     if (!is.null(tooltip)) bsTooltip(inputId, tooltip)
   )
 }

@@ -4,14 +4,22 @@
 #'
 #' This generates an rhandson table for selecting items to include in downstream operations.
 #'
-#' @param id_column name of the id column that should be used for reporting selection
-#' @param col_headers name of the column headers
-#' @param hot_mods hands on table modifiers
+#' @param id_column name of the ID column - make a rownumber or concatenated column if there is no unique identificer column otherwise
+#' @param column_select dplyr select statement to choose displayed columns and headers
+#' @param page_lengths page length options, first one will be selected
+#' @param initial_page_length initially selected page length, first entry of the page_lengths by default
+#' @param dom the available table control elements and their order
 #' @family selector table module functions
-selectorTableServer <- function(input, output, session, id_column, col_headers, hot_mods = NULL) {
+selectorTableServer <- function(input, output, session, id_column, column_select = everything(), page_lengths = c(5, 10, 20), initial_page_length = page_lengths[1], dom = "fltip") {
+
+  # safety checks
+  stopifnot(!missing(id_column))
 
   # namespace
   ns <- session$ns
+
+  # column selection
+  column_select_quo <- rlang::enquo(column_select)
 
   # reactive values
   values <- reactiveValues(
@@ -20,49 +28,53 @@ selectorTableServer <- function(input, output, session, id_column, col_headers, 
     update_selected = 0 # trigger selection update (circumventing circular triggers with user selection)
   )
 
-  # trigger external selection updates
-  update_selected <- function() {
-    values$update_selected <- values$update_selected + 1
-  }
+  # trigger selection updates
+  update_selected <- function() values$update_selected <- values$update_selected + 1
+  observeEvent(values$update_selected, {
+    module_message(ns, "debug", "updating selections in selection table")
+    proxy <- DT::dataTableProxy("selection_table")
+    DT::selectRows(proxy, which(values$table[[id_column]] %in% values$selected))
+  })
 
   # render table
-  output$selection_table = renderRHandsontable({
-
-    validate(need(values$table, "No entries.")) # if the table changes
-    values$update_selected # if the selection changes
-    module_message(ns, "debug", "rendering selection table")
-
-    # isolate hereafter to generate rhandsontable
+  output$selection_table <- DT::renderDataTable({
+    values$table # trigger with update of the data table (whole re-render required for client-side)
     isolate({
-      table <- values$table
-      table$include <- table[[id_column]] %in% values$selected
-      hot <- table %>%
-        select(include, everything()) %>%
-        rhandsontable(colHeaders = c(" ", col_headers)) %>%
-        hot_table(readOnly = TRUE, highlightRow = TRUE, columnSorting = FALSE, contextMenu = FALSE) %>%
-        hot_col(col = " ", halign = "htCenter", readOnly = FALSE)
-      if (!is.null(hot_mods) && is.function(hot_mods))
-        hot <- hot_mods(hot)
-      return(hot)
+      validate(need(values$table, "None available.")) # trigger if the table changes
+      module_message(ns, "debug", "(re-) rendering selection table")
+      row_names <- values$table[[id_column]]
+      df <- select(values$table, !!column_select_quo) %>% as.data.frame()
+      rownames(df) <- row_names
+      update_selected()
+      df
+    })},
+    options = list(
+      pageLength = initial_page_length,
+      lengthMenu = page_lengths,
+      searchDelay = 100,
+      dom = dom
+    ),
+    server = FALSE # client side usually faster to use
+  )
+
+  # selection
+  observe({
+    selections <- input$selection_table_rows_selected
+    isolate({
+      if (!identical(values$selected, selections) && !is.null(values$table) && nrow(values$table) > 0) {
+        values$selected <- if (is.null(selections)) c() else values$table[[id_column]][selections]
+      }
     })
   })
 
-  # selection
-  observeEvent(input$selection_table, {
-    if (!identical(values$selected, input$selection_table) && !is.null(input$selection_table) && !is.null(values$table) && nrow(values$table) > 0) {
-      selections <- input$selection_table %>% hot_to_r()
-      if (nrow(selections) > 0) {
-        values$selected <- selections %>% filter(include) %>% { .[[id_column]] }
-      }
-    }
-  })
-
   observeEvent(input$select_all, {
-    values$selected <- values$table[[id_column]]
+    # select all that match the current filter
+    values$selected <- unique(c(values$selected, values$table[[id_column]][input$selection_table_rows_all]))
     update_selected()
   })
 
   observeEvent(input$deselect_all, {
+    # deselect all
     values$selected <- c()
     update_selected()
   })
@@ -100,21 +112,26 @@ selectorTableServer <- function(input, output, session, id_column, col_headers, 
     else return(values$selected[values$selected %in% values$table[[id_column]]])
   })
 
+  get_selected_items <- reactive({
+    # get the actual table items that are selected
+    values$table[values$table[[id_column]] %in% values$selected, ]
+  })
+
   # return functions
   list(
     set_table = set_table,
     set_selected = set_selected,
-    get_selected = get_selected
+    get_selected = get_selected,
+    get_selected_items = get_selected_items
   )
 }
 
 
 #' Selector table UI
 #' @family selector table module functions
-selectorTableUI <- function(id, height = "200px") {
+selectorTableUI <- function(id) {
   ns <- NS(id)
-  rHandsontableOutput(ns("selection_table"), width = "100%", height = height) %>%
-    withSpinner(type = 7, proxy.height = height)
+  DT::dataTableOutput(ns("selection_table"))
 }
 
 #' Selector table buttons
@@ -122,8 +139,12 @@ selectorTableUI <- function(id, height = "200px") {
 selectorTableButtons <- function(id) {
   ns <- NS(id)
   tagList(
-    actionButton(ns("select_all"), "Select all", icon = icon("check-square-o")),
+    tooltipInput(actionButton, ns("select_all"), "Select all",
+                 icon = icon("check-square-o"),
+                 tooltip = "Select all items that match the current search in addition to those already selected."),
     spaces(1),
-    actionButton(ns("deselect_all"), "Deselect", icon = icon("square-o"))
+    tooltipInput(actionButton, ns("deselect_all"), "Deselect",
+                 icon = icon("square-o"),
+                 tooltip = "Deselct all items (irrespective of the search).")
   )
 }

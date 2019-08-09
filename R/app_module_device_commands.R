@@ -5,7 +5,7 @@ deviceCommandsServer <- function(input, output, session, get_devices, access_tok
 
   # values
   values <- reactiveValues(
-    devices = data_frame()
+    selected_devices = data_frame()
   )
 
   # trigger control dialog
@@ -17,7 +17,7 @@ deviceCommandsServer <- function(input, output, session, get_devices, access_tok
       title = h3("Send a command to one or multiple devices", align = "center"),
       fade = FALSE, easyClose = TRUE, size = "l",
       fluidRow(
-        column(6, DT::dataTableOutput(ns("devices"))),
+        column(6, selectorTableUI(ns("devices"))),
         column(6, h4("Selected Devices"), tableOutput(ns("selected_devices")))
       ),
       fluidRow(
@@ -36,66 +36,55 @@ deviceCommandsServer <- function(input, output, session, get_devices, access_tok
       footer =
         tagList(
           tooltipInput(actionButton, ns("send_command"),
-                       label = "Send", icon = icon("paper-plane"), tooltip = "Send command."),
+                       label = "Send", icon = icon("paper-plane"),
+                       tooltip = "Send command.",
+                       disabled = TRUE),
           modalButton("Close")
         )
     )})
 
-  # render table
-  output$devices <- DT::renderDataTable(
-    {
-      devices <- get_devices()
-      validate(need(nrow(devices) > 0, "no devices available"))
-      df <- select(devices, Name = device_name, Type = device_type_desc) %>% as.data.frame()
-      rownames(df) <- devices$device_id
-      df
-    },
-    options = list(
-      pageLength = 10,
-      lengthMenu = c(10, 20, 50),
-      searchDelay = 100
-    ),
-    server = FALSE
+  # selection table
+  selector <- callModule(
+    selectorTableServer, "devices",
+    id_column = "device_id",
+    column_select = c(Name = device_name, Type = device_type_desc),
+    page_lengths = c(10, 20, 50)
   )
 
-  # detect selected devices
+  # update devices table
   observe({
-    selected_devices = input$devices_rows_selected
-    isolate({
-      if (length(selected_devices) > 0) {
-        shinyjs::enable("send_command")
-        values$devices <- get_devices()[selected_devices, ] %>%
-          select(device_id, Name = device_name)
-      } else {
-        shinyjs::disable("send_command")
-        values$devices <- data_frame()
-      }
-    })
+    req(df <- get_devices())
+    if (nrow(df) > 0) selector$set_table(df)
+  })
+
+  # react to device selection
+  observe({
+    values$selected_devices <- selector$get_selected_items()
+    shinyjs::toggleState("send_command", condition = nrow(values$selected_devices) > 0)
   })
 
   # show summary table of selected devices
   output$selected_devices = renderTable({
-    validate(need(nrow(values$devices) > 0, "None"))
-    select(values$devices, -device_id)
+    validate(need(nrow(values$selected_devices) > 0, "None"))
+    if ("return_message" %in% names(values$selected_devices))
+      select(values$selected_devices, Name = device_name, `Command Message` = return_message)
+    else
+      select(values$selected_devices, Name = device_name)
   })
 
     # send command
   observeEvent(input$send_command, {
     module_message(ns, "debug", "sending device command '", input$command, "'...")
-    result <-
+    values$selected_devices <-
       withProgress(
         message = 'Sending command', detail = "Contacting device cloud...", value = 0.5,
-        get_devices() %>%
-          filter(device_id %in% values$devices$device_id) %>%
+        values$selected_devices %>%
           ll_send_devices_command(
             command = input$command,
             message = input$message,
             access_token = access_token
           )
       )
-
-    values$devices <- result %>%
-      select(device_id, Name = device_name, `Command Message` = return_message)
   })
 }
 

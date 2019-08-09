@@ -4,7 +4,7 @@
 \alias{selectorTableUI}
 \title{Selector table UI}
 \usage{
-selectorTableUI(id, height = "200px")
+selectorTableUI(id)
 }
 \description{
 Selector table UI
