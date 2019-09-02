@@ -48,7 +48,7 @@ deviceCommandsServer <- function(input, output, session, get_devices, access_tok
     selectorTableServer, "devices",
     id_column = "device_id",
     column_select = c(Name = device_name, Type = device_type_desc),
-    page_lengths = c(10, 20, 50)
+    initial_page_length = 10
   )
 
   # update devices table

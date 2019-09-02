@@ -90,7 +90,7 @@ ll_get_experiments <- function(group_id = default(group_id), filter = NULL, conv
 
 #' Retrieve experiment device links
 #'
-#' Returns experiment-device links (only for active/in-use devices) joined with experiment, devices and device types tables so filter conditions can be applied on any of these as well.
+#' Returns experiment-device links (only for in-use devices) joined with experiment, devices and device types tables so filter conditions can be applied on any of these as well.
 #'
 #' @inheritParams ll_get_experiments
 #' @return experiments_devices

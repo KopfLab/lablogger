@@ -5,19 +5,25 @@
 \title{Selector table server}
 \usage{
 selectorTableServer(input, output, session, id_column,
-  column_select = everything(), page_lengths = c(5, 10, 20),
-  initial_page_length = page_lengths[1], dom = "fltip")
+  row_column = id_column, column_select = NULL,
+  page_lengths = list(c(5, 10, 20, -1), c("5", "10", "20", "All")),
+  initial_page_length = page_lengths[[1]][1], dom = "fltip",
+  selector_buttons = TRUE)
 }
 \arguments{
 \item{id_column}{name of the ID column - make a rownumber or concatenated column if there is no unique identificer column otherwise}
 
-\item{column_select}{dplyr select statement to choose displayed columns and headers}
+\item{row_column}{which column to use as the "row number", by default same as the id_column}
+
+\item{column_select}{dplyr select statement to choose displayed columns and headers, if not provided (=NULL), will display data table exactly as is (minus the id column which becomes the row number)}
 
 \item{page_lengths}{page length options, first one will be selected}
 
 \item{initial_page_length}{initially selected page length, first entry of the page_lengths by default}
 
 \item{dom}{the available table control elements and their order}
+
+\item{selector_buttons}{whether the selector buttons are present}
 }
 \description{
 This generates an rhandson table for selecting items to include in downstream operations.

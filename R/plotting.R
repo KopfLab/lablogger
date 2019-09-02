@@ -17,11 +17,11 @@ prepare_data_for_plotting <- function(device_data_logs) {
 #' @param device_data_logs data logs
 #' @param duration_breaks specify a duration unit or interval (e.g. "hours" or "20 mins") to indicate whether x axis should be displayed as a duration since the first data point within each experiment. If interval is specified, this will be used for axis intervals, if just time unit the axis will have regular auto-ticks. If duration_breaks = NULL (the default), the x axis is displayed as regular date time (set date_breaks instead).
 #' @param date_breaks formate the datetime breaks if not plotting duration (i.e. is ignored if duration_units is provided)
-#' @param include_device_name whether to include the device name in the data trace label
+#' @param include_device_info whether to include the device info (name and index) in the data trace label
 #' @param overlay_experiments whether to overlay the experiments instead of paneling (default is panels). This usually makes most sense if x axis is a duration (set via duration units)
 #' @family data logs functions
 #' @export
-ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error_range = FALSE, exclude_outliers = FALSE, duration_breaks = NULL, date_breaks = NULL, include_device_name = FALSE, overlay_experiments = FALSE, quiet = default(quiet)) {
+ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error_range = FALSE, exclude_outliers = FALSE, duration_breaks = NULL, date_breaks = NULL, include_device_info = FALSE, overlay_experiments = FALSE, quiet = default(quiet)) {
 
   filter_quo <- rlang::enquo(filter)
 
@@ -66,16 +66,16 @@ ll_plot_device_data_logs <- function(device_data_logs, filter = NULL, show_error
   # plot
   p <- ggplot(plot_df) + aes(y = data_value)
 
-  if (include_device_name) {
-    p <- p %+% aes(color = sprintf("%s: %s", device_name, data_trace), group = group)
+  if (include_device_info) {
+    p <- p %+% aes(color = sprintf("%s (%d): %s", device_name, data_idx, data_trace), group = group)
   } else {
     p <- p %+% aes(color = data_trace, group = group)
   }
 
   # error range
   if (show_error_range) {
-    if (include_device_name) {
-      p <- p + aes(fill = sprintf("%s: %s", device_name, data_trace))
+    if (include_device_info) {
+      p <- p + aes(fill = sprintf("%s (%d): %s", device_name, data_idx, data_trace))
     } else {
       p <- p + aes(fill = data_trace)
     }

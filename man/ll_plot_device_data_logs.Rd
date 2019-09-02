@@ -7,7 +7,7 @@
 ll_plot_device_data_logs(device_data_logs, filter = NULL,
   show_error_range = FALSE, exclude_outliers = FALSE,
   duration_breaks = NULL, date_breaks = NULL,
-  include_device_name = FALSE, overlay_experiments = FALSE,
+  include_device_info = FALSE, overlay_experiments = FALSE,
   quiet = default(quiet))
 }
 \arguments{
@@ -17,7 +17,7 @@ ll_plot_device_data_logs(device_data_logs, filter = NULL,
 
 \item{date_breaks}{formate the datetime breaks if not plotting duration (i.e. is ignored if duration_units is provided)}
 
-\item{include_device_name}{whether to include the device name in the data trace label}
+\item{include_device_info}{whether to include the device info (name and index) in the data trace label}
 
 \item{overlay_experiments}{whether to overlay the experiments instead of paneling (default is panels). This usually makes most sense if x axis is a duration (set via duration units)}
 }

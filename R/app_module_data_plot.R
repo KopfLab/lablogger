@@ -85,10 +85,10 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
 
   # update data
   observe({
-    df <- get_data_logs() %>% prepare_data_for_plotting() %>% dplyr::count(data_trace)
+    df <- get_data_logs() %>% prepare_data_for_plotting()
     isolate({
       if (nrow(df) > 0) {
-        traces_selector$set_table(df %>% arrange(data_trace))
+        traces_selector$set_table(df %>% dplyr::count(data_trace) %>% arrange(data_trace))
       } else {
         traces_selector$set_table(data_frame(data_trace = character(0), n = integer(0)))
       }
@@ -270,7 +270,7 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
         duration_breaks = duration_breaks, date_breaks = time_breaks,
         show_error_range = input$show_errors,
         exclude_outliers = !input$show_outliers,
-        include_device_name = input$show_device_names,
+        include_device_info= input$show_device_info,
         overlay_experiments = input$overlay_exps)
 
       # legend position
@@ -444,8 +444,8 @@ dataPlotUI <- function(id, plot_height = 650) {
              column(width = 2)
             ),
           fluidRow(
-            h4("Device Names:") %>% column(width = 4),
-            checkboxInput(ns("show_device_names"), NULL, value = FALSE) %>%
+            h4("Device Info:") %>% column(width = 4),
+            checkboxInput(ns("show_device_info"), NULL, value = FALSE) %>%
               column(width = 2),
             h4("Overlay Exps:") %>% column(width = 4),
             checkboxInput(ns("overlay_exps"), NULL, value = FALSE) %>%

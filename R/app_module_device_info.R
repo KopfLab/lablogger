@@ -1,7 +1,6 @@
 
 #' Device Info Server
-#' @param refresh_experiment_device_links to refresh the database queried list of links between experiments and devices (either from the device or experiment perspective)
-deviceInfoServer <- function(input, output, session, get_cloud_state, refresh_cloud_state, get_cloud_data, refresh_cloud_data, refresh_experiment_device_links, get_cloud_info, refresh_cloud_info, get_devices, get_state_logs, refresh_state_logs) {
+deviceInfoServer <- function(input, output, session, get_cloud_state, refresh_cloud_state, get_cloud_data, refresh_cloud_data, get_cloud_info, refresh_cloud_info, get_device_ids, get_state_logs, refresh_state_logs) {
 
 
   # namespace
@@ -9,23 +8,11 @@ deviceInfoServer <- function(input, output, session, get_cloud_state, refresh_cl
 
   # fetches =======
 
-  # fetch cloud data - experiment device links
-  observeEvent(input$fetch_cloud_data_experiment_links, {
-    refresh_experiment_device_links()
-    refresh_cloud_data()
-  })
-
   # fetch state
   observeEvent(input$fetch_state, refresh_cloud_state())
 
   # fetch data
-  observeEvent(input$fetch_data, {
-    refresh_cloud_data()
-    # only trigger this if currently showing exp links info
-    refresh_experiment_device_links(
-      init = !any(c("r_exps", "nr_exps") %in% input$data_table_options)
-    )
-  })
+  observeEvent(input$fetch_data, refresh_cloud_data())
 
   # fetch info
   observeEvent(input$fetch_info, refresh_cloud_info())
@@ -45,20 +32,17 @@ deviceInfoServer <- function(input, output, session, get_cloud_state, refresh_cl
     isolate({
       refresh_cloud_state()
       refresh_cloud_data()
-      refresh_experiment_device_links() # always trigger in this case
       refresh_cloud_info()
       refresh_state_logs()
     })
   })
 
   # state logs table =====
-  is_device_selected <- reactive(length(get_devices()) > 0)
+  is_device_selected <- reactive(length(get_device_ids()) > 0)
   generate_state_logs_table <- eventReactive(get_state_logs(), {
-    validate(
-      need(is_device_selected(), "No device selected.") %then%
-        need(nrow(get_state_logs()) > 0, "No state logs available.")
-    )
-    logs <- get_state_logs() %>%
+    logs <- get_state_logs()
+    validate(need(nrow(logs) > 0, "No state logs available."))
+    logs <- logs %>%
       select(log_datetime, everything()) %>%
       select(-device_id) %>%
       mutate(log_datetime = format(log_datetime, "%Y-%m-%d %H:%M:%S"))
@@ -85,6 +69,8 @@ deviceInfoServer <- function(input, output, session, get_cloud_state, refresh_cl
   }, striped = TRUE, spacing = 'xs', width = '100%', align = NULL)
 
   # live data table ======
+  # this is only really used on devices screen, should probably be part of device_manager
+  # like the experiment counterpart in experiment_manager!
   output$data_table <- renderTable({
     data <- get_cloud_data()
     validate(need(nrow(data) > 0, "No live data available."))
@@ -95,16 +81,19 @@ deviceInfoServer <- function(input, output, session, get_cloud_state, refresh_cl
              idx, key, value, units,
              raw_serial, raw_serial_errors)
     module_message(ns, "debug", "rendering cloud data table")
+    return(apply_live_data_table_options(data))
+  }, striped = TRUE, spacing = 'xs', width = '100%', align = NULL)
 
+  # column options for live data table
+  apply_live_data_table_options <- function(data) {
     if (!"serial" %in% input$data_table_options)
       data <- select(data, -raw_serial, -raw_serial_errors)
     if (!"r_exps" %in% input$data_table_options)
       data <- select(data, -`Exp IDs (recording)`)
     if (!"nr_exps" %in% input$data_table_options)
       data <- select(data, -`Exp IDs (not recording)`)
-
     return(data)
-  }, striped = TRUE, spacing = 'xs', width = '100%', align = NULL)
+  }
 
   # live info table =====
   output$info_table <- renderTable({
@@ -119,9 +108,15 @@ deviceInfoServer <- function(input, output, session, get_cloud_state, refresh_cl
       select(Name = device_name, `Last heard from` = last_heard, Connected = connected, Status = status, Firmware = system_firmware_version)
   }, striped = TRUE, spacing = 'xs', width = '100%', align = NULL)
 
+  # return functions
+  list(
+    trigger_live_data_table_options = reactive(input$data_table_options),
+    apply_live_data_table_options = apply_live_data_table_options
+  )
+
 }
 
-deviceLogsUI <- function(id, width = 12, include_fetch_all = TRUE) {
+deviceLogsUI <- function(id, width = 12) {
 
   ns <- NS(id)
 
@@ -129,15 +124,11 @@ deviceLogsUI <- function(id, width = 12, include_fetch_all = TRUE) {
 
     default_box(
       title = "Device State Logs", width = width,
-      style = paste0("min-height: 130px;"),
-      DT::dataTableOutput(ns("logs_table")) %>% withSpinner(type = 5, proxy.height = "130px"),
+      style = paste0("min-height: 300px;"),
+      DT::dataTableOutput(ns("logs_table")) %>% withSpinner(type = 5, proxy.height = "300px"),
       footer = div(
         tooltipInput(actionButton, ns("fetch_logs"), "Fetch Logs", icon = icon("cloud-download"),
-                     tooltip = "Fetch the most recent state logs from the data base."),
-        spaces(1),
-        if (include_fetch_all)
-          tooltipInput(actionButton, ns("fetch_logs_all"), "Fetch All", icon = icon("cloud-download"),
-                       tooltip = "Fetch all device information from the cloud and database.")
+                     tooltip = "Fetch the most recent state logs from the data base.")
       )
     )
 
@@ -146,7 +137,7 @@ deviceLogsUI <- function(id, width = 12, include_fetch_all = TRUE) {
 }
 
 
-deviceInfoUI <- function(id, width = 12, include_fetch_all = TRUE) {
+deviceInfoUI <- function(id, width = 12) {
 
   ns <- NS(id)
 
@@ -159,11 +150,7 @@ deviceInfoUI <- function(id, width = 12, include_fetch_all = TRUE) {
       tableOutput(ns("info_table")) %>% withSpinner(type = 5, proxy.height = "130px"),
       footer = div(
         tooltipInput(actionButton, ns("fetch_info"), "Fetch Info", icon = icon("cloud-download"),
-                     tooltip = "Fetch the most recent device information from the cloud."),
-        spaces(1),
-        if (include_fetch_all)
-          tooltipInput(actionButton, ns("fetch_info_all"), "Fetch All", icon = icon("cloud-download"),
-                       tooltip = "Fetch all device information from the cloud and database.")
+                     tooltip = "Fetch the most recent device information from the cloud.")
       )
     )
 
@@ -171,7 +158,7 @@ deviceInfoUI <- function(id, width = 12, include_fetch_all = TRUE) {
 
 }
 
-deviceStateUI <- function(id, width = 12, include_fetch_all = TRUE) {
+deviceStateUI <- function(id, width = 12) {
   ns <- NS(id)
 
   tagList(
@@ -184,24 +171,24 @@ deviceStateUI <- function(id, width = 12, include_fetch_all = TRUE) {
       footer =
         div(
           tooltipInput(actionButton, ns("fetch_state"), "Fetch State", icon = icon("cloud-download"),
-                       tooltip = "Fetch the most recent state information from the cloud."),
-          spaces(1),
-          if (include_fetch_all)
-            tooltipInput(actionButton, ns("fetch_state_all"), "Fetch All", icon = icon("cloud-download"),
-                         tooltip = "Fetch all device information from the cloud and database.")
+                       tooltip = "Fetch the most recent state information from the cloud.")
         )
     )
   )
 }
 
-deviceDataUI <- function(id, width = 12, selected_options = c("r_exps", "serial"), include_fetch_all = TRUE) {
-
-  ns <- NS(id)
+# allow output as parameter to re-use this function for the experiment device data links
+deviceDataUI <- function(
+  id, width = 12, selected_options = c("r_exps", "serial"),
+  ns = NS(id),
+  title = "Live Device Data",
+  output = withSpinner(tableOutput(ns("data_table")), type = 5, proxy.height = "130px"),
+  add_footer = tagList()) {
 
   tagList(
     # live data
     default_box(
-      title = "Live Device Data", width = width,
+      title = title, width = width,
       style = paste0("min-height: 130px;"),
       checkboxGroupInput(ns("data_table_options"), NULL,
                          c("Experiment Links (recording)" = "r_exps",
@@ -209,15 +196,12 @@ deviceDataUI <- function(id, width = 12, selected_options = c("r_exps", "serial"
                            "Raw Serial Data" = "serial"),
                          selected = selected_options,
                          inline = TRUE),
-
-      tableOutput(ns("data_table")) %>% withSpinner(type = 5, proxy.height = "130px"),
+      output,
       footer = div(
         tooltipInput(actionButton, ns("fetch_data"), "Fetch Data", icon = icon("cloud-download"),
                      tooltip = "Fetch the most recent live data and experiment links from the cloud."),
         spaces(1),
-        if (include_fetch_all)
-          tooltipInput(actionButton, ns("fetch_data_all"), "Fetch All", icon = icon("cloud-download"),
-                       tooltip = "Fetch all device information from the cloud and database.")
+        add_footer
       )
     )
   )

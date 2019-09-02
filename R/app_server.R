@@ -1,16 +1,17 @@
 #' Chemostat Control Center Server
 #'
 #' Generates the server part of the isoviewer app
-app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_screen = "devices") {
+app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_screen = "experiments") {
   shinyServer(function(input, output, session) {
 
     message("\n\nINFO: Loading GUI instance ...")
 
     # DATA MANAGERS =====
-    dm_experiments <- callModule(experimentsDataServer, "dm_experiments", group_id, access_token, pool, timezone)
-    dm_devices <- callModule(devicesDataServer, "dm_devices", group_id, access_token, pool, timezone)
+    dm_links <- callModule(experimentDeviceLinksDataServer, "dm_links", group_id, access_token, pool, timezone)
+    dm_experiments <- callModule(experimentsDataServer, "dm_experiments", dm_links, group_id, access_token, pool, timezone)
+    dm_devices <- callModule(devicesDataServer, "dm_devices", dm_links, group_id, access_token, pool, timezone)
     dm_datalogs <- callModule(datalogsDataServer, "dm_datalogs", dm_experiments, dm_devices, group_id, access_token, pool, timezone)
-    dm_cloudinfo <- callModule(cloudInfoDataServer, "dm_cloudinfo", dm_experiments, dm_devices, group_id, access_token, pool, timezone)
+    dm_cloudinfo <- callModule(cloudInfoDataServer, "dm_cloudinfo", dm_experiments, dm_devices, dm_links, group_id, access_token, pool, timezone)
 
     # LOGIN SCREEN =====
     login_manager <- callModule(loginServer, "login", app_pwd = app_pwd, group = group_id, timezone = timezone)
@@ -21,11 +22,14 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
       }
     })
     observeEvent(login_manager$is_logged_in(), {
-      if (login_manager$is_logged_in()) {
+      if (login_manager$is_logged_in())
         updateTabItems(session, "menu", start_screen)
-        dm_experiments$refresh_experiments(init = TRUE)
-        dm_devices$refresh_devices(init = TRUE)
-      }
+    })
+
+    # SCREEN LOADING ====
+    observeEvent(input$menu, {
+      if (input$menu %in% c("experiments", "data")) dm_experiments$init_experiments()
+      else if (input$menu == "devices") dm_devices$init_devices()
     })
 
     # DATA SCREEN ====
@@ -52,7 +56,9 @@ app_server <- function(group_id, access_token, pool, app_pwd, timezone, start_sc
 
     callModule(
       experimentManagerServer, "experiments",
+      dm_links = dm_links,
       dm_experiments = dm_experiments,
+      dm_devices = dm_devices,
       dm_cloudinfo = dm_cloudinfo,
       dm_datalogs = dm_datalogs,
       timezone = timezone,

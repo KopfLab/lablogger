@@ -284,13 +284,13 @@ ll_get_devices_cloud_data <-
     if (nrow(devices) == 0) return(data_frame())
 
     devices %>%
-      # request state info
+      # request live data info
       get_devices_cloud_variable(
         variable = "data",
         access_token = access_token,
         quiet = quiet
       ) %>%
-      # unpack state data
+      # unpack live data
       unpack_cloud_variable_result(
         data_column = d,
         renames = c(datetime = "dt", idx = "i", key = "k", value = "v", units = "u"),
@@ -338,30 +338,32 @@ ll_test_experiment_device_links <- function(experiment_device_links, spread = FA
 
 #' Cloud data / experiment links summary
 #'
-#' Utility function to combine experimental device links with devices cloud data
+#' Utility function to combine experimental device links with devices cloud data. Will join by device_name, device_id or both, depending on which of these are in both the cloud_data and experiment_device_links tables.
+#'
 #' @param experiment_device_links the links between devices and experiments, see \link{ll_get_experiment_device_links}
 #' @param linked whether to include linked data
 #' @param unlinked whether to include unlinked data
 #' @export
 ll_summarize_cloud_data_experiment_links <- function(
-  cloud_data,
+  cloud_data = tibble(),
   experiment_device_links = tibble(),
   linked = TRUE, unlinked = TRUE) {
 
-  if (missing(cloud_data)) stop("no cloud data provided")
-
+  # remove exp_device_data_ids because they interfere with summarizing, and particle_id if it exists because we want it from the cloud data instead
   experiment_device_links <- experiment_device_links[!names(experiment_device_links) %in% c("exp_device_data_id", "particle_id")]
 
   # make sure empty cloud data or device links have the necessary columns
   if (nrow(experiment_device_links) == 0) {
     experiment_device_links <- tibble(
-      exp_id = character(), recording = logical(), device_name = character(),
+      exp_id = character(), recording = logical(),
+      device_id = integer(), device_name = character(),
       data_idx = integer(), active = logical())
   }
+  experiment_device_links <- rename(experiment_device_links, idx = data_idx)
 
   if (nrow(cloud_data) == 0) {
     cloud_data <- tibble(
-      particle_id = character(), device_name = character(),
+      particle_id = character(), device_id = integer(), device_name = character(),
       datetime = as.POSIXct(numeric(), origin = "1960-01-01"),
       error = character(),
       raw_serial = character(), raw_serial_errors = character(),
@@ -369,18 +371,27 @@ ll_summarize_cloud_data_experiment_links <- function(
     )
   }
 
+  # figure out join by
+  join_by <- c()
+  if ("device_id" %in% names(experiment_device_links) && "device_id" %in% names(cloud_data))
+    join_by <- c(join_by, "device_id")
+  if ("device_name" %in% names(experiment_device_links) && "device_name" %in% names(cloud_data))
+    join_by <- c(join_by, "device_name")
+
+  if (length(join_by) == 0) stop("neither device_id nor device_name", call. = TRUE)
+
   cloud_data <- cloud_data %>%
-    select(particle_id, device_name, datetime, error, raw_serial, raw_serial_errors, idx, key, value, units)
+    select(particle_id, !!join_by, device_name, datetime, error, raw_serial, raw_serial_errors, idx, key, value, units)
 
   full_join(
     cloud_data %>% filter(is.na(error)) %>% select(-error),
     experiment_device_links %>% filter(active),
-    by = c("device_name", "idx" = "data_idx")) %>%
+    by = c(join_by, "idx")) %>%
     # add error info from cloud data to the existing links
-    left_join(cloud_data %>% filter(!is.na(error)) %>% select(device_name, error), by = "device_name") %>%
-    # add error info from cloud data for devices that have no existing links at all
+    left_join(cloud_data %>% filter(!is.na(error)) %>% select(!!join_by, error), by = join_by) %>%
+    # add info from cloud data for devices that have no existing links at all
     {
-      bind_rows(., filter(cloud_data, !is.na(error), !device_name %in% .$device_name))
+      bind_rows(., dplyr::anti_join(filter(cloud_data, !is.na(error)), ., by = join_by))
     } %>%
     filter(linked & !is.na(exp_id) | unlinked & is.na(exp_id)) %>%
     nest(exp_id, recording, .key = ..exp_data..) %>%
@@ -389,7 +400,7 @@ ll_summarize_cloud_data_experiment_links <- function(
       non_recording_exp_ids = map_chr(..exp_data.., ~filter(.x, !recording)$exp_id %>% { if(length(.) > 0) glue::glue_collapse(., sep = ", ") else NA_character_ })
     ) %>%
     select(-..exp_data..) %>%
-    select(particle_id, device_name, datetime, error, everything())
+    select(particle_id, !!join_by, datetime, error, everything())
 }
 
 # functions to interact with particle cloud commands =====

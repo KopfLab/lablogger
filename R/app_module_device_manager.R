@@ -40,10 +40,9 @@ deviceManagerServer <- function(input, output, session, dm_devices, dm_cloudinfo
     refresh_cloud_state = dm_cloudinfo$refresh_cloud_state,
     get_cloud_data = dm_cloudinfo$get_devices_cloud_data,
     refresh_cloud_data = dm_cloudinfo$refresh_cloud_data,
-    refresh_experiment_device_links = dm_devices$refresh_devices_experiments_links,
     get_cloud_info = dm_cloudinfo$get_devices_cloud_info,
     refresh_cloud_info = dm_cloudinfo$refresh_cloud_info,
-    get_devices = dm_devices$get_selected_devices,
+    get_device_ids = dm_devices$get_selected_devices,
     get_state_logs = dm_datalogs$get_devices_state_logs,
     refresh_state_logs = dm_datalogs$refresh_state_logs
   )
@@ -72,14 +71,14 @@ deviceManagerUI <- function(id, width = 12) {
         value = "live",
         "Live Info", br(),
         # fetch all is a bit confusing...
-        deviceDataUI(ns("devices_info"), selected_options = c("r_exps"), include_fetch_all = FALSE),
-        deviceStateUI(ns("devices_info"), include_fetch_all = FALSE),
-        deviceInfoUI(ns("devices_info"), include_fetch_all = FALSE)
+        deviceDataUI(ns("devices_info"), selected_options = c("r_exps")),
+        deviceStateUI(ns("devices_info")),
+        deviceInfoUI(ns("devices_info"))
       ),
       tabPanel(
         value = "logs",
         "Logs", br(),
-        deviceLogsUI(ns("devices_info"), include_fetch_all = FALSE)
+        deviceLogsUI(ns("devices_info"))
       )
     )
   )

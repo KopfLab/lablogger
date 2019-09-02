@@ -21,8 +21,6 @@ deviceSelectorServer <- function(input, output, session, get_devices, get_select
         module_message(ns, "debug", "setting device selection table")
         df <- select(df, device_id, device_name, device_type_desc)
         selector$set_table(df)
-        # selet all by default
-        #select_devices(df$device_id)
       }
     })
   })

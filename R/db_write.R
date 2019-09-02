@@ -138,6 +138,8 @@ ll_add_experiment_devices <- function(
   if (!"data_idx" %in% names(experiment_devices) || !is.numeric(experiment_devices$data_idx))
     stop("must supply integer data indices", call. = FALSE)
 
+  # no duplicates
+  experiment_devices <- unique(experiment_devices)
 
   if (!quiet) {
     device_info <- { if(!missing(device_names)) device_names else experiment_devices$device_id } %>%

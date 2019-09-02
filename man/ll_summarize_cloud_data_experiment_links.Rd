@@ -4,7 +4,7 @@
 \alias{ll_summarize_cloud_data_experiment_links}
 \title{Cloud data / experiment links summary}
 \usage{
-ll_summarize_cloud_data_experiment_links(cloud_data,
+ll_summarize_cloud_data_experiment_links(cloud_data = tibble(),
   experiment_device_links = tibble(), linked = TRUE, unlinked = TRUE)
 }
 \arguments{
@@ -15,5 +15,5 @@ ll_summarize_cloud_data_experiment_links(cloud_data,
 \item{unlinked}{whether to include unlinked data}
 }
 \description{
-Utility function to combine experimental device links with devices cloud data
+Utility function to combine experimental device links with devices cloud data. Will join by device_name, device_id or both, depending on which of these are in both the cloud_data and experiment_device_links tables.
 }
