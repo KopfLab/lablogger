@@ -126,8 +126,6 @@ CREATE TABLE experiment_device_data (
   -- only used for mapping during log processing
   device_id integer NOT NULL references devices(device_id),
   data_idx integer NOT NULL,
-  -- additional information for data
-  data_group character varying (50) NULL,
   -- whether this is an active experiment device
   active boolean NOT NULL DEFAULT True,
   -- constraint

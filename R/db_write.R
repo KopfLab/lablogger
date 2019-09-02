@@ -73,40 +73,127 @@ update_device_particle_id <- function(devices, con, quiet) {
 #' @param particle_id optional, will be automatically filled in the first time the device logs to the database
 #' @param in_use whether device is in use (if not, cannot log any data)
 #' @export
-ll_add_experiment <- function(exp_id, exp_desc = NA, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
+ll_add_experiment <- function(exp_id, exp_desc = NA, exp_notes = NA, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
   con <- validate_db_connection(enquo(con))
   if (missing(exp_id)) stop("must supply an experiment id", call. = FALSE)
   if (!quiet) glue("\nInfo: add new experiment '{exp_id}' for group '{group_id}'... ") %>%
     message(appendLF = FALSE)
-  data <- data_frame(exp_id, exp_desc, group_id, recording = FALSE)
+  data <- data_frame(exp_id, exp_desc, exp_notes, group_id, recording = FALSE)
   run_insert_sql(data, "experiments", con, quiet = quiet)
   return(invisible(data));
 }
 
+#' Update experiment information
+#' @inheritParams ll_add_experiment
+#' @return whether the update was successful or not
+#' @export
+ll_update_experiment_info <- function(exp_id, exp_desc = NULL, exp_notes = NULL, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
+  con <- validate_db_connection(enquo(con))
+  if (missing(exp_id)) stop("must supply an experiment id", call. = FALSE)
+  if (length(exp_id) != 1) stop("must provide only one exp id", call. = FALSE)
+  if (!quiet) glue("\nInfo: updating info for experiment '{exp_id}'... ") %>%
+    message(appendLF = FALSE)
+
+  updates <- c(
+    exp_desc = if (!is.null(exp_desc)) exp_desc,
+    exp_notes = if (!is.null(exp_notes)) exp_notes
+  )
+  if(is.null(update) || length(update) == 0) stop("nothing to update", call. = FALSE)
+
+  sql <- glue::glue(
+    "UPDATE experiments SET {to_sql(updates, named = TRUE)} ",
+    "WHERE group_id = {to_sql(group_id)} AND exp_id = {to_sql(exp_id)}")
+  result <- run_sql(sql, con)
+
+  if (!quiet) {
+    if (result > 0) glue("{result} record updated.") %>% message()
+    else message("no records found, this experiment is not part of this group.")
+  }
+
+  return(result == 1)
+}
+
+# TODO: rename to ll_add_experiment_device_links
 #' Link device to experiment
 #'
-#' Note that for the same device, experiment and index, only one record can exist (will error if already exists).
+#' Note that for the same device, experiment and index, only one record can exist. If the same one is added again, it will simply update the existing one to be active (in case it is not).
 #'
 #' @param exp_id the unique identifier of the experiment (usually a few letter code). Has to exist already in the data base.
 #' @param device_ids one or multiple device ids to add (by default is inferred from the device names)
 #' @param device_names names of the device(s) to link (define alternatively to the device id, will determine device_ids internally)
 #' @param data_idxs the data indices to map for the experiment, must be same length as device_names/device_ids
-ll_add_experiment_devices <- function(exp_id, device_names, data_idxs, device_ids = ll_get_device_ids(device_names, quiet = quiet), data_group = NA, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
+#' @param experiment_devices alternatively provide experiment devices as a data frame right away
+ll_add_experiment_devices <- function(
+  exp_id,
+  device_names,
+  data_idxs,
+  device_ids = ll_get_device_ids(device_names, quiet = quiet),
+  experiment_devices = tibble(exp_id, device_id = device_ids, data_idx = data_idxs),
+  group_id = default(group_id),
+  con = default(con),
+  quiet = default(quiet)) {
 
-  if (missing(exp_id)) stop("must supply an existing experiment id", call. = FALSE)
-  if (missing(data_idxs) || !is.numeric(data_idxs)) stop("must supply integer data indices", call. = FALSE)
-  if (length(device_ids) != length(data_idxs) && !(length(device_ids) == 1 || length(data_idxs) == 1))
-      stop("not the same number of device ids and data indices provided", call. = FALSE)
+  if (!"exp_id" %in% names(experiment_devices)) stop("must supply an existing experiment id", call. = FALSE)
+  if (!"device_id" %in% names(experiment_devices)) stop("must supply device_id(s)", call. = FALSE)
+  if (!"data_idx" %in% names(experiment_devices) || !is.numeric(experiment_devices$data_idx))
+    stop("must supply integer data indices", call. = FALSE)
+
+  # no duplicates
+  experiment_devices <- unique(experiment_devices)
 
   if (!quiet) {
-    device_info <- { if(!missing(device_names)) device_names else device_ids } %>%
-      str_c(" #", data_idxs) %>% glue::glue_collapse(sep = ", ")
+    device_info <- { if(!missing(device_names)) device_names else experiment_devices$device_id } %>%
+      str_c(" #", experiment_devices$data_idx) %>% glue::glue_collapse(sep = ", ")
     glue("\nInfo: linking device data ({device_info}) to experiment '{exp_id}'... ") %>%
     message(appendLF = FALSE)
   }
-  data <- data_frame(exp_id, device_id = device_ids, data_idx = data_idxs, data_group)
-  run_insert_sql(data, "experiment_device_data", con = con, quiet = quiet)
-  return(invisible(data));
+  run_insert_sql(
+    experiment_devices, "experiment_device_data",
+    # if record already exists, simply update it
+    on_conflict_constraint = "experiment_device_data_exp_id_device_id_data_idx_key",
+    on_conflict_do = "UPDATE SET active = true",
+    con = con, quiet = quiet
+  )
+  return(invisible(experiment_devices));
+}
+
+#' Remove experiment device links
+#'
+#' Removes/deactivates the specified experiment device links. Removes those that don't already have data records associated with them and deactivates the others.
+#'
+#' @inheritParams ll_add_experiment_devices
+#' @param exp_id experiment id
+#' @param exp_device_data_ids exp_device_data_ids
+ll_remove_experiment_device_links <- function(exp_id, exp_device_data_ids, con = default(con), quiet = default(quiet)) {
+
+  if (!quiet) {
+    glue("\nInfo: trying to remove (if not already used) or else deactivate ",
+         "{length(exp_device_data_ids)} link(s) for experiment '{exp_id}'... ") %>%
+      message(appendLF = FALSE)
+  }
+
+  deactivated <-
+    glue::glue(
+      "UPDATE experiment_device_data SET active = false WHERE ",
+      "exp_id = {to_sql(exp_id)} ",
+      "AND exp_device_data_id IN ({to_sql(exp_device_data_ids)})") %>%
+    run_sql(con)
+
+  deleted <-
+    glue::glue(
+      "DELETE FROM experiment_device_data WHERE ",
+      "exp_id = {to_sql(exp_id)} ",
+      "AND exp_device_data_id IN ({to_sql(exp_device_data_ids)}) ",
+      "AND NOT EXISTS (SELECT 1 FROM device_data_logs ",
+      "WHERE device_data_logs.exp_device_data_id = experiment_device_data.exp_device_data_id)") %>%
+    run_sql(con)
+
+  if (!quiet) {
+    glue::glue("{deleted} link(s) deleted, {deactivated - deleted} link(s) deactivated.") %>%
+      message()
+  }
+
+  return(invisible(NULL))
 }
 
 # helper function to start/stop experiment recording

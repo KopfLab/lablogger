@@ -25,13 +25,15 @@ app_ui <- function(app_title = "Lab Logger", app_color = "red", timezone = NULL)
       width = 150,
       sidebarMenu(
         id = "menu",
-        h5("Lab Logger", as.character(packageVersion("lablogger")), align = "center"),
+        h5(a("Lab Logger", href = "https://github.com/KopfLab/lablogger", target = "_blank"),
+           as.character(packageVersion("lablogger")), align = "center"),
         if (!is.null(timezone)) h5(timezone, align = "center"),
         "login" %>% menuItem("Login", tabName = ., icon = icon("log-in", lib = "glyphicon"), selected = TRUE),
         "experiments" %>% menuItem("Experiments", tabName = ., icon = icon("flask")),
         "devices" %>% menuItem("Devices", tabName = ., icon = icon("cogs")),
         "data" %>% menuItem("All Data", tabName = ., icon = icon("line-chart")),
-        "live" %>% menuItem("Webcams", tabName = ., icon = icon("camera"))
+        "live" %>% menuItem("Webcams", tabName = ., icon = icon("camera")),
+        tags$li(a(uiOutput("help", inline = TRUE)))
       ),
 
       # HEADER ----

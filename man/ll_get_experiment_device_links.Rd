@@ -6,7 +6,7 @@
 \usage{
 ll_get_experiment_device_links(group_id = default(group_id),
   filter = NULL, select = c(exp_device_data_id, exp_id, recording,
-  device_id, device_name, particle_id, data_group, data_idx, active),
+  device_id, device_name, particle_id, data_idx, active),
   con = default(con), quiet = default(quiet))
 }
 \arguments{
@@ -16,5 +16,5 @@ ll_get_experiment_device_links(group_id = default(group_id),
 experiments_devices
 }
 \description{
-Returns experiment-device links (only for active/in-use devices) joined with experiment, devices and device types tables so filter conditions can be applied on any of these as well.
+Returns experiment-device links (only for in-use devices) joined with experiment, devices and device types tables so filter conditions can be applied on any of these as well.
 }

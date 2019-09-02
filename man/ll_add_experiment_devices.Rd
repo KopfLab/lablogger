@@ -6,7 +6,8 @@
 \usage{
 ll_add_experiment_devices(exp_id, device_names, data_idxs,
   device_ids = ll_get_device_ids(device_names, quiet = quiet),
-  data_group = NA, group_id = default(group_id), con = default(con),
+  experiment_devices = tibble(exp_id, device_id = device_ids, data_idx =
+  data_idxs), group_id = default(group_id), con = default(con),
   quiet = default(quiet))
 }
 \arguments{
@@ -17,7 +18,9 @@ ll_add_experiment_devices(exp_id, device_names, data_idxs,
 \item{data_idxs}{the data indices to map for the experiment, must be same length as device_names/device_ids}
 
 \item{device_ids}{one or multiple device ids to add (by default is inferred from the device names)}
+
+\item{experiment_devices}{alternatively provide experiment devices as a data frame right away}
 }
 \description{
-Note that for the same device, experiment and index, only one record can exist (will error if already exists).
+Note that for the same device, experiment and index, only one record can exist. If the same one is added again, it will simply update the existing one to be active (in case it is not).
 }

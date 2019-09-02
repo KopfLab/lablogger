@@ -15,9 +15,12 @@ spaces <- function(n) {
 }
 
 # convenience function for adding input with tooltip with default parameters
-tooltipInput <- function(input, inputId, ..., tooltip = NULL) {
+tooltipInput <- function(input, inputId, ..., tooltip = NULL, hidden = FALSE, disabled = FALSE) {
+  input_tag <- do.call(input, args = c(list(inputId = inputId), list(...)))
+  if (hidden) input_tag <- shinyjs::hidden(input_tag)
+  if (disabled) input_tag <- shinyjs::disabled(input_tag)
   tagList(
-    do.call(input, args = c(list(inputId = inputId), list(...))),
+    input_tag,
     if (!is.null(tooltip)) bsTooltip(inputId, tooltip)
   )
 }
@@ -33,4 +36,28 @@ tooltipOutput <- function(input, outputId, ..., tooltip = NULL) {
 # default box
 default_box <- function(..., status = "info", solidHeader = TRUE, collapsible = TRUE) {
   box(..., status = status, solidHeader = solidHeader, collapsible = collapsible)
+}
+
+# success modal
+success_modal <- function(..., title = "Success", show = TRUE) {
+  modal <- modalDialog(
+    title = h3(title, align = "center"),
+    fade = FALSE, easyClose = TRUE, size = "m",
+    span(...),
+    footer = modalButton("Close")
+  )
+  if (show) showModal(modal)
+  else return(modal)
+}
+
+# error modal
+error_modal <- function(..., title = "A problem occurred", show = TRUE) {
+  modal <- modalDialog(
+    title = h3(title, align = "center", style = "color: red;"),
+    fade = FALSE, easyClose = TRUE, size = "m",
+    span(..., style = "color: red;"),
+    footer = modalButton("Close")
+  )
+  if (show) showModal(modal)
+  else return(modal)
 }

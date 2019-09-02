@@ -1,19 +1,76 @@
-experimentsDataServer <- function(input, output, session, group_id, access_token, pool, timezone) {
+# LINKS =====
+
+experimentDeviceLinksDataServer <- function(input, output, session, group_id, access_token, pool, timezone) {
 
   # namespace
   ns <- session$ns
 
   # reactive values
   values <- reactiveValues(
-    refresh_experiments = NULL,
-    selected_exp_ids = c(), # multi selection experiments
-    loaded_exp_id = NULL, # single selection experiments
-    loaded_exp_device_links = NULL, # device links of single selection experiment
-    loaded_exp_devices = NULL, # experiment devices,
-    selected_loaded_exp_device_ids = c()
+    refresh_links = NULL
   )
 
-  # experiments
+  # get links
+  get_links <- reactive({
+    req(values$refresh_links)
+    withProgress(
+      message = 'Fetching data links', detail = "Querying database for experiment device links...", value = 0.5,
+      ll_get_experiment_device_links(
+        group_id = group_id, con = pool,
+        select = c(
+          exp_device_data_id, data_idx, active, # link info
+          exp_id, recording, # exp info
+          device_id, device_name, device_type_desc, particle_id # device info
+        ),
+        filter = active)
+    ) %>%
+      # introduce a unique id for the link combinations
+      mutate(..id.. = paste(device_id, data_idx, sep = "_")) %>%
+      # arrange by device name and index
+      arrange(device_name, data_idx)
+  })
+
+  # initialize links
+  init_links <- function() {
+    if (is.null(values$refresh_links))  {
+      module_message(ns, "debug", "initializing links")
+      values$refresh_links <- 1
+    }
+  }
+
+  # refresh links (only refreshes if links are already initalized!)
+  refresh_links <- function() {
+    if (!is.null(values$refresh_links)) {
+      module_message(ns, "debug", "setting links refresh flag")
+      values$refresh_links <- values$refresh_links + 1
+    }
+  }
+
+  #  LINKS functions ====
+  list(
+    get_links = get_links,
+    refresh_links = refresh_links,
+    init_links = init_links
+  )
+}
+
+# EXPERIMENTS ====
+
+experimentsDataServer <- function(input, output, session, links, group_id, access_token, pool, timezone) {
+
+  # namespace
+  ns <- session$ns
+
+  # reactive values ----
+  values <- reactiveValues(
+    refresh_experiments = NULL,
+    selected_exp_ids = c(), # multi selection experiments
+    loaded_exp_id = NULL # single selection experiments
+  )
+
+  # LOAD =====
+
+  # get_experiments ----
   get_experiments <- reactive({
     req(values$refresh_experiments)
     withProgress(
@@ -22,15 +79,18 @@ experimentsDataServer <- function(input, output, session, group_id, access_token
     )
   })
 
-  refresh_experiments <- function(init = FALSE) {
-    if (is.null(values$refresh_experiments)) values$refresh_experiments <- 1
-    else if (!init) values$refresh_experiments <- values$refresh_experiments + 1
+  init_experiments <- function() {
+    if (is.null(values$refresh_experiments)) {
+      module_message(ns, "debug", "initializing experiments")
+      values$refresh_experiments <- 1
+    }
   }
 
-  select_experiments <- function(exp_ids) {
-    if (!identical(values$selected_exp_ids, exp_ids)) {
-      module_message(ns, "debug", glue("selecting exp ids '{if(!is.null(exp_ids)) glue::glue_collapse(exp_ids, sep = ', ') else 'none'}'"))
-      values$selected_exp_ids <- exp_ids
+  refresh_experiments <- function() {
+    if (!is.null(values$refresh_experiments)) {
+      module_message(ns, "debug", "setting experiments refresh flag")
+      values$refresh_experiments <- values$refresh_experiments + 1
+      links$refresh_links()
     }
   }
 
@@ -43,46 +103,112 @@ experimentsDataServer <- function(input, output, session, group_id, access_token
       if (is_loaded_experiment_archived()) {
         # archived
         module_message(ns, "debug", glue("this experiment ('{values$loaded_exp_id}') is archived"))
-      } else {
-        # load experiment device links
-        load_experiment_device_links()
       }
     }
   }
 
-  load_experiment_device_links <- function(...) {
-    # ... = init: for compatibility with other reload functions but is not used here
-    module_message(ns, "debug", glue("(re)loading exp device links for exp '{values$loaded_exp_id}'"))
-    filter_quo <- quo(exp_id == !!values$loaded_exp_id)
-    values$loaded_exp_device_links <-
-      withProgress(
-        message = 'Fetching experiment info', detail = "Querying database for experiment device links...", value = 0.5,
-        ll_get_experiment_device_links(group_id = group_id, con = pool, select = c(device_id, device_name, device_type_desc, particle_id, data_idx, active),filter = !!filter_quo)
-      ) %>% unique()
+  # SELECT =====
 
-    if (nrow(values$loaded_exp_device_links > 0)) {
-      values$loaded_exp_devices <-
-        values$loaded_exp_device_links %>%
-        filter(active) %>%
+  select_experiments <- function(exp_ids) {
+    if (!identical(values$selected_exp_ids, exp_ids)) {
+      module_message(
+        ns, "debug",
+        glue::glue("selecting exp ids '",
+        if(!is.null(exp_ids)) paste(exp_ids, collapse = "', '") else 'none',
+        "'")
+      )
+      values$selected_exp_ids <- exp_ids
+    }
+  }
+
+  # ADD =====
+
+  # create new experiment
+  add_experiment <- function(exp_id) {
+    stopifnot(length(exp_id) == 1)
+    withProgress(
+      message = 'Creating experiment', detail = glue::glue("Setting up new experiment '{exp_id}'..."), value = 0.5,
+      ll_add_experiment(exp_id = exp_id, exp_desc = "", group_id = group_id, con = pool)
+    )
+  }
+
+  # LINKS ====
+
+  # get_experiment_device_links -------
+  get_experiment_device_links <- reactive({
+    if (!is.null(values$loaded_exp_id)) {
+      links$init_links() # make sure links are initialized
+      if (nrow(links$get_links() > 0)) {
+        experiment_links <- links$get_links() %>%
+          filter(exp_id == values$loaded_exp_id)
+        module_message(
+          ns, "debug",
+          glue::glue("found {nrow(experiment_links)} device links for experiment ",
+                     "'{values$loaded_exp_id}'")
+        )
+        return(experiment_links)
+      }
+    }
+    return(tibble(device_id = integer(0), data_idx = integer(0)))
+  })
+
+  # get_experiment_device_links_all -----
+  # all experiment device links that overlap with this experiment
+  get_experiment_device_links_all <- reactive({
+    links$init_links() # make sure links are initialized
+    semi_join(
+      links$get_links(),
+      get_experiment_device_links(),
+      by = c("device_id", "data_idx")
+    )
+  })
+
+  # get_experiment_devices -----
+  get_experiment_devices <- reactive({
+    if (nrow(get_experiment_device_links()) > 0) {
+      get_experiment_device_links() %>%
         select(device_id, device_name, particle_id, device_type_desc) %>%
         unique()
     } else {
-      values$loaded_exp_devices <-
-        tibble(device_id = integer(0), device_name = character(0),
-               particle_id = character(0), device_type_desc = character(0))
+      tibble(device_id = integer(0), device_name = character(0),
+             particle_id = character(0), device_type_desc = character(0))
     }
+  })
+
+  # add new links
+  add_experiment_device_links <- function(device_links) {
+    ll_add_experiment_devices(
+      exp_id = values$loaded_exp_id,
+      experiment_devices = mutate(device_links, exp_id = values$loaded_exp_id),
+      group_id = group_id,
+      con = pool)
   }
 
-  select_loaded_experiment_devices <- function(device_ids) {
-    if (!identical(values$selected_loaded_exp_device_ids, device_ids)) {
-      module_message(ns, "debug", glue("selecting experiment device ids '{if(!is.null(device_ids)) glue::glue_collapse(device_ids, sep = ', ') else 'none'}'"))
-      values$selected_loaded_exp_device_ids <- device_ids
-    }
+  # delte links
+  delete_experiment_device_links <- function(device_link_ids) {
+    ll_remove_experiment_device_links(
+      exp_id = values$loaded_exp_id,
+      exp_device_data_ids = device_link_ids,
+      con = pool)
   }
 
+  # INFO =======
+  # get_loaded_experiment_info ----
+  get_loaded_experiment_info <- reactive({
+    filter(get_experiments(), exp_id == !!values$loaded_exp_id)
+  })
+
+  update_loaded_experiment_info <- function(exp_desc, exp_notes) {
+    ll_update_experiment_info(exp_id = values$loaded_exp_id, exp_desc = exp_desc,
+                              exp_notes = exp_notes, group_id = group_id, con = pool)
+  }
+
+  # is_loaded_experiment_archived -----
   is_loaded_experiment_archived <- reactive({
     filter(get_experiments(), exp_id == !!values$loaded_exp_id)$archived
   })
+
+  # START / STOP ======
 
   start_experiment <- function() {
     withProgress(
@@ -98,19 +224,26 @@ experimentsDataServer <- function(input, output, session, group_id, access_token
     )
   }
 
-  # experimentsDataServer functions ====
+  # FUNCTIONS ====
   list(
     get_experiments = get_experiments,
+    init_experiments = init_experiments,
     refresh_experiments = refresh_experiments,
     select_experiments = select_experiments,
     get_selected_experiments = reactive(values$selected_exp_ids),
+    add_experiment = add_experiment,
     load_experiment = load_experiment,
     get_loaded_experiment = reactive(values$loaded_exp_id),
-    load_experiment_device_links = load_experiment_device_links,
-    get_loaded_experiment_device_links = reactive(values$loaded_exp_device_links),
-    get_loaded_experiment_devices = reactive(values$loaded_exp_devices),
-    select_loaded_experiment_devices = select_loaded_experiment_devices,
-    get_selected_loaded_experiment_devices = reactive(values$selected_loaded_exp_device_ids),
+    get_loaded_experiment_info = get_loaded_experiment_info,
+    updated_loaded_experiment_info = update_loaded_experiment_info,
+
+    get_loaded_experiment_device_links = get_experiment_device_links,
+    get_loaded_experiment_device_links_all = get_experiment_device_links_all,
+    get_loaded_experiment_devices = get_experiment_devices,
+    get_loaded_experiment_device_ids = reactive(get_experiment_devices()$device_id),
+    add_experiment_device_links = add_experiment_device_links,
+    delete_experiment_device_links = delete_experiment_device_links,
+
     is_loaded_experiment_recording = reactive(filter(get_experiments(), exp_id == !!values$loaded_exp_id)$recording),
     is_loaded_experiment_archived = is_loaded_experiment_archived,
     start_experiment = start_experiment,
@@ -119,7 +252,9 @@ experimentsDataServer <- function(input, output, session, group_id, access_token
 
 }
 
-devicesDataServer <- function(input, output, session, group_id, access_token, pool, timezone) {
+# DEVICES ======
+
+devicesDataServer <- function(input, output, session, links, group_id, access_token, pool, timezone) {
 
   # namespace
   ns <- session$ns
@@ -127,11 +262,10 @@ devicesDataServer <- function(input, output, session, group_id, access_token, po
   # reactive values
   values <- reactiveValues(
     refresh_devices = NULL,
-    selected_device_ids = c(),
-    refresh_devices_experiments_links = NULL
+    selected_device_ids = c()
   )
 
-  # devices
+  # get_devices -----
   get_devices <- reactive({
     req(values$refresh_devices)
     withProgress(
@@ -140,49 +274,65 @@ devicesDataServer <- function(input, output, session, group_id, access_token, po
     )
   })
 
-  refresh_devices <- function(init = FALSE) {
-    if (is.null(values$refresh_devices)) values$refresh_devices <- 1
-    else if (!init) values$refresh_devices <- values$refresh_devices + 1
+  init_devices <- function() {
+    if (is.null(values$refresh_devices)) {
+      module_message(ns, "debug", "initializing devices")
+      values$refresh_devices <- 1
+    }
+  }
+
+  refresh_devices <- function() {
+    if (!is.null(values$refresh_devices)) {
+      module_message(ns, "debug", "setting devices refresh flag")
+      values$refresh_devices <- values$refresh_devices + 1
+      links$refresh_links()
+    }
   }
 
   select_devices <- function(device_ids) {
     if (!identical(values$selected_device_ids, device_ids)) {
-      module_message(ns, "debug", glue("selecting device ids '{if(!is.null(device_ids)) glue::glue_collapse(device_ids, sep = ', ') else 'none'}'"))
+      module_message(
+        ns, "debug",
+        glue::glue(
+          "selecting device ids ",
+          if(!is.null(device_ids)) paste(device_ids, collapse = ', ')
+          else "'none'")
+      )
       values$selected_device_ids <- device_ids
     }
   }
 
-  # device experiment links (from the device perspective)
-  get_devices_experiments_links <- eventReactive(values$refresh_devices_experiments_links, {
+  # get_devices_experiment_links -----
+  get_devices_experiments_links <- reactive({
     if (length(values$selected_device_ids) > 0) {
-      withProgress(
-        message = 'Fetching device experiment links', detail = "Querying database...", value = 0.5,
-        ll_get_experiment_device_links(
-          group_id = group_id, con = pool,
-          select = c(exp_device_data_id, exp_id, recording, device_name, data_group, data_idx, active),
-          filter = device_id %in% !!values$selected_device_ids)
-      )
-    } else {
-      data_frame()
+      # make sure links are initialized
+      links$init_links()
+      if (nrow(links$get_links() > 0)) {
+        device_links <- links$get_links() %>%
+          filter(device_id %in% !!values$selected_device_ids & active)
+        module_message(
+          ns, "debug",
+          glue::glue("found {nrow(device_links)} device links for device ids ",
+                     paste(values$selected_device_ids, collapse = ", "))
+        )
+        return(device_links)
+      }
     }
+    return(tibble())
   })
-
-  refresh_devices_experiments_links <- function(init = FALSE) {
-    if(is.null(values$refresh_devices_experiments_links)) values$refresh_devices_experiments_links <- 1
-    else if (!init) values$refresh_devices_experiments_links <- values$refresh_devices_experiments_links + 1
-  }
 
   # devicesDataServer functions ====
   list(
     get_devices = get_devices,
+    init_devices = init_devices,
     refresh_devices = refresh_devices,
     select_devices = select_devices,
     get_selected_devices = reactive({values$selected_device_ids}),
-    # device experiment links
-    get_devices_experiments_links = get_devices_experiments_links,
-    refresh_devices_experiments_links = refresh_devices_experiments_links
+    get_devices_experiments_links = get_devices_experiments_links
   )
 }
+
+# LOGS ======
 
 # FIXME: this should just be logsDataServer because it handles data and state logs
 datalogsDataServer <- function(input, output, session, experiments, devices, group_id, access_token, pool, timezone) {
@@ -270,7 +420,7 @@ datalogsDataServer <- function(input, output, session, experiments, devices, gro
     refresh_state_logs = refresh_state_logs,
     get_experiment_devices_state_logs = eventReactive(
       values$refresh_experiment_device_state_logs,
-      get_device_state_logs(experiments$get_selected_loaded_experiment_devices())
+      get_device_state_logs(experiments$get_loaded_experiment_device_ids())
     ),
     refresh_experiment_state_logs = refresh_experiment_state_logs,
     # multi experiments data logs
@@ -293,135 +443,168 @@ datalogsDataServer <- function(input, output, session, experiments, devices, gro
   )
 }
 
-cloudInfoDataServer <- function(input, output, session, experiments, devices, group_id, access_token, pool, timezone) {
+# CLOUD =====
+
+cloudInfoDataServer <- function(input, output, session, experiments, devices, links, group_id, access_token, pool, timezone) {
 
   # namespace
   ns <- session$ns
 
   # reactive values
   values <- reactiveValues(
-    refresh_devices_experiments_links = NULL,
     refresh_cloud_state = NULL,
     refresh_cloud_data = NULL,
     refresh_cloud_info = NULL
   )
 
-  # cloud state
-  get_cloud_state <- function(devices, device_ids) {
-    module_message(ns, "debug", "fetching cloud state")
+  # CLOUD STATE ----
+  get_cloud_state <- function(devices, device_ids = devices$device_id) {
     withProgress(
-      message = 'Fetching device state', detail = "Querying device cloud...", value = 0.5,
+      message = 'Fetching device cloud state', detail = "Querying device cloud...", value = 0.5,
       devices %>%
         filter(device_id %in% !!device_ids) %>%
         ll_get_devices_cloud_state(access_token = access_token, convert_to_TZ = timezone, spread = TRUE)
     )
   }
 
+  # get_devices_cloud_state -----
   get_devices_cloud_state <- eventReactive(values$refresh_cloud_state, {
+    validate(
+      need(!is.null(devices$get_devices()), "No devices available.") %then%
+        need(length(devices$get_selected_devices()) > 0, "No device selected.")
+    )
+    module_message(ns, "debug", "fetching devices cloud state")
     get_cloud_state(devices$get_devices(), devices$get_selected_devices())
   })
 
+  # get_exp_devices_cloud_state ----
   get_exp_devices_cloud_state <- eventReactive(values$refresh_cloud_state, {
-    get_cloud_state(experiments$get_loaded_experiment_devices(), experiments$get_selected_loaded_experiment_devices())
+    validate(
+      need(length(experiments$get_loaded_experiment_device_ids()) > 0, "This experiment has no associated devices yet.")
+    )
+    module_message(ns, "debug", "fetching experiment devices cloud state")
+    get_cloud_state(experiments$get_loaded_experiment_devices())
   })
 
   refresh_cloud_state <- function() {
     values$refresh_cloud_state <- if(is.null(values$refresh_cloud_state)) 1 else values$refresh_cloud_state + 1
   }
 
-  # cloud data for devices
-  get_cloud_data <- function(devices, device_ids, links, linked, unlinked) {
-    module_message(ns, "debug", "fetching cloud data")
-
-    # data from cloud
+  # CLOUD DATA =====
+  get_cloud_data <- function(devices, device_ids = devices$device_id, links, linked, unlinked) {
     data <- withProgress(
-      message = 'Fetching device data', detail = "Querying device cloud...", value = 0.5,
+      message = 'Fetching device cloud data', detail = "Querying device cloud...", value = 0.5,
       devices %>%
         filter(device_id %in% !!device_ids) %>%
         ll_get_devices_cloud_data(access_token = access_token, convert_to_TZ = timezone)
     )
-
-    # device links from data base
     ll_summarize_cloud_data_experiment_links(
       cloud_data = data, experiment_device_links = links,
-      linked = linked, unlinked = unlinked)
+      linked = linked, unlinked = unlinked) %>%
+      mutate(..id.. = paste(device_id, idx, sep = "_")) %>%
+      arrange(device_name, idx)
   }
 
+  # get_devices_cloud_data ----
   get_devices_cloud_data <- eventReactive(values$refresh_cloud_data, {
-    get_cloud_data(devices$get_devices(), devices$get_selected_devices(), devices$get_devices_experiments_links(), TRUE, TRUE) %>%
-      arrange(device_name, idx)
+    validate(
+      need(!is.null(devices$get_devices()), "No devices available.") %then%
+        need(length(devices$get_selected_devices()) > 0, "No device selected.")
+    )
+    # get device cloud data
+    module_message(ns, "debug", "fetching device cloud data")
+    get_cloud_data(
+      devices = devices$get_devices(),
+      device_ids = devices$get_selected_devices(),
+      links = devices$get_devices_experiments_links(),
+      linked = TRUE, unlinked = TRUE
+    )
   })
 
-  # cloud data for experiment
+  # get_exp_devices_cloud_data ----
   get_exp_devices_cloud_data <- eventReactive(values$refresh_cloud_data, {
-
-    exp_links <- experiments$get_loaded_experiment_device_links() %>% filter(active)
-    device_ids <- experiments$get_loaded_experiment_devices()$device_id
-    all_links <- withProgress(
-      message = 'Fetching device data', detail = "Querying database for experiment device links...", value = 0.5,
-      ll_get_experiment_device_links(
-        group_id = group_id, con = pool,
-        select = c(exp_device_data_id, exp_id, recording, device_name, data_group, data_idx, active),
-        filter = device_id %in% !!device_ids)
+    validate(
+      need(!is.null(experiments$get_loaded_experiment_devices()), "No devices available.") %then%
+        need(!is.null(experiments$get_loaded_experiment_device_links_all()), "No device links available.")
     )
+    module_message(ns, "debug", "fetching experiment devices cloud data")
+    get_cloud_data(
+      devices = experiments$get_loaded_experiment_devices(),
+      links = experiments$get_loaded_experiment_device_links_all(),
+      linked = TRUE, unlinked = FALSE
+    )
+  })
 
-    # figure out considered links
-    if (nrow(exp_links) == 0 || nrow(all_links) == 0)
-      considered_links <- tibble()
-    else
-      considered_links <- all_links %>% semi_join(exp_links, by = c("device_name", "data_idx"))
-
-    # fetch actual cloud data
-    get_cloud_data(experiments$get_loaded_experiment_devices(),
-                   device_ids, considered_links, TRUE, FALSE) %>%
-      arrange(recording_exp_ids, device_name, idx)
+  # has_cloud_data ----
+  has_cloud_data <- reactive({
+    return(!is.null(values$refresh_cloud_data))
   })
 
   refresh_cloud_data <- function() {
     values$refresh_cloud_data <- if(is.null(values$refresh_cloud_data)) 1 else values$refresh_cloud_data + 1
   }
 
-  # cloud info
-  get_cloud_info <- function(devices, device_ids = NULL) {
-    module_message(ns, "debug", "fetching cloud info")
-    cloud_info <-
-      withProgress(
-        message = 'Fetching device info', detail = "Querying device cloud...", value = 0.5,
-        devices %>%
-          {
-            if (!is.null(device_ids)) filter(., device_id %in% !!device_ids)
-            else .
-          } %>%
-          ll_get_devices_cloud_info(access_token = access_token, convert_to_TZ = timezone, include_unregistered = TRUE)
-      )
+  reset_cloud_data <- function() {
+    values$refresh_cloud_data <- NULL
   }
 
+
+
+  # CLOUD INFO ====
+  get_cloud_info <- function(devices, device_ids = devices$device_id) {
+    withProgress(
+      message = 'Fetching device cloud info', detail = "Querying device cloud...", value = 0.5,
+      devices %>%
+        filter(device_id %in% !!device_ids) %>%
+        ll_get_devices_cloud_info(access_token = access_token, convert_to_TZ = timezone, include_unregistered = TRUE)
+    )
+  }
+
+  # get_all_devices_cloud_info ----
   get_all_devices_cloud_info <- eventReactive(values$refresh_cloud_info, {
+    validate(
+      need(!is.null(devices$get_devices()), "No devices available.")
+    )
+    module_message(ns, "debug", "fetching cloud info for all devices")
     get_cloud_info(devices$get_devices())
   })
 
+  # get_devices_cloud_info ----
   get_devices_cloud_info <- eventReactive(values$refresh_cloud_info, {
+    validate(
+      need(!is.null(devices$get_devices()), "No devices available.") %then%
+        need(length(devices$get_selected_devices()) > 0, "No device selected.")
+    )
+    module_message(ns, "debug", "fetching cloud info for devices")
     get_cloud_info(devices$get_devices(), devices$get_selected_devices())
   })
 
+  # get_exp_devices_cloud_info -----
   get_exp_devices_cloud_info <- eventReactive(values$refresh_cloud_info, {
-    get_cloud_info(experiments$get_loaded_experiment_devices(), experiments$get_selected_loaded_experiment_devices())
+    validate(
+      need(length(experiments$get_loaded_experiment_device_ids()) > 0, "This experiment has no associated devices yet.")
+    )
+    module_message(ns, "debug", "fetching cloud info experiment devices")
+    get_cloud_info(experiments$get_loaded_experiment_devices())
   })
 
   refresh_cloud_info <- function() {
     values$refresh_cloud_info <- if(is.null(values$refresh_cloud_info)) 1 else values$refresh_cloud_info + 1
   }
 
-  # cloudInfoDataServer functions ======
+  # ALL CLOUD FUNCTIONS ======
   list(
     # devices cloud state
     get_devices_cloud_state = get_devices_cloud_state,
     get_exp_devices_cloud_state = get_exp_devices_cloud_state,
     refresh_cloud_state = refresh_cloud_state,
     # devices cloud data
+    get_cloud_data = get_cloud_data,
     get_devices_cloud_data = get_devices_cloud_data,
     get_exp_devices_cloud_data = get_exp_devices_cloud_data,
     refresh_cloud_data = refresh_cloud_data,
+    reset_cloud_data = reset_cloud_data,
+    has_cloud_data = has_cloud_data,
     # devices cloud info
     get_all_devices_cloud_info = get_all_devices_cloud_info,
     get_devices_cloud_info = get_devices_cloud_info,

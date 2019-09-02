@@ -11,7 +11,6 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
     valid_fetch = FALSE,
     valid_plot = FALSE,
     selected_traces = c(),
-    selected_data_groups = c(),
     refresh_data_plot = NULL,
     zoom_stack = list(list(zoom = NULL, x_min = NULL, x_max = NULL))
   )
@@ -52,7 +51,7 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
   })
 
   observe({
-    refresh_available <- values$valid_fetch && length(traces_selector$get_selected()) > 0 && length(groups_selector$get_selected() > 0)
+    refresh_available <- values$valid_fetch && length(traces_selector$get_selected()) > 0
     toggleState("plot_refresh", condition = refresh_available)
     toggleState("traces_refresh", condition = refresh_available)
     toggleState("groups_refresh", condition = refresh_available)
@@ -68,8 +67,6 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
         "Please press the fetch data button (<i class='fa fa-cloud-download'></i>) to query the database."
       else if (is.null(traces_selector$get_selected()))
         "Please select at least one data trace."
-      else if (is.null(groups_selector$get_selected()))
-        "Please select at least one data group."
       else if (is.null(values$valid_plot) || !values$valid_plot)
         "Please press any re-plot button (<i class='fa fa-refresh'></i>) to render the plot."
       else
@@ -80,38 +77,20 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
   # traces ====
 
   # selector
-  traces_selector <- callModule(selectorTableServer, "traces_selector", id_column = "data_trace", col_headers = c("Trace"))
+  traces_selector <- callModule(
+    selectorTableServer, "traces_selector",
+    id_column = "data_trace", column_select = c(`# data points` = n),
+    dom = "tlp"
+    )
 
   # update data
   observe({
     df <- get_data_logs() %>% prepare_data_for_plotting()
     isolate({
       if (nrow(df) > 0) {
-        traces_selector$set_table(df %>% select(data_trace) %>% unique() %>% arrange(data_trace))
+        traces_selector$set_table(df %>% dplyr::count(data_trace) %>% arrange(data_trace))
       } else {
-        traces_selector$set_table(data_frame(data_trace = character(0)))
-      }
-    })
-  })
-
-  # groups ====
-
-  # selector
-  groups_selector <- callModule(selectorTableServer, "groups_selector", id_column = "data_group", col_headers = c("Group"))
-
-  # update data
-  NO_DATA_GROUP <- "-- no data group --"
-  observe({
-    df <- get_data_logs() %>% prepare_data_for_plotting()
-    isolate({
-      if (nrow(df) > 0) {
-        df <- df %>% select(data_group) %>% unique() %>% arrange(data_group) %>%
-          mutate(data_group = ifelse(is.na(data_group), NO_DATA_GROUP, data_group))
-        groups_selector$set_table(df)
-        # select all by default if plot doesn't exist yet
-        if (!values$valid_plot) groups_selector$set_selected(df$data_group)
-      } else {
-        groups_selector$set_table(data_frame(data_group = character(0)))
+        traces_selector$set_table(data_frame(data_trace = character(0), n = integer(0)))
       }
     })
   })
@@ -236,9 +215,7 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
 
     # traces and groups filter
     traces <- traces_selector$get_selected()
-    groups <- groups_selector$get_selected()
-    groups[groups == NO_DATA_GROUP] <- NA_character_
-    logs %>% filter(data_trace %in% traces, data_group %in% groups)
+    logs %>% filter(data_trace %in% traces)
   })
 
   generate_data_plot <- eventReactive(values$refresh_data_plot, {
@@ -252,18 +229,49 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
         "text", x = 0, y = 0,
         label = glue("no data available for the\nselected filters and time interval\n",
                      "experiment(s): {paste(get_experiments(), collapse = ', ')}\n",
-                     "trace(s): {paste(traces_selector$get_selected(), collapse = ', ')}\n",
-                     "group(s): {paste(groups_selector$get_selected(), collapse = ', ')}"),
+                     "trace(s): {paste(traces_selector$get_selected(), collapse = ', ')}"),
         vjust = 0.5, hjust = 0.5, size = 10) + theme_void()
     } else {
 
-      # date breaks
-      if (input$time_intervals_unit != "default" && !is.null(input$time_intervals_number) && input$time_intervals_number > 0) {
-        date_breaks <- str_c(input$time_intervals_number, " ", input$time_intervals_unit)
-      } else {
-        date_breaks <- NULL
+      # datetime vs. duration
+      plot_duration <- !is.null(input$time_axis) && input$time_axis == "duration"
+
+      # interval number
+      interval_number <- NULL
+      if (!is.null(input$time_intervals_number) && !is.na(as.numeric(input$time_intervals_number)) && as.numeric(input$time_intervals_number) > 0) {
+          interval_number <- as.numeric(input$time_intervals_number)
+          if (!plot_duration) interval_number <- ceiling(interval_number) # only full units allowed
       }
-      p <- ll_plot_device_data_logs(logs, date_breaks = date_breaks, show_error_range = input$show_errors, exclude_outliers = !input$show_outliers, include_device_name = input$show_device_names)
+
+      # interval unit
+      interval_unit <- input$time_intervals_unit
+      if (plot_duration && interval_unit == "default") interval_unit <- "days"
+      else if (!plot_duration && interval_unit == "default") interval_unit <- NULL
+
+      # setting breaks
+      if (!is.null(interval_number) && !is.null(interval_unit))
+        time_breaks <- paste(interval_number, interval_unit)
+      else if (!is.null(interval_unit))
+        time_breaks <- interval_unit
+      else
+        time_breaks <- NULL
+
+      # duration vs. date
+      if (plot_duration) {
+        duration_breaks <- time_breaks
+        date_breaks <- NULL
+      } else {
+        duration_breaks <- NULL
+        date_breaks <- time_breaks
+      }
+
+      p <- ll_plot_device_data_logs(
+        logs,
+        duration_breaks = duration_breaks, date_breaks = time_breaks,
+        show_error_range = input$show_errors,
+        exclude_outliers = !input$show_outliers,
+        include_device_info= input$show_device_info,
+        overlay_experiments = input$overlay_exps)
 
       # legend position
       if (input$legend_position == "bottom") {
@@ -294,7 +302,7 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
 
   generate_data_table <- eventReactive(values$refresh_data_plot, {
     logs <- get_plot_data_logs() %>%
-      select(datetime, exp_id, device_name, data_group, data_key, data_units, data_value, data_sd, data_n) %>%
+      select(datetime, exp_id, device_name, data_key, data_units, data_value, data_sd, data_n) %>%
       mutate(datetime = format(datetime, "%Y-%m-%d %H:%M:%S"))
     return(logs)
   })
@@ -413,7 +421,7 @@ dataPlotUI <- function(id, plot_height = 650) {
     div(id = ns("traces_box"),
       default_box(
         title = "Data Traces", width = 4,
-        selectorTableUI(ns("traces_selector"), height = 120),
+        selectorTableUI(ns("traces_selector")),
         footer = div(
           tooltipInput(actionButton, ns("traces_refresh"), label = "Re-plot", icon = icon("refresh"),
                        tooltip = "Refresh plot with new data trace selection."),
@@ -421,20 +429,6 @@ dataPlotUI <- function(id, plot_height = 650) {
           selectorTableButtons(ns("traces_selector"))
         )
       )
-    ) %>% hidden(),
-
-    # groups box ----
-    div(id = ns("groups_box"),
-        default_box(
-          title = "Data Groups", width = 4,
-          selectorTableUI(ns("groups_selector"), height = 75),
-          footer = div(
-            tooltipInput(actionButton, ns("groups_refresh"), label = "Re-plot", icon = icon("refresh"),
-                         tooltip = "Refresh plot with new data groups selection."),
-            spaces(1),
-            selectorTableButtons(ns("groups_selector"))
-          )
-        )
     ) %>% hidden(),
 
     # options box -----
@@ -450,26 +444,33 @@ dataPlotUI <- function(id, plot_height = 650) {
              column(width = 2)
             ),
           fluidRow(
-            h4("Plot height:") %>% column(width = 4),
-            numericInput(ns("plot_height"), NULL, value =  plot_height, min = 100, step = 50) %>%
-              column(width = 8)),
+            h4("Device Info:") %>% column(width = 4),
+            checkboxInput(ns("show_device_info"), NULL, value = FALSE) %>%
+              column(width = 2),
+            h4("Overlay Exps:") %>% column(width = 4),
+            checkboxInput(ns("overlay_exps"), NULL, value = FALSE) %>%
+              column(width = 2)
+          ),
+          fluidRow(
+            h4("Time axis:") %>% column(width = 4),
+            radioButtons(ns("time_axis"), NULL, choices = c("date & time", "duration"), selected = "date & time", inline = TRUE) %>% column(width = 8)
+          ),
           fluidRow(
             h4("Time intervals:") %>% column(width = 4),
             numericInput(ns("time_intervals_number"), NULL, value = NA, min = 1, step = 1) %>% column(width = 3),
             selectInput(ns("time_intervals_unit"), NULL, choices = c("default", "mins", "hours", "days"), selected = "default") %>% column(width = 5)
           ),
           fluidRow(
+            h4("Plot height:") %>% column(width = 4),
+            numericInput(ns("plot_height"), NULL, value =  plot_height, min = 100, step = 50) %>%
+              column(width = 8)),
+          fluidRow(
             h4("Legend:") %>% column(width = 4),
-            selectInput(ns("legend_position"), NULL, choices = c("right", "bottom", "hide"), selected = "bottom") %>% column(width = 8)
+            selectInput(ns("legend_position"), NULL, choices = c("right", "bottom", "hide"), selected = "right") %>% column(width = 8)
           ),
           fluidRow(
             h4("Font Size:") %>% column(width = 4),
             numericInput(ns("font_size"), NULL, value = 18, min = 6, step = 1) %>%
-              column(width = 8)
-          ),
-          fluidRow(
-            h4("Device Names:") %>% column(width = 4),
-            checkboxInput(ns("show_device_names"), NULL, value = FALSE) %>%
               column(width = 8)
           ),
           footer = tooltipInput(actionButton, ns("options_refresh"), label = "Re-plot",

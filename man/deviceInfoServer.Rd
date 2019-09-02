@@ -5,12 +5,8 @@
 \title{Device Info Server}
 \usage{
 deviceInfoServer(input, output, session, get_cloud_state,
-  refresh_cloud_state, get_cloud_data, refresh_cloud_data,
-  refresh_experiment_device_links, get_cloud_info, refresh_cloud_info,
-  get_devices, get_state_logs, refresh_state_logs)
-}
-\arguments{
-\item{refresh_experiment_device_links}{to refresh the database queried list of links between experiments and devices (either from the device or experiment perspective)}
+  refresh_cloud_state, get_cloud_data, refresh_cloud_data, get_cloud_info,
+  refresh_cloud_info, get_device_ids, get_state_logs, refresh_state_logs)
 }
 \description{
 Device Info Server
