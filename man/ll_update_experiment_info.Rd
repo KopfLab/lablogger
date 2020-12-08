@@ -4,9 +4,14 @@
 \alias{ll_update_experiment_info}
 \title{Update experiment information}
 \usage{
-ll_update_experiment_info(exp_id, exp_desc = NULL, exp_notes = NULL,
-  group_id = default(group_id), con = default(con),
-  quiet = default(quiet))
+ll_update_experiment_info(
+  exp_id,
+  exp_desc = NULL,
+  exp_notes = NULL,
+  group_id = default(group_id),
+  con = default(con),
+  quiet = default(quiet)
+)
 }
 \arguments{
 \item{exp_id}{the unique identifier of the experiment (usually a few letter code). Will error if id already exists.}

@@ -4,11 +4,16 @@
 \alias{ll_add_experiment_devices}
 \title{Link device to experiment}
 \usage{
-ll_add_experiment_devices(exp_id, device_names, data_idxs,
+ll_add_experiment_devices(
+  exp_id,
+  device_names,
+  data_idxs,
   device_ids = ll_get_device_ids(device_names, quiet = quiet),
-  experiment_devices = tibble(exp_id, device_id = device_ids, data_idx =
-  data_idxs), group_id = default(group_id), con = default(con),
-  quiet = default(quiet))
+  experiment_devices = tibble(exp_id, device_id = device_ids, data_idx = data_idxs),
+  group_id = default(group_id),
+  con = default(con),
+  quiet = default(quiet)
+)
 }
 \arguments{
 \item{exp_id}{the unique identifier of the experiment (usually a few letter code). Has to exist already in the data base.}

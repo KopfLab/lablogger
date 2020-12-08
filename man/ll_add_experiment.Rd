@@ -4,9 +4,14 @@
 \alias{ll_add_experiment}
 \title{Add new experiment}
 \usage{
-ll_add_experiment(exp_id, exp_desc = NA, exp_notes = NA,
-  group_id = default(group_id), con = default(con),
-  quiet = default(quiet))
+ll_add_experiment(
+  exp_id,
+  exp_desc = NA,
+  exp_notes = NA,
+  group_id = default(group_id),
+  con = default(con),
+  quiet = default(quiet)
+)
 }
 \arguments{
 \item{exp_id}{the unique identifier of the experiment (usually a few letter code). Will error if id already exists.}

@@ -4,8 +4,12 @@
 \alias{ll_snyc_device_names_from_cloud}
 \title{Synchronize device names}
 \usage{
-ll_snyc_device_names_from_cloud(in_use_only = TRUE, con = default(con),
-  access_token = default(access_token), quiet = default(quiet))
+ll_snyc_device_names_from_cloud(
+  in_use_only = TRUE,
+  con = default(con),
+  access_token = default(access_token),
+  quiet = default(quiet)
+)
 }
 \value{
 devices with updated device names

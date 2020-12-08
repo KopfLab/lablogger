@@ -4,11 +4,18 @@
 \alias{selectorTableServer}
 \title{Selector table server}
 \usage{
-selectorTableServer(input, output, session, id_column,
-  row_column = id_column, column_select = NULL,
+selectorTableServer(
+  input,
+  output,
+  session,
+  id_column,
+  row_column = id_column,
+  column_select = NULL,
   page_lengths = list(c(5, 10, 20, -1), c("5", "10", "20", "All")),
-  initial_page_length = page_lengths[[1]][1], dom = "fltip",
-  selector_buttons = TRUE)
+  initial_page_length = page_lengths[[1]][1],
+  dom = "fltip",
+  selector_buttons = TRUE
+)
 }
 \arguments{
 \item{id_column}{name of the ID column - make a rownumber or concatenated column if there is no unique identificer column otherwise}
@@ -29,7 +36,8 @@ selectorTableServer(input, output, session, id_column,
 This generates an rhandson table for selecting items to include in downstream operations.
 }
 \seealso{
-Other selector table module functions: \code{\link{selectorTableButtons}},
-  \code{\link{selectorTableUI}}
+Other selector table module functions: 
+\code{\link{selectorTableButtons}()},
+\code{\link{selectorTableUI}()}
 }
 \concept{selector table module functions}

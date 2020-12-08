@@ -5,9 +5,6 @@
 \alias{lablogger}
 \alias{lablogger-package}
 \title{lablogger: Lab Logger}
-\description{
-
-}
 \seealso{
 Useful links:
 \itemize{

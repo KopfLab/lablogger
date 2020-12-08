@@ -16,8 +16,9 @@ device data logs data frame
 Read in an .rds, .csv or .xlsx file with device data logs downloaded from the GUI.
 }
 \seealso{
-Other data logs functions: \code{\link{ll_get_device_data_logs}},
-  \code{\link{ll_plot_device_data_logs}},
-  \code{\link{ll_write_device_data_logs_to_file}}
+Other data logs functions: 
+\code{\link{ll_get_device_data_logs}()},
+\code{\link{ll_plot_device_data_logs}()},
+\code{\link{ll_write_device_data_logs_to_file}()}
 }
 \concept{data logs functions}

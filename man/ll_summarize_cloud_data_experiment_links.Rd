@@ -4,8 +4,12 @@
 \alias{ll_summarize_cloud_data_experiment_links}
 \title{Cloud data / experiment links summary}
 \usage{
-ll_summarize_cloud_data_experiment_links(cloud_data = tibble(),
-  experiment_device_links = tibble(), linked = TRUE, unlinked = TRUE)
+ll_summarize_cloud_data_experiment_links(
+  cloud_data = tibble(),
+  experiment_device_links = tibble(),
+  linked = TRUE,
+  unlinked = TRUE
+)
 }
 \arguments{
 \item{experiment_device_links}{the links between devices and experiments, see \link{ll_get_experiment_device_links}}

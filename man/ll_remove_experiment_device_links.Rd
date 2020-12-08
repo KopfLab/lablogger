@@ -4,8 +4,12 @@
 \alias{ll_remove_experiment_device_links}
 \title{Remove experiment device links}
 \usage{
-ll_remove_experiment_device_links(exp_id, exp_device_data_ids,
-  con = default(con), quiet = default(quiet))
+ll_remove_experiment_device_links(
+  exp_id,
+  exp_device_data_ids,
+  con = default(con),
+  quiet = default(quiet)
+)
 }
 \arguments{
 \item{exp_id}{experiment id}

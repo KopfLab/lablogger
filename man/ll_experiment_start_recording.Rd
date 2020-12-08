@@ -4,8 +4,12 @@
 \alias{ll_experiment_start_recording}
 \title{Start recording for an experiment}
 \usage{
-ll_experiment_start_recording(exp_id, group_id = default(group_id),
-  con = default(con), quiet = default(quiet))
+ll_experiment_start_recording(
+  exp_id,
+  group_id = default(group_id),
+  con = default(con),
+  quiet = default(quiet)
+)
 }
 \arguments{
 \item{exp_id}{the unique identifier of the experiment (usually a few letter code). Has to exist already in the data base.}

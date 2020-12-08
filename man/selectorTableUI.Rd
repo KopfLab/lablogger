@@ -10,7 +10,8 @@ selectorTableUI(id)
 Selector table UI
 }
 \seealso{
-Other selector table module functions: \code{\link{selectorTableButtons}},
-  \code{\link{selectorTableServer}}
+Other selector table module functions: 
+\code{\link{selectorTableButtons}()},
+\code{\link{selectorTableServer}()}
 }
 \concept{selector table module functions}

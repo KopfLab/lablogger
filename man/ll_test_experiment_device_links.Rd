@@ -4,8 +4,12 @@
 \alias{ll_test_experiment_device_links}
 \title{Test which values one gets for a set of experiment devices}
 \usage{
-ll_test_experiment_device_links(experiment_device_links, spread = FALSE,
-  access_token = default(access_token), quiet = default(quiet))
+ll_test_experiment_device_links(
+  experiment_device_links,
+  spread = FALSE,
+  access_token = default(access_token),
+  quiet = default(quiet)
+)
 }
 \arguments{
 \item{experiment_device_links}{experiment_device_links records, see \link{ll_get_experiment_device_links}}

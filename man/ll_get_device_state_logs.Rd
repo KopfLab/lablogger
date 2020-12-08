@@ -4,11 +4,16 @@
 \alias{ll_get_device_state_logs}
 \title{Retrieve state logs}
 \usage{
-ll_get_device_state_logs(group_id = default(group_id), filter = NULL,
-  select = c(device_id, device_name, device_state_log_id, log_datetime,
-  log_type, log_message, starts_with("state"), notes), max_rows = NULL,
-  convert_to_TZ = Sys.timezone(), con = default(con),
-  quiet = default(quiet))
+ll_get_device_state_logs(
+  group_id = default(group_id),
+  filter = NULL,
+  select = c(device_id, device_name, device_state_log_id, log_datetime, log_type,
+    log_message, starts_with("state"), notes),
+  max_rows = NULL,
+  convert_to_TZ = Sys.timezone(),
+  con = default(con),
+  quiet = default(quiet)
+)
 }
 \arguments{
 \item{filter}{what filter conditions to apply, if any (forwarded to \link[dplyr]{filter})}
