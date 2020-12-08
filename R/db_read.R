@@ -1,5 +1,23 @@
 # devices ====
 
+#@FIXME: implement group_id for device_types?
+#' Retrieve device types
+#' @return device types
+#' @export
+ll_get_device_types <- function(select = everything(), con = default(con), quiet = default(quiet)) {
+  con <- validate_db_connection(enquo(con))
+  select_quo <- enquo(select)
+
+  if (!quiet) {
+    glue("Info: retrieving device types...") %>% message(appendLF = FALSE)
+  }
+  df <- tbl(con, "device_types") %>%
+    dplyr::select(!!select_quo) %>%
+    collect()
+  if (!quiet) glue("found {nrow(df)}.") %>% message()
+  return(df)
+}
+
 #' Retrieve devices
 #' @param group_id devices from which group to fetch
 #' @return devices
