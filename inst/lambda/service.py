@@ -19,9 +19,9 @@ except:
 logger.info("connection to database succeeded")
 
 # parameter checks
-def get_parameter(event, param_name):
+def get_parameter(event, param_name, require = True):
     param = event.get(param_name)
-    if param is None:
+    if require and param is None:
         logger.error("no '{}' provided in event {}".format(param_name, event))
         sys.exit()
     return(param)
@@ -47,9 +47,12 @@ def handler(event, context):
     payload = get_parameter(event, 'payload')
     device_name = get_parameter(payload, 'id')
     log_type = get_parameter(event, 'log')
+    date_time = get_parameter(payload, 'dt', False)
+    if date_time is None:
+        date_time = published_at
 
-    logger.info("processing '{}' log for device '{}' (group_id={}, particle_id={}, device_raw_log_id={}): {}".format(
-        log_type, device_name, group_id, particle_id, device_raw_log_id, event))
+    logger.info("processing '{}' log triggered at '{}' for device '{}' (group_id={}, particle_id={}, device_raw_log_id={}): {}".format(
+        log_type, date_time, device_name, group_id, particle_id, device_raw_log_id, event))
 
     # valid log_type?
     if log_type != "state" and log_type != "data":
@@ -86,11 +89,11 @@ def handler(event, context):
         device_state_log_ids = []
         for state in payload.get('s'):
             cur.execute("INSERT INTO device_state_logs (device_raw_log_id, device_id, log_datetime, log_type, log_message, state_key, state_value, state_units, notes) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING device_state_log_id",
-                (device_raw_log_id, device_id, published_at, payload.get('t'), payload.get('m'), state.get('k'), state.get('v'), state.get('u'), payload.get('n')))
+                (device_raw_log_id, device_id, date_time, payload.get('t'), payload.get('m'), state.get('k'), state.get('v'), state.get('u'), payload.get('n')))
             device_state_log_ids = device_state_log_ids + cur.fetchone()
         conn.commit()
         logger.info("device in use, created {} log entries (IDs: {})".format(len(device_state_log_ids), ', '.join(map(str, device_state_log_ids))))
-        return("Device in use ({} state log entries created).".format(len(device_state_log_ids)))
+        return("Device in use ({} state log entries with date time '{}' created).".format(len(device_state_log_ids), date_time))
 
     # process data logs
     elif log_type == "data":
@@ -115,13 +118,13 @@ def handler(event, context):
                             local_to = global_to
                         # generate a record for the exp_device_data_id
                         cur.execute("INSERT INTO device_data_logs (device_raw_log_id, device_id, exp_device_data_id, log_datetime, log_time_offset, data_idx, data_key, data_value, data_sd, data_units, data_n) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING device_data_log_id",
-                                    (device_raw_log_id, device_id, exp_device_idx[1], published_at, local_to/1000., data.get('i'), data.get('k'), data.get('v'), data.get('s'), data.get('u'), data.get('n')))
+                                    (device_raw_log_id, device_id, exp_device_idx[1], date_time, local_to/1000., data.get('i'), data.get('k'), data.get('v'), data.get('s'), data.get('u'), data.get('n')))
                         device_data_log_ids.append(cur.fetchone())
         conn.commit()
         exp_ids = list(set(exp_ids))
         logger.info("device in use, created {} log entries (IDs: {}) for {} experiments (IDs: {})".format(
             len(device_data_log_ids), ', '.join(map(str, device_data_log_ids)), len(exp_ids), ', '.join(map(str, exp_ids))))
         if (len(device_data_log_ids) > 0):
-            return("Device in use ({} log entries created for {} experiments).".format(len(device_data_log_ids), len(exp_ids)))
+            return("Device in use ({} log entries with date time '{}' created for {} experiments).".format(len(device_data_log_ids), date_time, len(exp_ids)))
         else:
             return("Device in use but no log entries created (no active experiments).")
