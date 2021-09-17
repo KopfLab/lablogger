@@ -1,4 +1,6 @@
-`%then%` <- shiny:::`%OR%`
+`%then%` <- function(a, b) {
+  if (is.null(a)) b else a
+}
 
 # display module message
 # @param type if this is an info meessage or debug (debug only shows if in debug mode)
