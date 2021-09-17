@@ -4,9 +4,16 @@
 \alias{ll_add_device}
 \title{Add new device}
 \usage{
-ll_add_device(device_name, desc = NA, device_type_id = "undefined",
-  group_id = default(group_id), particle_id = NA, in_use = TRUE,
-  con = default(con), quiet = default(quiet))
+ll_add_device(
+  device_name,
+  desc = NA,
+  device_type_id = "undefined",
+  group_id = default(group_id),
+  particle_id = NA,
+  in_use = TRUE,
+  con = default(con),
+  quiet = default(quiet)
+)
 }
 \arguments{
 \item{device_name}{device name / id, must be unique for each group (will error if not)}

@@ -4,11 +4,17 @@
 \alias{ll_plot_device_data_logs}
 \title{Plot device data logs}
 \usage{
-ll_plot_device_data_logs(device_data_logs, filter = NULL,
-  show_error_range = FALSE, exclude_outliers = FALSE,
-  duration_breaks = NULL, date_breaks = NULL,
-  include_device_info = FALSE, overlay_experiments = FALSE,
-  quiet = default(quiet))
+ll_plot_device_data_logs(
+  device_data_logs,
+  filter = NULL,
+  show_error_range = FALSE,
+  exclude_outliers = FALSE,
+  duration_breaks = NULL,
+  date_breaks = NULL,
+  include_device_info = FALSE,
+  overlay_experiments = FALSE,
+  quiet = default(quiet)
+)
 }
 \arguments{
 \item{device_data_logs}{data logs}
@@ -25,8 +31,9 @@ ll_plot_device_data_logs(device_data_logs, filter = NULL,
 This function helps to visualize data logs retrieved with \code{\link{ll_get_device_data_logs}} or read in from downloaded data logs.
 }
 \seealso{
-Other data logs functions: \code{\link{ll_get_device_data_logs}},
-  \code{\link{ll_read_device_data_logs_from_file}},
-  \code{\link{ll_write_device_data_logs_to_file}}
+Other data logs functions: 
+\code{\link{ll_get_device_data_logs}()},
+\code{\link{ll_read_device_data_logs_from_file}()},
+\code{\link{ll_write_device_data_logs_to_file}()}
 }
 \concept{data logs functions}

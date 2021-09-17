@@ -4,10 +4,14 @@
 \alias{ll_get_devices}
 \title{Retrieve devices}
 \usage{
-ll_get_devices(group_id = default(group_id), filter = NULL,
-  select = c(device_id, particle_id, device_name, device_type_id,
-  device_type_desc), in_use_only = TRUE, con = default(con),
-  quiet = default(quiet))
+ll_get_devices(
+  group_id = default(group_id),
+  filter = NULL,
+  select = c(device_id, particle_id, device_name, device_type_id, device_type_desc),
+  in_use_only = TRUE,
+  con = default(con),
+  quiet = default(quiet)
+)
 }
 \arguments{
 \item{group_id}{devices from which group to fetch}

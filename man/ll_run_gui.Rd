@@ -4,9 +4,17 @@
 \alias{ll_run_gui}
 \title{Run the user interface}
 \usage{
-ll_run_gui(group_id, access_token, pool, timezone = Sys.timezone(),
-  app_pwd = NULL, app_title = group_id, app_color = "red", ...,
-  launch = FALSE)
+ll_run_gui(
+  group_id,
+  access_token,
+  pool,
+  timezone = Sys.timezone(),
+  app_pwd = NULL,
+  app_title = group_id,
+  app_color = "red",
+  ...,
+  launch = FALSE
+)
 }
 \arguments{
 \item{group_id}{which group to run for}

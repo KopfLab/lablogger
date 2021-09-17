@@ -4,8 +4,11 @@
 \alias{dataDownloadLink}
 \title{Data Download Link}
 \usage{
-dataDownloadLink(id, label = "Save",
-  tooltip = "Save the data in various formats")
+dataDownloadLink(
+  id,
+  label = "Save",
+  tooltip = "Save the data in various formats"
+)
 }
 \arguments{
 \item{label}{Label for the download link}

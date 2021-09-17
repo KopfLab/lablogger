@@ -1,45 +1,34 @@
 # Lambda function development
 
-## Installation
+## Python installation
 
-### python / pip
+- install https://www.anaconda.com/what-is-anaconda/ (check version with `conda -V`, update with `conda update conda` if lower than 4.6)
+- install `virtualenv` with `python3 -m pip install --user virtualenv` (https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) - Note that conda can also manage virtual environments very nicely but it is easier to use `virtualenv` directly to make smaller lambda function environments
 
-- easiest is just to install anaconda: https://www.anaconda.com/what-is-anaconda/
-- make sure python and pip exist (`python -V` and `pip -V`)
+## AWS CLI installation
 
-### virtual environments
-
-- install virtualenv `pip install virtualenv` (virtual environment to develop lambda functions in, [doc](http://docs.python-guide.org/en/latest/dev/virtualenvs/#lower-level-virtualenv))
-  - test that it was installed properly `virtualenv --version`
-  - if it does give a version number, it might not be in the path (possibly already installed), easiest solution: `pip uninstall virtualenv`, then re-installed
-- Optional: for general work with virtualenvs, use the wrapper: `pip install virtualenvwrapper` ([doc](http://docs.python-guide.org/en/latest/dev/virtualenvs/#virtualenvwrapper))
-
-### AWS CLI
-
-- install AWS command line interface: `conda install -c conda-forge awscli` (via anaconda, easier than with pip and then defining the env. variables)
+- install AWS command line interface: https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html
   - to check: `aws --version`
   - to configure: `aws configure` ([doc](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html))
   - test: `aws rds describe-db-instances`
 
 ## Setup
 
-- create a new project folder (best in atom terminal - extension `platformio-ide-terminal` to develop python there):
-- run `make install`, which does the following:
-  - creates virtual environment: `virtualenv .`
+- run `make clean install`, which does the following:
+  - creates virtual environment in the project folder (cleans up first there was anything)
   - activates virtual environment: `source bin/activate`
     - Note: from the make file it does not translate into the shell but if run manually, terminal should show `(folder name)` at the beginning of the console line
-  - installs python lambda for the virtual environment: `pip install python-lambda` ([doc](https://github.com/nficano/python-lambda))
-  - optional (if needed): installs postgresql db driver in the virtual env.: `pip install pg8000` ([doc](https://github.com/mfenniak/pg8000))
+  - installs the dependencies for the lambda function defined in `requirements.txt`, here python lambda ([doc](https://github.com/nficano/python-lambda)) and postgresql db drivers ([doc](https://github.com/mfenniak/pg8000))
     - Note: to make successful database connections, make sure to have permissions set up for your IP to connect to the database
 - run `make init`, which does the following:
   - bootstraps lambda project if it does not exist yet via `lambda init`
-  - makes local copies of the config and webhook template files (automatically git-ignored)
+  - makes local copies of the config and webhook template files (automatically git-ignored) if they don't exist yet
 
 ## Development
 
-- develop the lambda function in the `service.py` file and connected scipts
-- run `make invoke` to run lambda function with the information in `event.json`
-  - uses `lambda invoke -v` in the virtual environment
+- develop the lambda function in the `service.py` file and connected scripts
+- run `make invoke` to run lambda function with the information in some event file `event.json`
+  - uses `lambda invoke -v --event_file event.json` in the virtual environment
 
 ## Deployment
 
@@ -47,7 +36,7 @@
  - fill out the settings in `config.yaml`, see **Integration** section for details (no worries if not everything correct right away, deploy will throw errors)
  - run `make deploy` to deploy the lambda function:
    - uses `lambda deploy` in the virtual environment
- - Note: for large project dependencies, consider using S3 bucket for the labmda function, see [docs](https://github.com/nficano/python-lambda#uploading-to-s3) for details
+ - Note: for large project dependencies, consider using S3 bucket for the lambda function, see [docs](https://github.com/nficano/python-lambda#uploading-to-s3) for details or a layer
  - Note: for the lambda function to work properly, it needs to be well integrated into other services (see below for details)
 
 ## Integration
@@ -90,3 +79,32 @@ Lastly, the particle photons need to actually send data to the API, this is done
   - `<<OWNER>>` is the name/id of the owner record in the database (depends on what is set up in your database)
 - create the webhooks via `particle webhook create webhook_data_log.json` and `particle webhook create webhook_state_log.json` (need to be logged into the particle account via `particle login`)
 - note that creating the webhooks multiple times will NOT throw an error but lead to multiple trigger events, make sure to remove old webhooks via `particle webhook list` and `particle webhook delete` before re-creating updated versions
+
+## Alternative (cut?)
+
+[serverless](https://www.serverless.com/dashboard/) provides a potential deployment alternative compatible with multiple providers, not just AWS but it's a bit different setup (and not currently what we use). Below are a few notes on the approach.
+
+### serverless setup
+
+ - install node js and npm (e.g. with `brew install node`, manual installation of https://github.com/nvm-sh/nvm and then `nvm install node`) and then the serverless framework with `npm install -g serverless` (see https://www.serverless.com/framework/docs/providers/aws/guide/quick-start/ for details)
+ - create an AWS access key for serverless: https://www.serverless.com/framework/docs/providers/aws/guide/credentials#creating-aws-access-keys
+ - set up AWS credentials for serverless with `serverless config credentials --provider aws --key AKIAIOSFODNN7EXAMPLE --secret wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY` (and the correct key and secret for the new user created above)
+ - create a serverless labmda function project with: `serverless create \
+  --template aws-python3 \
+  --name lablogger_lambda \
+  --path lablogger_lambda` (example: https://www.serverless.com/blog/serverless-python-packaging)
+
+### python setup
+
+ - go into the `lablogger_lamda` folder (`cd lablogger_lambda`)
+ - create an empty virtual environment in this folder with `python3 -m venv env` (note that using conda for this makes later steps more complicated and the lambda function zip bigger than it needs to be)
+ - activate the virtual environment with `source venv/bin/activate`
+ - install packages as needed with `pip install ...` but keep in mind that lambda functions have a size limit so ideally restrict to only absolutely necessary packages
+ - write the python function(s) in a `.py` file
+ - create a virtual environment `requirements.txt` file with `pip freeze > requirements.txt`
+ - exit the virtual environment with `deactivate` when done
+
+### serverless deployment
+
+ - setup a `serverless.yml` deployment file and `package.json` file for node dependencies as described here: https://www.serverless.com/blog/serverless-python-packaging#deploying-your-service
+ - deploy using `serverless deploy` (needs docker installed)

@@ -4,9 +4,20 @@
 \alias{deviceInfoServer}
 \title{Device Info Server}
 \usage{
-deviceInfoServer(input, output, session, get_cloud_state,
-  refresh_cloud_state, get_cloud_data, refresh_cloud_data, get_cloud_info,
-  refresh_cloud_info, get_device_ids, get_state_logs, refresh_state_logs)
+deviceInfoServer(
+  input,
+  output,
+  session,
+  get_cloud_state,
+  refresh_cloud_state,
+  get_cloud_data,
+  refresh_cloud_data,
+  get_cloud_info,
+  refresh_cloud_info,
+  get_device_ids,
+  get_state_logs,
+  refresh_state_logs
+)
 }
 \description{
 Device Info Server

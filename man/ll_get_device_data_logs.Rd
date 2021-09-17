@@ -4,11 +4,16 @@
 \alias{ll_get_device_data_logs}
 \title{Retrieve data logs}
 \usage{
-ll_get_device_data_logs(group_id = default(group_id), filter = NULL,
-  select = c(exp_id, device_id, device_name, device_data_log_id,
-  datetime, data_idx, starts_with("data_key"), starts_with("data_")),
-  max_rows = NULL, convert_to_TZ = Sys.timezone(),
-  con = default(con), quiet = default(quiet))
+ll_get_device_data_logs(
+  group_id = default(group_id),
+  filter = NULL,
+  select = c(exp_id, device_id, device_name, device_data_log_id, datetime, data_idx,
+    starts_with("data_key"), starts_with("data_")),
+  max_rows = NULL,
+  convert_to_TZ = Sys.timezone(),
+  con = default(con),
+  quiet = default(quiet)
+)
 }
 \arguments{
 \item{filter}{what filter conditions to apply, if any (forwarded to \link[dplyr]{filter})}
@@ -26,8 +31,9 @@ device data logs
 Returns data logs from the database joined with experiments, devices, and experiment_device_data (for prefix only) tables so filter conditions can be applied on these as well. Sorted by descending order (i.e. latest record first). Note that the group_id filter restricts the selected experiments, device data may theoretically come from devices not (or no longer) associated with the same group although this is rarely the case.
 }
 \seealso{
-Other data logs functions: \code{\link{ll_plot_device_data_logs}},
-  \code{\link{ll_read_device_data_logs_from_file}},
-  \code{\link{ll_write_device_data_logs_to_file}}
+Other data logs functions: 
+\code{\link{ll_plot_device_data_logs}()},
+\code{\link{ll_read_device_data_logs_from_file}()},
+\code{\link{ll_write_device_data_logs_to_file}()}
 }
 \concept{data logs functions}

@@ -4,10 +4,14 @@
 \alias{ll_get_experiment_device_links}
 \title{Retrieve experiment device links}
 \usage{
-ll_get_experiment_device_links(group_id = default(group_id),
-  filter = NULL, select = c(exp_device_data_id, exp_id, recording,
-  device_id, device_name, particle_id, data_idx, active),
-  con = default(con), quiet = default(quiet))
+ll_get_experiment_device_links(
+  group_id = default(group_id),
+  filter = NULL,
+  select = c(exp_device_data_id, exp_id, recording, device_id, device_name,
+    particle_id, data_idx, active),
+  con = default(con),
+  quiet = default(quiet)
+)
 }
 \arguments{
 \item{group_id}{experiments from which group to fetch}

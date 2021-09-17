@@ -4,8 +4,11 @@
 \alias{ll_get_device_ids}
 \title{Get device id}
 \usage{
-ll_get_device_ids(device_names, group_id = default(group_id),
-  quiet = default(quiet))
+ll_get_device_ids(
+  device_names,
+  group_id = default(group_id),
+  quiet = default(quiet)
+)
 }
 \description{
 Convenience shortcut function to get the database integer device identifier for one or multiple devices.

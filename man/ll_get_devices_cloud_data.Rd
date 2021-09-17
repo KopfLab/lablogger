@@ -4,10 +4,15 @@
 \alias{ll_get_devices_cloud_data}
 \title{Get device data}
 \usage{
-ll_get_devices_cloud_data(devices = ll_get_devices(group_id = group_id,
-  con = con), group_id = default(group_id), con = default(con),
-  access_token = default(access_token), convert_to_TZ = Sys.timezone(),
-  spread = FALSE, quiet = default(quiet))
+ll_get_devices_cloud_data(
+  devices = ll_get_devices(group_id = group_id, con = con),
+  group_id = default(group_id),
+  con = default(con),
+  access_token = default(access_token),
+  convert_to_TZ = Sys.timezone(),
+  spread = FALSE,
+  quiet = default(quiet)
+)
 }
 \arguments{
 \item{devices}{data frame with devices for which to get cloud info, by default all devices associated with the group}

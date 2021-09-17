@@ -4,8 +4,11 @@
 \alias{ll_summarize_data_logs}
 \title{Generate data log summary}
 \usage{
-ll_summarize_data_logs(data_logs, exclude_outliers = FALSE,
-  slope_denom_units = "hour")
+ll_summarize_data_logs(
+  data_logs,
+  exclude_outliers = FALSE,
+  slope_denom_units = "hour"
+)
 }
 \description{
 Generate data log summary

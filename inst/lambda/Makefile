@@ -1,17 +1,14 @@
 # simplifying make commands
 SHELL := /bin/bash
+PYTHON=python3.8
 
 # install the virtual environments and all dependencies
-install: bin bin/lambda lib/python2.7/site-packages/pg8000
+install: bin
 
+# create virtual environment in this folder
 bin:
-	virtualenv . --python=python2.7
-
-bin/lambda:
-	source bin/activate && pip install python-lambda
-
-lib/python2.7/site-packages/pg8000:
-	source bin/activate && pip install pg8000
+	python3 -m venv .
+	source bin/activate && pip install -r requirements.txt
 
 # initialize project (only needed once)
 init: install config.yaml webhooks service.py

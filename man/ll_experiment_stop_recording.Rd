@@ -4,8 +4,12 @@
 \alias{ll_experiment_stop_recording}
 \title{stop recording for an experiment}
 \usage{
-ll_experiment_stop_recording(exp_id, group_id = default(group_id),
-  con = default(con), quiet = default(quiet))
+ll_experiment_stop_recording(
+  exp_id,
+  group_id = default(group_id),
+  con = default(con),
+  quiet = default(quiet)
+)
 }
 \description{
 stop recording for an experiment

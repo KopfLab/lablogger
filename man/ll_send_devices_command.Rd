@@ -4,8 +4,13 @@
 \alias{ll_send_devices_command}
 \title{Send device commands to the cloud}
 \usage{
-ll_send_devices_command(devices, command, message = "",
-  access_token = default(access_token), quiet = default(quiet))
+ll_send_devices_command(
+  devices,
+  command,
+  message = "",
+  access_token = default(access_token),
+  quiet = default(quiet)
+)
 }
 \arguments{
 \item{devices}{data frame with devices for which to issue commands}

@@ -4,8 +4,7 @@
 \alias{ll_add_group}
 \title{Add a new group record}
 \usage{
-ll_add_group(group_id, desc = NA, con = default(con),
-  quiet = default(quiet))
+ll_add_group(group_id, desc = NA, con = default(con), quiet = default(quiet))
 }
 \arguments{
 \item{group_id}{the unique identifier/name of the group. Will error if id already exists.}

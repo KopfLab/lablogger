@@ -14,6 +14,19 @@ ll_add_group <- function(group_id, desc = NA, con = default(con), quiet = defaul
 
 # devices ====
 
+#' Add new device type
+#' @param device_type_id device type ID, must be unique (will error if not)
+#' @param device_type_desc device type description
+#' @export
+ll_add_device_type <- function(device_type_id, device_type_desc, con = default(con), quiet = default(quiet)) {
+  con <- validate_db_connection(enquo(con))
+  if (!quiet) glue("\nInfo: add new device type '{device_type_id}'... ") %>%
+    message(appendLF = FALSE)
+  data <- tibble(device_type_id = device_type_id, device_type_desc = device_type_desc)
+  run_insert_sql(data, "device_types", con, quiet = quiet)
+  return(invisible(data));
+}
+
 #' Add new device
 #' @param device_name device name / id, must be unique for each group (will error if not)
 #' @param desc device description

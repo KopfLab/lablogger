@@ -4,8 +4,12 @@
 \alias{ll_write_device_data_logs_to_file}
 \title{Save device data logs}
 \usage{
-ll_write_device_data_logs_to_file(device_data_logs, file_path,
-  zip = FALSE, quiet = default(quiet))
+ll_write_device_data_logs_to_file(
+  device_data_logs,
+  file_path,
+  zip = FALSE,
+  quiet = default(quiet)
+)
 }
 \arguments{
 \item{device_data_logs}{data logs to save}
@@ -23,8 +27,9 @@ returns the logs invisibly for piping
 Write device data logs to an .rds, .xlsx (excel), and/or .csv file and optionally compress them into a zip archive. Note that target files will be overwritten if they already exist.
 }
 \seealso{
-Other data logs functions: \code{\link{ll_get_device_data_logs}},
-  \code{\link{ll_plot_device_data_logs}},
-  \code{\link{ll_read_device_data_logs_from_file}}
+Other data logs functions: 
+\code{\link{ll_get_device_data_logs}()},
+\code{\link{ll_plot_device_data_logs}()},
+\code{\link{ll_read_device_data_logs_from_file}()}
 }
 \concept{data logs functions}

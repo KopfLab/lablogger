@@ -4,8 +4,14 @@
 \alias{ll_get_exp_device_data_logs}
 \title{Get device data logs for specific experiment(s)}
 \usage{
-ll_get_exp_device_data_logs(exp_id, group_id = default(group_id), ...,
-  cache = TRUE, read_cache = TRUE, quiet = default(quiet))
+ll_get_exp_device_data_logs(
+  exp_id,
+  group_id = default(group_id),
+  ...,
+  cache = TRUE,
+  read_cache = TRUE,
+  quiet = default(quiet)
+)
 }
 \arguments{
 \item{exp_id}{experiment ID(s)}

@@ -1,6 +1,7 @@
 # configuration details
 config.yaml
 webhook*log.json
+pyvenv.cfg
 
 # installation
 bin
@@ -11,3 +12,4 @@ lib
 # temp files
 pip-selfcheck.json
 service.pyc
+__pycache__

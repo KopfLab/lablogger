@@ -4,9 +4,13 @@
 \alias{ll_get_experiments}
 \title{Retrieve experiments}
 \usage{
-ll_get_experiments(group_id = default(group_id), filter = NULL,
-  convert_to_TZ = Sys.timezone(), con = default(con),
-  quiet = default(quiet))
+ll_get_experiments(
+  group_id = default(group_id),
+  filter = NULL,
+  convert_to_TZ = Sys.timezone(),
+  con = default(con),
+  quiet = default(quiet)
+)
 }
 \arguments{
 \item{group_id}{experiments from which group to fetch}
