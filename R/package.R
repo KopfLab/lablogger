@@ -1,10 +1,10 @@
 #' @keywords internal
 "_PACKAGE"
 
-#' @importFrom rlang quo quos enquo !! !!! is_quosure quo_squash quo_text quo_is_null quo_is_symbol quo_is_call lang_head sym syms eval_tidy parse_expr
+#' @importFrom rlang quo quos enquo !! !!! is_quosure quo_squash quo_text quo_is_null quo_is_symbol quo_is_call sym syms eval_tidy parse_expr
 #' @importFrom curl new_handle curl_fetch_memory handle_setopt
 #' @importFrom jsonlite fromJSON toJSON
-#' @importFrom glue glue collapse
+#' @importFrom glue glue
 #' @importFrom tibble deframe tibble
 #' @importFrom dplyr select rename filter as_data_frame %>% tbl collect mutate data_frame everything starts_with ends_with left_join full_join semi_join arrange group_by ungroup do summarize bind_rows between desc case_when
 #' @importFrom tidyr gather nest unnest spread

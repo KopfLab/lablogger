@@ -1,10 +1,9 @@
 Package: lablogger
 Type: Package
 Title: Lab Logger
-Version: 0.4.0
+Version: 0.4.1
 Author: Sebastian Kopf
 Maintainer: Sebastian Kopf <sebastian.kopf@colorado.edu>
-Roxygen: list(wrap = FALSE)
 URL: https://github.com/kopflab/lablogger
 BugReports: https://github.com/kopflab/lablogger/issues
 Depends:
@@ -53,4 +52,4 @@ License: GPL (>= 2) | file LICENSE
 Encoding: UTF-8
 LazyData: true
 VignetteBuilder: knitr
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
