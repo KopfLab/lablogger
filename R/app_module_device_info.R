@@ -127,7 +127,7 @@ deviceLogsUI <- function(id, width = 12) {
       style = paste0("min-height: 300px;"),
       DT::dataTableOutput(ns("logs_table")) %>% withSpinner(type = 5, proxy.height = "300px"),
       footer = div(
-        tooltipInput(actionButton, ns("fetch_logs"), "Fetch Logs", icon = icon("cloud-download"),
+        tooltipInput(actionButton, ns("fetch_logs"), "Fetch Logs", icon = icon("cloud-download-alt"),
                      tooltip = "Fetch the most recent state logs from the data base.")
       )
     )
@@ -149,7 +149,7 @@ deviceInfoUI <- function(id, width = 12) {
       style = paste0("min-height: 130px;"),
       tableOutput(ns("info_table")) %>% withSpinner(type = 5, proxy.height = "130px"),
       footer = div(
-        tooltipInput(actionButton, ns("fetch_info"), "Fetch Info", icon = icon("cloud-download"),
+        tooltipInput(actionButton, ns("fetch_info"), "Fetch Info", icon = icon("cloud-download-alt"),
                      tooltip = "Fetch the most recent device information from the cloud.")
       )
     )
@@ -170,7 +170,7 @@ deviceStateUI <- function(id, width = 12) {
       tableOutput(ns("state_table")) %>% withSpinner(type = 5, proxy.height = "130px"),
       footer =
         div(
-          tooltipInput(actionButton, ns("fetch_state"), "Fetch State", icon = icon("cloud-download"),
+          tooltipInput(actionButton, ns("fetch_state"), "Fetch State", icon = icon("cloud-download-alt"),
                        tooltip = "Fetch the most recent state information from the cloud.")
         )
     )
@@ -198,7 +198,7 @@ deviceDataUI <- function(
                          inline = TRUE),
       output,
       footer = div(
-        tooltipInput(actionButton, ns("fetch_data"), "Fetch Data", icon = icon("cloud-download"),
+        tooltipInput(actionButton, ns("fetch_data"), "Fetch Data", icon = icon("cloud-download-alt"),
                      tooltip = "Fetch the most recent live data and experiment links from the cloud."),
         spaces(1),
         add_footer
@@ -209,7 +209,7 @@ deviceDataUI <- function(
 
 deviceFetchAllUI <- function(id) {
   ns <- NS(id)
-  tooltipInput(actionButton, ns("fetch_data_all"), "Fetch All (Data, State, Info, Logs)", icon = icon("cloud-download"),
+  tooltipInput(actionButton, ns("fetch_data_all"), "Fetch All (Data, State, Info, Logs)", icon = icon("cloud-download-alt"),
                tooltip = "Fetch all device information from the cloud and database.")
 }
 

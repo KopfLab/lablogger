@@ -294,7 +294,7 @@ ll_get_device_data_logs <- function(
 ll_reset_exp_device_data_logs_cache <- function(exp_id, quiet = default(quiet)) {
 
   # cache paths
-  cache_paths <- data_frame(
+  cache_paths <- tibble(
     exp_id = exp_id,
     path = file.path("cache", str_c(exp_id, "_data_logs.rds")),
     exists = file.exists(path)
@@ -327,14 +327,14 @@ ll_reset_exp_device_data_logs_cache <- function(exp_id, quiet = default(quiet)) 
 ll_get_exp_device_data_logs <- function(exp_id, group_id = default(group_id), ..., cache = TRUE, read_cache = TRUE, quiet = default(quiet)) {
 
   # cache paths
-  cache_paths <- data_frame(
+  cache_paths <- tibble(
     exp_id = exp_id,
     path = file.path("cache", str_c(exp_id, "_data_logs.rds")),
     exists = file.exists(path)
   )
 
   # logs
-  logs <- data_frame()
+  logs <- tibble()
 
   # read cache
   if (read_cache && any(cache_paths$exists)) {
@@ -385,8 +385,8 @@ ll_get_exp_device_data_logs <- function(exp_id, group_id = default(group_id), ..
     logs %>%
       left_join(cache_paths, by = "exp_id") %>%
       select(-exists) %>%
-      nest(-path) %>%
-      with(walk2(data, path, ~write_rds(x = .x, path = .y)))
+      nest(data = c(-path)) %>%
+      with(walk2(data, path, ~write_rds(x = .x, file = .y)))
 
     if (!quiet) message("complete.")
   }

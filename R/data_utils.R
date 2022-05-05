@@ -6,7 +6,7 @@
 # @param unnest_single_values whether to unnest single values (values that have a none or only a single entry for all retrieve records)
 # @param unpack_sub_lists - whether to unpack remaining list columns (only evaluated if unnest_single_values = TRUE)
 # @param nest_into_data_frame - whether to nest the unpacked lists into a data frame or keep the columns all unpacked
-unpack_lists_data_frame <- function(lists_df, column = lists, unnest_single_values = TRUE, unpack_sub_lists = FALSE, nest_into_data_frame = FALSE) {
+unpack_lists_tibble <- function(lists_df, column = lists, unnest_single_values = TRUE, unpack_sub_lists = FALSE, nest_into_data_frame = FALSE) {
 
   # id rows
   col_quo <- enquo(column)
@@ -17,7 +17,7 @@ unpack_lists_data_frame <- function(lists_df, column = lists, unnest_single_valu
     lists_df_original %>%
     rename(lists = !!col_quo) %>%
     mutate(name = map(lists, ~if(length(.x) == 0) { NA_character_ } else { names(.x) })) %>%
-    unnest(name, .drop = FALSE) %>%
+    unnest(name) %>%
     mutate(
       class = map2_chr(lists, name, ~class(.x[[.y]])[1]),
       length = map2_int(lists, name, ~length(.x[[.y]])),
@@ -84,14 +84,14 @@ unpack_lists_data_frame <- function(lists_df, column = lists, unnest_single_valu
     unpack_cols <- filter(data_classes, data_class == "list")$name
     for (col in unpack_cols) {
       new_data <<- lists_df_wide %>% rename(..parent_nr.. = ..nr..) %>%
-        unpack_lists_data_frame(
+        unpack_lists_tibble(
           column = !!sym(col), unnest_single_values = unnest_single_values,
           # don't allow recursive unpacking for now, always nest into data frame
           unpack_sub_lists = FALSE, nest_into_data_frame = TRUE)
 
       lists_df_wide <-
         lists_df_wide %>% rename(..parent_nr.. = ..nr..) %>%
-        unpack_lists_data_frame(
+        unpack_lists_tibble(
           column = !!sym(col), unnest_single_values = unnest_single_values,
           # don't allow recursive unpacking for now, always nest into data frame
           unpack_sub_lists = FALSE, nest_into_data_frame = TRUE) %>%
@@ -103,7 +103,7 @@ unpack_lists_data_frame <- function(lists_df, column = lists, unnest_single_valu
   if (nest_into_data_frame) {
     lists_df_wide <- lists_df_wide %>%
       select(!!!syms(c("..nr..", data_classes$name))) %>%
-      nest(-..nr.., .key = !!col_quo)
+      nest(!!col_quo := c(-..nr..))
   } else {
     # no nesting, just select right columns
     lists_df_wide <- select(lists_df_wide, !!!syms(c("..nr..", data_classes$name)))

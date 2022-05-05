@@ -48,7 +48,7 @@ deviceSelectorUI <- function(id, width = 12, add_footer = tagList()) {
     title = "Devices", width = width,
     selectorTableUI(ns("selector")),
     footer = div(
-      tooltipInput(actionButton, ns("device_refresh"), label = "Refresh", icon = icon("refresh"), tooltip = "Refresh devices."),
+      tooltipInput(actionButton, ns("device_refresh"), label = "Refresh", icon = icon("sync"), tooltip = "Refresh devices."),
       spaces(1),
       selectorTableButtons(ns("selector")),
       spaces(1),

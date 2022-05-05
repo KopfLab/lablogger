@@ -5,7 +5,7 @@ deviceCommandsServer <- function(input, output, session, get_devices, access_tok
 
   # values
   values <- reactiveValues(
-    selected_devices = data_frame()
+    selected_devices = tibble()
   )
 
   # trigger control dialog

@@ -34,7 +34,7 @@ ll_summarize_data_logs <- function(data_logs, exclude_outliers = FALSE, slope_de
     } %>%
     group_by(exp_id, device_name, data_key, data_units) %>%
     summarize(
-      n = n(),
+      n = dplyr::n(),
       mean = mean(data_value, na.rm = TRUE),
       sd = sd(data_value, na.rm = TRUE),
       fit = list(lm(data_value ~ duration))

@@ -184,11 +184,11 @@ selectorTableButtons <- function(id) {
   ns <- NS(id)
   tagList(
     tooltipInput(actionButton, ns("select_all"), "Select all",
-                 icon = icon("check-square-o"),
+                 icon = icon("check-square-o", verify_fa = FALSE),
                  tooltip = "Select all items that match the current search in addition to those already selected."),
     spaces(1),
     tooltipInput(actionButton, ns("deselect_all"), "Deselect",
-                 icon = icon("square-o"),
+                 icon = icon("square-o", verify_fa = FALSE),
                  tooltip = "Deselct all items (irrespective of the search).")
   )
 }
