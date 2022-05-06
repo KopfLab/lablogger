@@ -79,6 +79,7 @@ deviceCommandsServer <- function(input, output, session, get_devices, access_tok
       withProgress(
         message = 'Sending command', detail = "Contacting device cloud...", value = 0.5,
         values$selected_devices %>%
+          select(device_id, particle_id, device_name) %>%
           ll_send_devices_command(
             command = input$command,
             message = input$message,
