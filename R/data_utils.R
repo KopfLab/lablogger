@@ -33,7 +33,9 @@ unpack_lists_tibble <- function(lists_df, column = lists, unnest_single_values =
     group_by(..order.., name) %>%
     summarize(
       data_class = unique(class)[1],
-      value_max_n = as.integer(max(length))) %>%
+      value_max_n = as.integer(max(length)),
+      .groups = "drop"
+    ) %>%
     ungroup() %>% arrange(..order..) %>% select(-..order..)
 
   # lists wide
@@ -76,7 +78,7 @@ unpack_lists_tibble <- function(lists_df, column = lists, unnest_single_values =
   if (unnest_single_values) {
     unnest_cols <- filter(data_classes, value_max_n == 1,
                           data_class %in% c("character", "integer", "numeric", "logical"))$name
-    lists_df_wide <- unnest(lists_df_wide, !!!syms(unnest_cols), .drop = FALSE)
+    lists_df_wide <- unnest(lists_df_wide, dplyr::all_of(unnest_cols))
   }
 
   # unpack sub lists

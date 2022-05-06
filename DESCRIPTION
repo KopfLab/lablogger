@@ -1,7 +1,7 @@
 Package: lablogger
 Type: Package
 Title: Lab Logger
-Version: 0.4.2
+Version: 0.4.3
 Author: Sebastian Kopf
 Maintainer: Sebastian Kopf <sebastian.kopf@colorado.edu>
 URL: https://github.com/kopflab/lablogger

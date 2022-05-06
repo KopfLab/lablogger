@@ -56,8 +56,8 @@ make_particle_cloud_request <- function(endpoint, arg = NULL, nr = NULL, total =
 
   if (!is.null(result$error)) {
     if (!quiet) glue("failed.") %>% message()
-    glue("encountered the following error: {result$error}") %>%
-      warning(immediate. = TRUE, call. = FALSE)
+    glue("Warning: encountered the following error: {result$error}") %>%
+      message()
   } else if (!quiet) {
     glue("successful.") %>% message()
   }

@@ -9,10 +9,10 @@ deviceCommandsServer <- function(input, output, session, get_devices, access_tok
   )
 
   # trigger control dialog
-  observeEvent(input$device_control, showModal(control_dialog()))
+  observeEvent(input$device_control, showModal(control_dialog))
 
   # dialog
-  control_dialog <- reactive({
+  control_dialog <-
     modalDialog(
       title = h3("Send a command to one or multiple devices", align = "center"),
       fade = FALSE, easyClose = TRUE, size = "l",
@@ -41,7 +41,7 @@ deviceCommandsServer <- function(input, output, session, get_devices, access_tok
                        disabled = TRUE),
           modalButton("Close")
         )
-    )})
+    )
 
   # selection table
   selector <- callModule(
@@ -52,13 +52,13 @@ deviceCommandsServer <- function(input, output, session, get_devices, access_tok
   )
 
   # update devices table
-  observe({
+  observeEvent(get_devices(), {
     req(df <- get_devices())
     if (nrow(df) > 0) selector$set_table(df)
   })
 
   # react to device selection
-  observe({
+  observeEvent(selector$get_selected_items(), {
     values$selected_devices <- selector$get_selected_items()
     shinyjs::toggleState("send_command", condition = nrow(values$selected_devices) > 0)
   })
