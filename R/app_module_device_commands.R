@@ -67,7 +67,7 @@ deviceCommandsServer <- function(input, output, session, get_devices, access_tok
   output$selected_devices = renderTable({
     validate(need(nrow(values$selected_devices) > 0, "None"))
     if ("return_message" %in% names(values$selected_devices))
-      select(values$selected_devices, Name = device_name, `Command Message` = return_message)
+      select(values$selected_devices, Name = device_name, `Command` = command, `Command Message` = return_message)
     else
       select(values$selected_devices, Name = device_name)
   })
