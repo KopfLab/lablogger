@@ -246,20 +246,22 @@ ll_get_device_data_logs <- function(
     left_join(dplyr::select(tbl(con, "devices"), -group_id), by = "device_id") %>%
     left_join(dplyr::select(tbl(con, "experiment_device_data"), exp_device_data_id, exp_id), by = "exp_device_data_id") %>%
     left_join(tbl(con, "experiments"), by = "exp_id") %>%
-    arrange(desc(device_data_log_id)) %>%
     dplyr::filter(group_id == group_id_value) %>%
     {
       if(!quo_is_null(filter_quo)) dplyr::filter(., !!filter_quo)
       else .
     } %>%
     {
-      if (!is.null(max_rows)) dplyr::filter(., dplyr::row_number() <= max_rows)
+      if (!is.null(max_rows))
+        dplyr::arrange(., desc(device_data_log_id)) %>%
+        dplyr::filter(dplyr::row_number() <= max_rows)
       else .
     } %>%
     # for time offset calculations
     mutate(datetime = log_datetime) %>%
     dplyr::select(!!select_quo, log_time_offset) %>%
-    collect()
+    collect() %>%
+    dplyr::arrange(desc(device_data_log_id))
 
   if (!quiet) glue("found {nrow(logs)} entries. ") %>% message(appendLF = FALSE)
 
@@ -329,7 +331,7 @@ ll_get_exp_device_data_logs <- function(exp_id, group_id = default(group_id), ..
   # cache paths
   cache_paths <- tibble(
     exp_id = exp_id,
-    path = file.path("cache", str_c(exp_id, "_data_logs.rds")),
+    path = file.path("cache", str_c(fs::path_sanitize(exp_id), "_data_logs.rds")),
     exists = file.exists(path)
   )
 
@@ -360,7 +362,7 @@ ll_get_exp_device_data_logs <- function(exp_id, group_id = default(group_id), ..
         !is.na(max_device_data_log_id),
         sprintf("(exp_id == \"%s\" & device_data_log_id > %g)", exp_id, max_device_data_log_id),
         sprintf("exp_id == \"%s\"", exp_id))) %>%
-      collapse (sep = " | ") %>%
+      glue::glue_collapse(sep = " | ") %>%
       parse_expr()
   } else {
     # simple filter for all experiments
@@ -369,7 +371,8 @@ ll_get_exp_device_data_logs <- function(exp_id, group_id = default(group_id), ..
 
   # fetch from database
   db_logs <- ll_get_device_data_logs(group_id = group_id, filter = !!filter_quo, ..., quiet = quiet)
-  logs <- bind_rows(db_logs, logs)
+  if (nrow(db_logs) > 0)
+    logs <- bind_rows(db_logs, logs)
 
   # safety check
   if (nrow(logs) == 0) return(logs)
