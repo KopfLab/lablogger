@@ -5,14 +5,14 @@ deviceCommandsServer <- function(input, output, session, get_devices, access_tok
 
   # values
   values <- reactiveValues(
-    selected_devices = data_frame()
+    selected_devices = tibble()
   )
 
   # trigger control dialog
-  observeEvent(input$device_control, showModal(control_dialog()))
+  observeEvent(input$device_control, showModal(control_dialog))
 
   # dialog
-  control_dialog <- reactive({
+  control_dialog <-
     modalDialog(
       title = h3("Send a command to one or multiple devices", align = "center"),
       fade = FALSE, easyClose = TRUE, size = "l",
@@ -41,7 +41,7 @@ deviceCommandsServer <- function(input, output, session, get_devices, access_tok
                        disabled = TRUE),
           modalButton("Close")
         )
-    )})
+    )
 
   # selection table
   selector <- callModule(
@@ -52,13 +52,13 @@ deviceCommandsServer <- function(input, output, session, get_devices, access_tok
   )
 
   # update devices table
-  observe({
+  observeEvent(get_devices(), {
     req(df <- get_devices())
     if (nrow(df) > 0) selector$set_table(df)
   })
 
   # react to device selection
-  observe({
+  observeEvent(selector$get_selected_items(), {
     values$selected_devices <- selector$get_selected_items()
     shinyjs::toggleState("send_command", condition = nrow(values$selected_devices) > 0)
   })
@@ -67,7 +67,7 @@ deviceCommandsServer <- function(input, output, session, get_devices, access_tok
   output$selected_devices = renderTable({
     validate(need(nrow(values$selected_devices) > 0, "None"))
     if ("return_message" %in% names(values$selected_devices))
-      select(values$selected_devices, Name = device_name, `Command Message` = return_message)
+      select(values$selected_devices, Name = device_name, `Command` = command, `Command Message` = return_message)
     else
       select(values$selected_devices, Name = device_name)
   })
@@ -79,6 +79,7 @@ deviceCommandsServer <- function(input, output, session, get_devices, access_tok
       withProgress(
         message = 'Sending command', detail = "Contacting device cloud...", value = 0.5,
         values$selected_devices %>%
+          select(device_id, particle_id, device_name) %>%
           ll_send_devices_command(
             command = input$command,
             message = input$message,

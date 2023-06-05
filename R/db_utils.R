@@ -36,7 +36,7 @@ df_to_sql <- function(df) {
   df %>%
     ungroup() %>%
     mutate(rowid = dplyr::row_number()) %>%
-    nest(-rowid) %>%
+    nest(data = c(-rowid)) %>%
     mutate(sql = map_chr(data, ~to_sql(as.list(.x)))) %>%
     { str_c("(", glue::glue_collapse(.$sql, sep = "), ("), ")") }
 }

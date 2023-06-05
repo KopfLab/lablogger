@@ -363,7 +363,7 @@ datalogsDataServer <- function(input, output, session, experiments, devices, gro
       )
       return(state_logs)
     } else {
-      return(data_frame())
+      return(tibble())
     }
   }
 
@@ -394,7 +394,7 @@ datalogsDataServer <- function(input, output, session, experiments, devices, gro
       if (!is.null(device_ids)) data_logs <- filter(data_logs, device_id %in% device_ids)
       return(data_logs)
     } else {
-      return(data_frame())
+      return(tibble())
     }
   }
 

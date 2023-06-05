@@ -7,7 +7,7 @@
 ll_add_group <- function(group_id, desc = NA, con = default(con), quiet = default(quiet)) {
   con <- validate_db_connection(enquo(con))
   if (!quiet) glue("\nInfo: add new group '{group_id}'... ") %>% message(appendLF = FALSE)
-  data <- data_frame(group_id = group_id, group_desc = desc)
+  data <- tibble(group_id = group_id, group_desc = desc)
   run_insert_sql(data, "groups", con, quiet = quiet)
   return(invisible(data));
 }
@@ -39,7 +39,7 @@ ll_add_device <- function(device_name, desc = NA, device_type_id = "undefined", 
   con <- validate_db_connection(enquo(con))
   if (!quiet) glue("\nInfo: add new device '{device_name}' for group '{group_id}'... ") %>%
     message(appendLF = FALSE)
-  data <- data_frame(device_name, device_desc = desc, device_type_id, group_id, particle_id, in_use)
+  data <- tibble(device_name, device_desc = desc, device_type_id, group_id, particle_id, in_use)
   run_insert_sql(data, "devices", con, quiet = quiet)
   return(invisible(data));
 }
@@ -91,7 +91,7 @@ ll_add_experiment <- function(exp_id, exp_desc = NA, exp_notes = NA, group_id = 
   if (missing(exp_id)) stop("must supply an experiment id", call. = FALSE)
   if (!quiet) glue("\nInfo: add new experiment '{exp_id}' for group '{group_id}'... ") %>%
     message(appendLF = FALSE)
-  data <- data_frame(exp_id, exp_desc, exp_notes, group_id, recording = FALSE)
+  data <- tibble(exp_id, exp_desc, exp_notes, group_id, recording = FALSE)
   run_insert_sql(data, "experiments", con, quiet = quiet)
   return(invisible(data));
 }
@@ -233,7 +233,7 @@ change_experiment_recording <- function(exp_id, recording, group_id, con, quiet)
 #' @inheritParams ll_add_experiment_devices
 ll_experiment_start_recording <- function(exp_id, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
   if (missing(exp_id)) stop("must supply an existing experiment id", call. = FALSE)
-  result <- data_frame(exp_id) %>%
+  result <- tibble(exp_id) %>%
     mutate(
       updated = map_int(exp_id, ~change_experiment_recording(.x, TRUE, group_id = group_id, con = con, quiet = quiet)),
       success = updated > 0
@@ -245,7 +245,7 @@ ll_experiment_start_recording <- function(exp_id, group_id = default(group_id), 
 #' @inheritParams ll_experiment_stop_recording
 ll_experiment_stop_recording <- function(exp_id, group_id = default(group_id), con = default(con), quiet = default(quiet)) {
   if (missing(exp_id)) stop("must supply an existing experiment id", call. = FALSE)
-  result <- data_frame(exp_id) %>%
+  result <- tibble(exp_id) %>%
     mutate(
       updated = map_int(exp_id, ~change_experiment_recording(.x, FALSE, group_id = group_id, con = con, quiet = quiet)),
       success = updated > 0

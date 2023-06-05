@@ -46,7 +46,7 @@ experimentSelectorUI <- function(id, width = 12) {
     title = "Experiments", width = width,
     selectorTableUI(ns("selector")),
     footer = div(
-      tooltipInput(actionButton, ns("experiment_refresh"), label = "Refresh", icon = icon("refresh"), tooltip = "Refresh experiments."),
+      tooltipInput(actionButton, ns("experiment_refresh"), label = "Refresh", icon = icon("sync"), tooltip = "Refresh experiments."),
       spaces(1),
       selectorTableButtons(ns("selector"))
     )

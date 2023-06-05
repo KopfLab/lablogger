@@ -6,7 +6,7 @@
 # @param unnest_single_values whether to unnest single values (values that have a none or only a single entry for all retrieve records)
 # @param unpack_sub_lists - whether to unpack remaining list columns (only evaluated if unnest_single_values = TRUE)
 # @param nest_into_data_frame - whether to nest the unpacked lists into a data frame or keep the columns all unpacked
-unpack_lists_data_frame <- function(lists_df, column = lists, unnest_single_values = TRUE, unpack_sub_lists = FALSE, nest_into_data_frame = FALSE) {
+unpack_lists_tibble <- function(lists_df, column = lists, unnest_single_values = TRUE, unpack_sub_lists = FALSE, nest_into_data_frame = FALSE) {
 
   # id rows
   col_quo <- enquo(column)
@@ -17,7 +17,7 @@ unpack_lists_data_frame <- function(lists_df, column = lists, unnest_single_valu
     lists_df_original %>%
     rename(lists = !!col_quo) %>%
     mutate(name = map(lists, ~if(length(.x) == 0) { NA_character_ } else { names(.x) })) %>%
-    unnest(name, .drop = FALSE) %>%
+    unnest(name) %>%
     mutate(
       class = map2_chr(lists, name, ~class(.x[[.y]])[1]),
       length = map2_int(lists, name, ~length(.x[[.y]])),
@@ -33,7 +33,9 @@ unpack_lists_data_frame <- function(lists_df, column = lists, unnest_single_valu
     group_by(..order.., name) %>%
     summarize(
       data_class = unique(class)[1],
-      value_max_n = as.integer(max(length))) %>%
+      value_max_n = as.integer(max(length)),
+      .groups = "drop"
+    ) %>%
     ungroup() %>% arrange(..order..) %>% select(-..order..)
 
   # lists wide
@@ -76,7 +78,7 @@ unpack_lists_data_frame <- function(lists_df, column = lists, unnest_single_valu
   if (unnest_single_values) {
     unnest_cols <- filter(data_classes, value_max_n == 1,
                           data_class %in% c("character", "integer", "numeric", "logical"))$name
-    lists_df_wide <- unnest(lists_df_wide, !!!syms(unnest_cols), .drop = FALSE)
+    lists_df_wide <- unnest(lists_df_wide, dplyr::all_of(unnest_cols))
   }
 
   # unpack sub lists
@@ -84,14 +86,14 @@ unpack_lists_data_frame <- function(lists_df, column = lists, unnest_single_valu
     unpack_cols <- filter(data_classes, data_class == "list")$name
     for (col in unpack_cols) {
       new_data <<- lists_df_wide %>% rename(..parent_nr.. = ..nr..) %>%
-        unpack_lists_data_frame(
+        unpack_lists_tibble(
           column = !!sym(col), unnest_single_values = unnest_single_values,
           # don't allow recursive unpacking for now, always nest into data frame
           unpack_sub_lists = FALSE, nest_into_data_frame = TRUE)
 
       lists_df_wide <-
         lists_df_wide %>% rename(..parent_nr.. = ..nr..) %>%
-        unpack_lists_data_frame(
+        unpack_lists_tibble(
           column = !!sym(col), unnest_single_values = unnest_single_values,
           # don't allow recursive unpacking for now, always nest into data frame
           unpack_sub_lists = FALSE, nest_into_data_frame = TRUE) %>%
@@ -103,7 +105,7 @@ unpack_lists_data_frame <- function(lists_df, column = lists, unnest_single_valu
   if (nest_into_data_frame) {
     lists_df_wide <- lists_df_wide %>%
       select(!!!syms(c("..nr..", data_classes$name))) %>%
-      nest(-..nr.., .key = !!col_quo)
+      nest(!!col_quo := c(-..nr..))
   } else {
     # no nesting, just select right columns
     lists_df_wide <- select(lists_df_wide, !!!syms(c("..nr..", data_classes$name)))

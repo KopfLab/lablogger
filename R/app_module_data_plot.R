@@ -90,7 +90,7 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
       if (nrow(df) > 0) {
         traces_selector$set_table(df %>% dplyr::count(data_trace) %>% arrange(data_trace))
       } else {
-        traces_selector$set_table(data_frame(data_trace = character(0), n = integer(0)))
+        traces_selector$set_table(tibble(data_trace = character(0), n = integer(0)))
       }
     })
   })
@@ -318,7 +318,7 @@ dataPlotServer <- function(input, output, session, timezone, get_experiments, ge
     summary <- generate_data_summary()
     module_message(ns, "debug", "rendering plot data summary table")
     if (nrow(summary) > 0) summary
-    else data_frame(` ` = "No data.")
+    else tibble(` ` = "No data.")
   }, striped = TRUE, spacing = 'xs', width = '100%', align = NULL, digits = reactive(input$digits))
 
   # data table output =====
@@ -370,7 +370,7 @@ dataPlotUI <- function(id, plot_height = 650) {
           div(id = ns("data_plot_actions"),
               fluidRow(
                 column(width = 4,
-                       tooltipInput(actionButton, ns("fetch_data"), NULL, icon = icon("cloud-download"),
+                       tooltipInput(actionButton, ns("fetch_data"), NULL, icon = icon("cloud-download-alt"),
                                     tooltip = "Fetch the most recent data from the data base.") %>% disabled(),
                        spaces(1),
                        tooltipInput(actionButton, ns("reset_cache"), NULL, icon = icon("unlink"),
@@ -389,11 +389,11 @@ dataPlotUI <- function(id, plot_height = 650) {
                                     tooltip = "Move back in time") %>% disabled(),
                        tooltipInput(actionButton, ns("zoom_move_right"), "", icon = icon("arrow-right"),
                                     tooltip = "Move forward in time") %>% disabled(),
-                       tooltipInput(actionButton, ns("zoom_back"), "", icon = icon("rotate-left"),
+                       tooltipInput(actionButton, ns("zoom_back"), "", icon = icon("rotate-left", verify_fa = FALSE),
                                     tooltip = "Revert to previous view") %>% disabled()
                 ),
                 column(width = 4, align = "right",
-                       tooltipInput(actionButton, ns("plot_refresh"), NULL, icon = icon("refresh"),
+                       tooltipInput(actionButton, ns("plot_refresh"), NULL, icon = icon("sync"),
                                     tooltip = "Refresh the plot with the selected filters and plot options.") %>% disabled(),
                        spaces(1),
                        plotDownloadLink(ns("plot_download"), label = NULL) %>% disabled(),
@@ -423,7 +423,7 @@ dataPlotUI <- function(id, plot_height = 650) {
         title = "Data Traces", width = 4,
         selectorTableUI(ns("traces_selector")),
         footer = div(
-          tooltipInput(actionButton, ns("traces_refresh"), label = "Re-plot", icon = icon("refresh"),
+          tooltipInput(actionButton, ns("traces_refresh"), label = "Re-plot", icon = icon("sync"),
                        tooltip = "Refresh plot with new data trace selection."),
           spaces(1),
           selectorTableButtons(ns("traces_selector"))
@@ -474,7 +474,7 @@ dataPlotUI <- function(id, plot_height = 650) {
               column(width = 8)
           ),
           footer = tooltipInput(actionButton, ns("options_refresh"), label = "Re-plot",
-                                icon = icon("refresh"),
+                                icon = icon("sync"),
                                 tooltip = "Refresh plot with new plot settings.") %>% disabled()
         )
     ) %>% hidden(),

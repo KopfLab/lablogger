@@ -222,7 +222,7 @@ experimentManagerServer <- function(input, output, session, dm_links, dm_experim
       # format data
       data <- data %>%
         mutate(datetime = ifelse(!is.na(datetime), format(datetime), error)) %>%
-        mutate(..row.. = row_number()) %>%
+        mutate(..row.. = dplyr::row_number()) %>%
         select(
           ..id.., ..row..,
           Name = device_name, `Live data posted at` = datetime,
@@ -348,7 +348,7 @@ experimentManagerServer <- function(input, output, session, dm_links, dm_experim
     # table data
     table_data <- links_cloud_data %>%
       mutate(datetime = ifelse(!is.na(datetime), format(datetime), error)) %>%
-      mutate(..row.. = row_number()) %>%
+      mutate(..row.. = dplyr::row_number()) %>%
       select(
         ..id.., ..row..,
         Name = device_name, `Live data posted at` = datetime,
@@ -539,7 +539,7 @@ experimentManagerUI <- function(id, width = 12) {
       title = "Experiments", width = width,
       uiOutput(ns("experiment")),
       footer = div(
-        tooltipInput(actionButton, ns("experiment_refresh"), label = "Refresh", icon = icon("refresh"), tooltip = "Refresh experiments."),
+        tooltipInput(actionButton, ns("experiment_refresh"), label = "Refresh", icon = icon("sync"), tooltip = "Refresh experiments."),
         spaces(1),
         # FIXME
         tooltipInput(actionButton, ns("experiment_new"), label = "New experiment", icon = icon("plus"), tooltip = "Add new experiment."),

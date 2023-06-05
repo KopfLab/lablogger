@@ -56,8 +56,8 @@ make_particle_cloud_request <- function(endpoint, arg = NULL, nr = NULL, total =
 
   if (!is.null(result$error)) {
     if (!quiet) glue("failed.") %>% message()
-    glue("encountered the following error: {result$error}") %>%
-      warning(immediate. = TRUE, call. = FALSE)
+    glue("Warning: encountered the following error: {result$error}") %>%
+      message()
   } else if (!quiet) {
     glue("successful.") %>% message()
   }
@@ -155,7 +155,7 @@ get_devices_cloud_variable <- function(devices, variable, access_token = default
         )
       )
     ) %>%
-    unpack_lists_data_frame(unnest_single_values = TRUE, unpack_sub_lists = TRUE, nest_into_data_frame = FALSE)
+    unpack_lists_tibble(unnest_single_values = TRUE, unpack_sub_lists = TRUE, nest_into_data_frame = FALSE)
 }
 
 # helper function to unpack cloud variable result
@@ -172,7 +172,7 @@ unpack_cloud_variable_result <- function(var_data, data_column, renames = c(), c
       mutate(result = map(result, ~if(!is.na(.x)) {
         tryCatch(fromJSON (fix_truncated_JSON(.x)), error = function(e) { warning("problems parsing JSON - ", e$message, immediate. = TRUE, call. = FALSE); list() })
       } else list())) %>%
-      unpack_lists_data_frame(result)
+      unpack_lists_tibble(result)
 
     # check if there is any data
     if (quo_text(data_column_quo) %in% names(var_data_unpacked)) {
@@ -247,7 +247,7 @@ ll_get_devices_cloud_state <-
            spread = FALSE,
            quiet = default(quiet)) {
 
-    if (nrow(devices) == 0) return(data_frame())
+    if (nrow(devices) == 0) return(tibble())
 
     devices %>%
       # request state info
@@ -281,7 +281,7 @@ ll_get_devices_cloud_data <-
            spread = FALSE,
            quiet = default(quiet)) {
 
-    if (nrow(devices) == 0) return(data_frame())
+    if (nrow(devices) == 0) return(tibble())
 
     devices %>%
       # request live data info
@@ -394,7 +394,7 @@ ll_summarize_cloud_data_experiment_links <- function(
       bind_rows(., dplyr::anti_join(filter(cloud_data, !is.na(error)), ., by = join_by))
     } %>%
     filter(linked & !is.na(exp_id) | unlinked & is.na(exp_id)) %>%
-    nest(exp_id, recording, .key = ..exp_data..) %>%
+    nest(..exp_data.. = c(exp_id, recording)) %>%
     mutate(
       recording_exp_ids = map_chr(..exp_data.., ~filter(.x, recording)$exp_id %>% { if(length(.) > 0) glue::glue_collapse(., sep = ", ") else NA_character_ }),
       non_recording_exp_ids = map_chr(..exp_data.., ~filter(.x, !recording)$exp_id %>% { if(length(.) > 0) glue::glue_collapse(., sep = ", ") else NA_character_ })
@@ -426,7 +426,7 @@ call_devices_cloud_function <- function(devices, func = "device", arg = "", acce
         )
       )
     ) %>%
-    unpack_lists_data_frame(unnest_single_values = TRUE, unpack_sub_lists = TRUE, nest_into_data_frame = FALSE)
+    unpack_lists_tibble(unnest_single_values = TRUE, unpack_sub_lists = TRUE, nest_into_data_frame = FALSE)
 }
 
 #' Send device commands to the cloud
